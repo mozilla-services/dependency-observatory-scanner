@@ -12,15 +12,6 @@ def text_output(*args, **kwargs):
     return check_output(*args, **kwargs).decode("utf-8").strip()
 
 
-def read_version_json():
-    """
-    Read the dockerflow version.json object:
-    https://github.com/mozilla-services/Dockerflow/blob/master/docs/version_object.md
-    """
-    with open("version.json", "r") as fin:
-        return json.load(fin)
-
-
 def text_output_with_returncode(*args, **kwargs):
     """
     Calls command, returns tuple of return code and stripped UTF8 stdout output.
@@ -33,6 +24,38 @@ def text_output_with_returncode(*args, **kwargs):
         return e.returncode, e.output.decode("utf-8").strip()
 
 
+def text_output_or_none(*args, **kwargs):
+    returncode, result = text_output_with_returncode(*args, **kwargs)
+    if returncode != 0:
+        result = None
+    return result
+
+
+def read_version_json():
+    """
+    Read the dockerflow version.json object:
+    https://github.com/mozilla-services/Dockerflow/blob/master/docs/version_object.md
+    """
+    with open("version.json", "r") as fin:
+        return json.load(fin)
+
+
+def get_lang_versions():
+    return dict(
+        python=text_output_or_none(
+            ["python", "-c", "import platform; print(platform.python_version())"]
+        ),
+        node=text_output_or_none(["node", "--version"]),
+    )
+
+
+def get_pkg_manager_versions():
+    return dict(
+        yarn=text_output_or_none(["yarn", "--version"]),
+        npm=text_output_or_none(["npm", "--version"]),
+    )
+
+
 def find_js_files():
     """
     Finds JS package and lock files and returns a list of paths to
@@ -40,7 +63,7 @@ def find_js_files():
     """
     # NB: use one pattern for package files since yarn uses "package.json" too
     return text_output(
-        "find -not \( -path node_modules/ -prune \) -name 'yarn\.lock|(package|package-lock|npm-shrinkwrap)\.json'",
+        "find -not \( -path node_modules -prune \) -name 'yarn\.lock|(package|package-lock|npm-shrinkwrap)\.json'",
         shell=True,
     ).split("\n")
 
@@ -141,20 +164,8 @@ def main():
     print(
         json.dumps(
             dict(
-                lang_versions=dict(
-                    python=text_output(
-                        [
-                            "python",
-                            "-c",
-                            "import platform; print(platform.python_version())",
-                        ]
-                    ),
-                    node=text_output(["node", "--version"]),
-                ),
-                pkg_manager_versions=dict(
-                    yarn=text_output(["yarn", "--version"]),
-                    npm=text_output(["npm", "--version"]),
-                ),
+                lang_versions=get_lang_versions(),
+                pkg_manager_versions=get_pkg_manager_versions(),
                 version_json=read_version_json(),
                 dirs=dirs,
             ),
