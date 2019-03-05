@@ -7,21 +7,18 @@ from collections import defaultdict
 from subprocess import check_output, CalledProcessError
 
 
-## Python
-# does a .pyup.yml or .pyup.yaml exist? does it list requirements.txt files?
-# does a Pipfile exist?
-# does a requirements.txt file exist?
-# if no to all, guess not Python
-# PYUP_CFG_FILE=$(git ls-files | grep '.pyup.yml')
-# pip --version
-
-# are there hashes in the requirements.txt or a Pipfile.lock with hashes?
-# if no to both, output repo dir is unpinned
-
-
 def text_output(*args, **kwargs):
     """Calls command and returns stripped UTF8 stdout"""
     return check_output(*args, **kwargs).decode("utf-8").strip()
+
+
+def read_version_json():
+    """
+    Read the dockerflow version.json object:
+    https://github.com/mozilla-services/Dockerflow/blob/master/docs/version_object.md
+    """
+    with open("version.json", "r") as fin:
+        return json.load(fin)
 
 
 def text_output_with_returncode(*args, **kwargs):
@@ -40,12 +37,10 @@ def find_js_files():
     """
     Finds JS package and lock files and returns a list of paths to
     those files including filename
-
-    TODO: git ls-files ignores submodules and unindexed files
     """
     # NB: use one pattern for package files since yarn uses "package.json" too
     return text_output(
-        "git ls-files | egrep 'yarn\.lock|(package|package-lock|npm-shrinkwrap)\.json'",
+        "find -not \( -path node_modules/ -prune \) -name 'yarn\.lock|(package|package-lock|npm-shrinkwrap)\.json'",
         shell=True,
     ).split("\n")
 
@@ -126,8 +121,12 @@ def main():
         commands = []
         # run each command suppressing stderr. and save the return code and stdout
         for cmd in cmds_to_run:
-            with open(os.devnull, "w") as devnull:  # NB: on Python 3 can use subprocess.DEVNULL
-                exit_code, output = text_output_with_returncode(cmd, cwd=path, stderr=devnull)
+            with open(
+                os.devnull, "w"
+            ) as devnull:  # NB: on Python 3 can use subprocess.DEVNULL
+                exit_code, output = text_output_with_returncode(
+                    cmd, cwd=path, stderr=devnull
+                )
             commands.append(dict(cmd=cmd, exit_code=exit_code, stdout=output))
 
         dirs.append(
@@ -142,15 +141,21 @@ def main():
     print(
         json.dumps(
             dict(
-                lang=os.environ["LANG"],
-                node_version=text_output(["node", "--version"]),
-                yarn_version=text_output(["yarn", "--version"]),
-                npm_version=text_output(["npm", "--version"]),
-                repo=dict(
-                    url=os.environ["GIT_REPO"],
-                    commit=text_output(["git", "rev-parse", "HEAD"]),
-                    version=text_output(["git", "describe", "--abbrev=0"]),
+                lang_versions=dict(
+                    python=text_output(
+                        [
+                            "python",
+                            "-c",
+                            "import platform; print(platform.python_version())",
+                        ]
+                    ),
+                    node=text_output(["node", "--version"]),
                 ),
+                pkg_manager_versions=dict(
+                    yarn=text_output(["yarn", "--version"]),
+                    npm=text_output(["npm", "--version"]),
+                ),
+                version_json=read_version_json(),
                 dirs=dirs,
             ),
             indent=4,
