@@ -4,7 +4,7 @@ import json
 """
 Example usage:
 
-jq '.dirs[].commands[].stdout | fromjson' mozilla_fxa-auth-server.package_info.json | flatten_npm_info.py
+jq '.dirs[].commands[].stdout | fromjson' mozilla_fxa-auth-server.package_info.json | flatten_npm_dep_info.py
 
 Takes a nested obj and outputs
 
