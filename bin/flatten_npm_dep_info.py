@@ -6,12 +6,7 @@ Example usage:
 
 jq '.dirs[].commands[].stdout | fromjson' mozilla_fxa-auth-server.package_info.json | flatten_npm_info.py
 
-Takes a nested obj:
-
-{
-}
-
-and outputs
+Takes a nested obj and outputs
 
 STRUCT<`name`: STRING, `version`: STRING, `type`: STRING, `registryUrl`: STRING, `integrity`: STRING, `paths`: ARRAY<STRING>>
 """
