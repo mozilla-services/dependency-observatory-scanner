@@ -65,7 +65,6 @@ $
 
 # TODO: paginate vulnerabilityAlerts
 # TODO: handle rate limits if that becomes an issue https://developer.github.com/v4/guides/resource-limitations/#rate-limit
-# TODO: figure out a way to run black to format without screwing up the schemas
 
 import os
 import sys
@@ -126,217 +125,86 @@ async def async_github_schema_from_cache_or_url(schema_path, async_exec):
 def repo_query(schema, org_name, repo_name, first=10):
     _ = quiz.SELECTOR
     return schema.query[
-            _
-            .rateLimit[
-                _
-                .limit
-                .cost
-                .remaining
-                .resetAt
+        _.rateLimit[_.limit.cost.remaining.resetAt].repository(
+            owner=org_name, name=repo_name
+        )[
+            _.createdAt.updatedAt.description.isArchived.isPrivate.isFork.languages(
+                first=first
+            )[
+                _.pageInfo[_.hasNextPage.endCursor].totalCount.totalSize.edges[
+                    _.node[_.id.name]
+                ]
             ]
-            .repository(owner=org_name, name=repo_name)[
-                _
-                .createdAt
-                .updatedAt
-                .description
-                .isArchived
-                .isPrivate
-                .isFork
-                .languages(first=first)[
-                    _
-                    .pageInfo[
-                        _
-                        .hasNextPage
-                        .endCursor
-                    ]
-                    .totalCount
-                    .totalSize
-                    .edges[
-                        _.node[
-                            _
-                            .id
-                            .name
-                        ]
-                    ]
-                ]
-                .dependencyGraphManifests(first=first)[
-                    _
-                    .pageInfo[
-                        _
-                        .hasNextPage
-                        .endCursor
-                    ]
-                    .totalCount
-                    .edges[
-                        _.node[
-                            _
-                            .id
-                            .blobPath
-                            .dependenciesCount
-                            .exceedsMaxSize
-                            .filename
-                            .parseable
-                            .dependencies(first=first)[
-                                _
-                                .pageInfo[
-                                    _
-                                    .hasNextPage
-                                    .endCursor
-                                ]
-                                .totalCount
-                                .nodes[
-                                    _
-                                    .packageName
-                                    .packageManager
-                                    .hasDependencies
-                                    .requirements
-                                ]
+            .dependencyGraphManifests(first=first)[
+                _.pageInfo[_.hasNextPage.endCursor].totalCount.edges[
+                    _.node[
+                        _.id.blobPath.dependenciesCount.exceedsMaxSize.filename.parseable.dependencies(
+                            first=first
+                        )[
+                            _.pageInfo[_.hasNextPage.endCursor].totalCount.nodes[
+                                _.packageName.packageManager.hasDependencies.requirements
                             ]
                         ]
                     ]
                 ]
-                .vulnerabilityAlerts(first=first)[
-                    _
-                    .pageInfo[
-                        _
-                        .hasNextPage
-                        .endCursor
-                    ]
-                    .totalCount
-                    .edges[
-                        _
-                        .node[
-                            _
-                            .id
-                            .dismissReason
-                            .dismissedAt
-                            .securityAdvisory[
-                                _
-                                .id
-                                .ghsaId
-                                .severity
-                                .publishedAt
-                                .updatedAt
-                                .withdrawnAt
-                                .identifiers[
-                                    _
-                                    .type
-                                    .value
-                                ]
-                                .vulnerabilities(first=first)[
-                                    _
-                                    .pageInfo[
-                                        _
-                                        .hasNextPage
-                                        .endCursor
-                                    ]
-                                    .totalCount
-                                    .nodes[
-                                            _
-                                            .package[
-                                                _
-                                                .name
-                                                .ecosystem
-                                            ]
-                                            .severity
-                                            .updatedAt
-                                            .vulnerableVersionRange
-                                    ]
+            ]
+            .vulnerabilityAlerts(first=first)[
+                _.pageInfo[_.hasNextPage.endCursor].totalCount.edges[
+                    _.node[
+                        _.id.dismissReason.dismissedAt.securityAdvisory[
+                            _.id.ghsaId.severity.publishedAt.updatedAt.withdrawnAt.identifiers[
+                                _.type.value
+                            ].vulnerabilities(
+                                first=first
+                            )[
+                                _.pageInfo[_.hasNextPage.endCursor].totalCount.nodes[
+                                    _.package[
+                                        _.name.ecosystem
+                                    ].severity.updatedAt.vulnerableVersionRange
                                 ]
                             ]
-                            .vulnerableManifestFilename
-                            .vulnerableManifestPath
-                            .vulnerableRequirements
-                        ]
+                        ].vulnerableManifestFilename.vulnerableManifestPath.vulnerableRequirements
                     ]
                 ]
             ]
         ]
+    ]
 
 
 def repo_langs_query_next_page(schema, org_name, repo_name, after, first=10):
     _ = quiz.SELECTOR
     return schema.query[
-            _
-            .rateLimit[
-                _
-                .limit
-                .cost
-                .remaining
-                .resetAt
-            ]
-            .repository(owner=org_name, name=repo_name)[
-                _
-                .languages(after=after, first=first)[
-                    _
-                    .pageInfo[
-                        _
-                        .hasNextPage
-                        .endCursor
-                    ]
-                    .edges[
-                        _.node[
-                            _
-                            .id
-                            .name
-                        ]
-                    ]
-                ]
+        _.rateLimit[_.limit.cost.remaining.resetAt].repository(
+            owner=org_name, name=repo_name
+        )[
+            _.languages(after=after, first=first)[
+                _.pageInfo[_.hasNextPage.endCursor].edges[_.node[_.id.name]]
             ]
         ]
+    ]
 
 
 def repo_manifests_query_next_page(schema, org_name, repo_name, after, first=10):
     _ = quiz.SELECTOR
     return schema.query[
-            _
-            .rateLimit[
-                _
-                .limit
-                .cost
-                .remaining
-                .resetAt
-            ]
-            .repository(owner=org_name, name=repo_name)[
-                _
-                .dependencyGraphManifests(first=first, after=after)[
-                    _
-                    .pageInfo[
-                        _
-                        .hasNextPage
-                        .endCursor
-                    ]
-                    .totalCount
-                    .edges[
-                        _.node[
-                            _
-                            .id
-                            .blobPath
-                            .dependenciesCount
-                            .exceedsMaxSize
-                            .filename
-                            .parseable
-                            .dependencies(first=first)[
-                                _
-                                .pageInfo[
-                                    _
-                                    .hasNextPage
-                                    .endCursor
-                                ]
-                                .totalCount
-                                .nodes[
-                                    _
-                                    .packageName
-                                    .packageManager
-                                    .hasDependencies
-                                    .requirements
-                                ]
+        _.rateLimit[_.limit.cost.remaining.resetAt].repository(
+            owner=org_name, name=repo_name
+        )[
+            _.dependencyGraphManifests(first=first, after=after)[
+                _.pageInfo[_.hasNextPage.endCursor].totalCount.edges[
+                    _.node[
+                        _.id.blobPath.dependenciesCount.exceedsMaxSize.filename.parseable.dependencies(
+                            first=first
+                        )[
+                            _.pageInfo[_.hasNextPage.endCursor].totalCount.nodes[
+                                _.packageName.packageManager.hasDependencies.requirements
                             ]
                         ]
                     ]
                 ]
             ]
         ]
+    ]
 
 
 def repo_manifest_deps_query_next_page(
@@ -345,104 +213,44 @@ def repo_manifest_deps_query_next_page(
     _ = quiz.SELECTOR
     if manifest_after is None:
         return schema.query[
-            _
-            .rateLimit[
-                _
-                .limit
-                .cost
-                .remaining
-                .resetAt
-            ]
-            .repository(owner=org_name, name=repo_name)[
-                _
-                .dependencyGraphManifests(first=first)[
-                    _
-                    .pageInfo[
-                        _
-                        .hasNextPage
-                        .endCursor
-                        ]
-                        .totalCount
-                        .edges[
-                            _.node[
-                                _
-                                .id
-                                .blobPath
-                                .dependenciesCount
-                                .exceedsMaxSize
-                                .filename
-                                .parseable
-                                .dependencies(first=first, after=after)[
-                                    _
-                                    .pageInfo[
-                                        _
-                                        .hasNextPage
-                                        .endCursor
-                                        ]
-                                        .totalCount
-                                        .nodes[
-                                            _
-                                            .packageName
-                                            .packageManager
-                                            .hasDependencies
-                                            .requirements
-                                            ]
-                                    ]
+            _.rateLimit[_.limit.cost.remaining.resetAt].repository(
+                owner=org_name, name=repo_name
+            )[
+                _.dependencyGraphManifests(first=first)[
+                    _.pageInfo[_.hasNextPage.endCursor].totalCount.edges[
+                        _.node[
+                            _.id.blobPath.dependenciesCount.exceedsMaxSize.filename.parseable.dependencies(
+                                first=first, after=after
+                            )[
+                                _.pageInfo[_.hasNextPage.endCursor].totalCount.nodes[
+                                    _.packageName.packageManager.hasDependencies.requirements
                                 ]
                             ]
+                        ]
                     ]
                 ]
             ]
+        ]
     else:
         return schema.query[
-            _
-            .rateLimit[
-                _
-                .limit
-                .cost
-                .remaining
-                .resetAt
-                ]
-            .repository(owner=org_name, name=repo_name)[
-                _
-                .dependencyGraphManifests(first=first, after=after)[
-                    _
-                    .pageInfo[
-                        _
-                        .hasNextPage
-                        .endCursor
-                        ]
-                        .totalCount
-                        .edges[
-                            _.node[
-                                _
-                                .id
-                                .blobPath
-                                .dependenciesCount
-                                .exceedsMaxSize
-                                .filename
-                                .parseable
-                                .dependencies(first=first, after=after)[
-                                    _
-                                    .pageInfo[
-                                        _
-                                        .hasNextPage
-                                        .endCursor
-                                        ]
-                                        .totalCount
-                                        .nodes[
-                                            _
-                                            .packageName
-                                            .packageManager
-                                            .hasDependencies
-                                            .requirements
-                                            ]
-                                    ]
+            _.rateLimit[_.limit.cost.remaining.resetAt].repository(
+                owner=org_name, name=repo_name
+            )[
+                _.dependencyGraphManifests(first=first, after=after)[
+                    _.pageInfo[_.hasNextPage.endCursor].totalCount.edges[
+                        _.node[
+                            _.id.blobPath.dependenciesCount.exceedsMaxSize.filename.parseable.dependencies(
+                                first=first, after=after
+                            )[
+                                _.pageInfo[_.hasNextPage.endCursor].totalCount.nodes[
+                                    _.packageName.packageManager.hasDependencies.requirements
                                 ]
                             ]
+                        ]
                     ]
                 ]
             ]
+        ]
 
 
 async def query_repo_data(schema, org_repo, async_exec):
