@@ -102,3 +102,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# gh repo metadata fetching
+github_graphql_schema.json
+repo_metadata/
