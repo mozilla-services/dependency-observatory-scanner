@@ -3,7 +3,7 @@
 """
 Fetches repo, language, manifest, dep metadata, and vuln alerts (if
 accessible) for a github repo and saves it as a Python pickle to
-./repo_metadata/:org_name/:repo_name.pickle
+./github_repo_metadata/:org_name/:repo_name.pickle
 
 Caches github graphql schema to: ./github_graphql_schema.json
 This needs to be cleared manually to be updated.
@@ -48,7 +48,7 @@ mozilla/normandy yarn.lock fetching 100 deps from manifest cursor None and dep c
 mozilla/normandy yarn.lock fetched dep page w/ 100 deps for 600/674
 mozilla/normandy yarn.lock fetching 100 deps from manifest cursor None and dep cursor NjAw
 mozilla/normandy yarn.lock fetched dep page w/ 74 deps for 674/674
-saving repo_metadata/mozilla/normandy.json
+saving github_repo_metadata/mozilla/normandy.json
 $
 """
 
@@ -475,8 +475,8 @@ def parse_args():
         "-o",
         "--output-dir",
         type=pathlib.Path,
-        default="repo_metadata",
-        help="Output directory to write repo JSON metadata",
+        default="github_repo_metadata",
+        help="Output directory to write repo metadata",
     )
 
     parser.add_argument(
