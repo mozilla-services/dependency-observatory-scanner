@@ -152,7 +152,10 @@ def repo_query(schema, org_name, repo_name, first=10):
             .vulnerabilityAlerts(first=first)[
                 _.pageInfo[_.hasNextPage.endCursor].totalCount.edges[
                     _.node[
-                        _.id.dismissReason.dismissedAt.securityAdvisory[
+                        _.id.dismissReason.dismissedAt.dismisser[
+                            _.id.name  # need user:email oauth scope for .email
+                        ]
+                        .securityAdvisory[
                             _.id.ghsaId.severity.publishedAt.updatedAt.withdrawnAt.identifiers[
                                 _.type.value
                             ].vulnerabilities(
@@ -164,7 +167,8 @@ def repo_query(schema, org_name, repo_name, first=10):
                                     ].severity.updatedAt.vulnerableVersionRange
                                 ]
                             ]
-                        ].vulnerableManifestFilename.vulnerableManifestPath.vulnerableRequirements
+                        ]
+                        .vulnerableManifestFilename.vulnerableManifestPath.vulnerableRequirements
                     ]
                 ]
             ]
