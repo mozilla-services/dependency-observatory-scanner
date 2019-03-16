@@ -530,7 +530,7 @@ def main():
         with open(output_filename, "w") as fout:
             # TODO: figure out how to cast quiz.Query -> quiz.JSON type (inverse of quiz.types.load)
             # json.dump(str(result), fout, indent=4, sort_keys=True)
-            pickle.dump(result, output_filename)
+            pickle.dump(result, fout)
 
 
 if __name__ == "__main__":
