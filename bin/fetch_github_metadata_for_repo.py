@@ -2,8 +2,8 @@
 
 """
 Fetches repo, language, manifest, dep metadata, and vuln alerts (if
-accessible) for a github repo and saves it as pretty printed JSON to
-./repo_metadata/:org_name/:repo_name.json
+accessible) for a github repo and saves it as a Python pickle to
+./repo_metadata/:org_name/:repo_name.pickle
 
 Caches github graphql schema to: ./github_graphql_schema.json
 This needs to be cleared manually to be updated.
@@ -73,6 +73,7 @@ import asyncio
 import argparse
 import json
 import pathlib
+import pickle
 
 import aiohttp
 import snug
@@ -520,12 +521,16 @@ def main():
         result = task.result()
 
         output_filename = (
-            args.output_dir / pathlib.Path(org_name) / pathlib.Path(repo_name + ".json")
+            args.output_dir
+            / pathlib.Path(org_name)
+            / pathlib.Path(repo_name + ".pickle")
         )
         print("saving", output_filename, file=sys.stderr)
         # print(result)
         with open(output_filename, "w") as fout:
-            json.dump(str(result), fout, indent=4, sort_keys=True)
+            # TODO: figure out how to cast quiz.Query -> quiz.JSON type (inverse of quiz.types.load)
+            # json.dump(str(result), fout, indent=4, sort_keys=True)
+            pickle.dump(result, output_filename)
 
 
 if __name__ == "__main__":
