@@ -622,8 +622,6 @@ def main():
                 row.update(advisory)
                 row.update(base_dict)
 
-                print(row)
-
                 if i == 0:
                     writer = csv.DictWriter(fout, fieldnames=sorted(row.keys()))
                     writer.writeheader()
