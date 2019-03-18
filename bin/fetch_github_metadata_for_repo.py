@@ -624,6 +624,20 @@ def main():
 
                 row.update(advisory)
                 row.update(base_dict)
+                # TODO: make less gross
+                for field in ['dismisser.id', 'dismisser.name', 'dismissedAt', 'dismissReason']:
+                    if field in row:
+                        continue
+                    if field.startswith('dismisser.'):
+                        dismisser = getattr(edge.node, 'dismisser', None)
+                        if dismisser:
+                            row[field] = getattr(dismisser, field.split('.', 1)[-1], None)
+                        else:
+                            row[field] = None
+                    else:
+                        row[field] = getattr(edge.node, field, None)
+                if 'dismisser' in row:  # we only want the nested dismisser.* fields
+                    del row['dismisser']
 
                 if i == 0:
                     writer = csv.DictWriter(fout, fieldnames=sorted(row.keys()))
