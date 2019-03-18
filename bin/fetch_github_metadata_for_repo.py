@@ -598,8 +598,8 @@ def main():
 
                     writer.writerow(row)
 
-        print("saving", output_path / pathlib.Path("vulnerabillityAlerts.csv"), file=sys.stderr)
-        with open(output_path / pathlib.Path("vulnerabillityAlerts.csv"), "w") as fout:
+        print("saving", output_path / pathlib.Path("vulnerabilityAlerts.csv"), file=sys.stderr)
+        with open(output_path / pathlib.Path("vulnerabilityAlerts.csv"), "w") as fout:
             def serialize_vuln(vuln):
                 return {
                     'firstPatchedVersion.identifier': getattr(vuln, 'firstPatchedVersion', None) and getattr(vuln.firstPatchedVersion, 'identifier', None),
