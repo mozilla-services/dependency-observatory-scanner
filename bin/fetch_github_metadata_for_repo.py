@@ -156,7 +156,7 @@ def repo_query(schema, org_name, repo_name, first=10):
                             _.id.name  # need user:email oauth scope for .email
                         ]
                         .securityAdvisory[
-                            _.id.ghsaId.severity.publishedAt.updatedAt.withdrawnAt.identifiers[
+                            _.id.ghsaId.summary.description.severity.publishedAt.updatedAt.withdrawnAt.identifiers[
                                 _.type.value
                             ].vulnerabilities(
                                 first=first
@@ -600,13 +600,24 @@ def main():
 
         print("saving", output_path / pathlib.Path("vulnerabillityAlerts.csv"), file=sys.stderr)
         with open(output_path / pathlib.Path("vulnerabillityAlerts.csv"), "w") as fout:
+            def serialize_vuln(vuln):
+                return {
+                    'firstPatchedVersion.identifier': getattr(vuln, 'firstPatchedVersion', None) and getattr(vuln.firstPatchedVersion, 'identifier', None),
+                    'package.ecosystem': getattr(vuln, 'package', None) and getattr(vuln.package, 'ecosystem', None) and vuln.package.ecosystem.value,
+                    'package.name': getattr(vuln, 'package', None) and getattr(vuln.package, 'name', None),
+                    'severity': getattr(vuln, 'severity', None) and vuln.severity.value,
+                    'updatedAt': getattr(vuln, 'updatedAt', None),
+                    'vulnerableVersionRange': getattr(vuln, 'vulnerableVersionRange', None),
+                }
+
             for i, edge in enumerate(repo.vulnerabilityAlerts.edges):
                 row = {field: getattr(edge.node, field, Sentinal) for field in dir(edge.node) if not field.startswith('__') and type(getattr(edge.node, field, Sentinal)) in scalar_types}
                 advisory = {'securityAdvisory.' + field: getattr(edge.node.securityAdvisory, field, Sentinal) for field in dir(edge.node.securityAdvisory) if not field.startswith('__') and type(getattr(edge.node.securityAdvisory, field, Sentinal)) in scalar_types}
-                advisory['securityAdvisory.severity'] = edge.node.securityAdvisory.severity.value # .value since it's an enum
 
-                # TODO: write securityAdvisory.identifiers[] and securityAdvisory.vulnerabilities.nodes[]
-                # TODO: also maybe write securityVulnerability.* if it still exists
+                advisory['securityAdvisory.severity'] = edge.node.securityAdvisory.severity.value # .value since it's an enum
+                advisory['securityAdvisory.identifiers'] = [(sa_id.type, sa_id.value) for sa_id in edge.node.securityAdvisory.identifiers]
+                advisory['securityAdvisory.vulnerabilities'] = [serialize_vuln(n) for n in edge.node.securityAdvisory.vulnerabilities.nodes]
+                advisory['securityAdvisory.referenceUrls'] = [getattr(r, 'url', None) for r in getattr(edge.node.securityAdvisory, 'references', [])]
 
                 row.update(advisory)
                 row.update(base_dict)
