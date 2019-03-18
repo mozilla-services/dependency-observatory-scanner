@@ -102,6 +102,9 @@ def aiohttp_session():
 async def async_query(async_executor, query):
     try:
         result = await async_executor(query)
+    except quiz.HTTPError as err:
+        print(err, err.response, file=sys.stderr)
+        result = None
     except quiz.ErrorResponse as err:
         print(err, err.errors, file=sys.stderr)
         result = None
