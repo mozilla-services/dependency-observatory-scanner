@@ -533,11 +533,7 @@ def main():
 
         result = task.result()
 
-        output_path = (
-            args.output_dir
-            / pathlib.Path(org_name)
-            / pathlib.Path(repo_name)
-        )
+        output_path = args.output_dir / pathlib.Path(org_name) / pathlib.Path(repo_name)
         os.makedirs(output_path, exist_ok=True)
 
         # TODO: figure out how to cast quiz.Query -> quiz.JSON type (inverse of quiz.types.load)
@@ -552,11 +548,18 @@ def main():
         print("saving", output_path / pathlib.Path("repository.csv"), file=sys.stderr)
         with open(output_path / pathlib.Path("repository.csv"), "w") as fout:
             # 'createdAt', 'description', 'isArchived', 'isFork', 'isPrivate', 'updatedAt'
-            row = {f: getattr(repo, f) for f in dir(repo) if not f.startswith('__') and type(getattr(repo, f, Sentinal)) in scalar_types}
-            row['languages.totalCount'] = repo.languages.totalCount
-            row['languages.totalSize'] = repo.languages.totalSize # in bytes
-            row['dependencyGraphManifests.totalCount'] = repo.dependencyGraphManifests.totalCount
-            row['vulnerabilityAlerts.totalCount'] = repo.vulnerabilityAlerts.totalCount
+            row = {
+                f: getattr(repo, f)
+                for f in dir(repo)
+                if not f.startswith("__")
+                and type(getattr(repo, f, Sentinal)) in scalar_types
+            }
+            row["languages.totalCount"] = repo.languages.totalCount
+            row["languages.totalSize"] = repo.languages.totalSize  # in bytes
+            row[
+                "dependencyGraphManifests.totalCount"
+            ] = repo.dependencyGraphManifests.totalCount
+            row["vulnerabilityAlerts.totalCount"] = repo.vulnerabilityAlerts.totalCount
             row.update(base_dict)
 
             writer = csv.DictWriter(fout, fieldnames=sorted(row.keys()))
@@ -566,7 +569,10 @@ def main():
         print("saving", output_path / pathlib.Path("languages.csv"), file=sys.stderr)
         with open(output_path / pathlib.Path("languages.csv"), "w") as fout:
             for i, edge in enumerate(repo.languages.edges):
-                row = {field: getattr(edge.node, field, Sentinal) for field in set(['id', 'name'])}
+                row = {
+                    field: getattr(edge.node, field, Sentinal)
+                    for field in set(["id", "name"])
+                }
                 row.update(base_dict)
 
                 if i == 0:
@@ -574,11 +580,22 @@ def main():
                     writer.writeheader()
                 writer.writerow(row)
 
-        print("saving", output_path / pathlib.Path("dependencyGraphManifests.csv"), file=sys.stderr)
-        with open(output_path / pathlib.Path("dependencyGraphManifests.csv"), "w") as fout:
+        print(
+            "saving",
+            output_path / pathlib.Path("dependencyGraphManifests.csv"),
+            file=sys.stderr,
+        )
+        with open(
+            output_path / pathlib.Path("dependencyGraphManifests.csv"), "w"
+        ) as fout:
             for i, edge in enumerate(repo.dependencyGraphManifests.edges):
                 # blobPath,dependenciesCount,exceedsMaxSize,filename,id,org,parseable,repo
-                row = {field: getattr(edge.node, field, Sentinal) for field in dir(edge.node) if not field.startswith('__') and type(getattr(edge.node, field, Sentinal)) in scalar_types}
+                row = {
+                    field: getattr(edge.node, field, Sentinal)
+                    for field in dir(edge.node)
+                    if not field.startswith("__")
+                    and type(getattr(edge.node, field, Sentinal)) in scalar_types
+                }
                 row.update(base_dict)
 
                 if i == 0:
@@ -586,14 +603,28 @@ def main():
                     writer.writeheader()
                 writer.writerow(row)
 
-        print("saving", output_path / pathlib.Path("dependencyGraphManifests.dependencies.csv"), file=sys.stderr)
-        with open(output_path / pathlib.Path("dependencyGraphManifests.dependencies.csv"), "w") as fout:
-            wrote_header = False # first manifest can have no deps
+        print(
+            "saving",
+            output_path / pathlib.Path("dependencyGraphManifests.dependencies.csv"),
+            file=sys.stderr,
+        )
+        with open(
+            output_path / pathlib.Path("dependencyGraphManifests.dependencies.csv"), "w"
+        ) as fout:
+            wrote_header = False  # first manifest can have no deps
             for _tmp in repo.dependencyGraphManifests.edges:
                 manifest_edge = _tmp.node
                 for j, dep in enumerate(manifest_edge.dependencies.nodes):
-                    row = {field: getattr(dep, field, Sentinal) for field in dir(dep) if not field.startswith('__') and type(getattr(dep, field, Sentinal)) in scalar_types}
-                    row['manifest_filename'], row['manifest_id'] = manifest_edge.filename, manifest_edge.id
+                    row = {
+                        field: getattr(dep, field, Sentinal)
+                        for field in dir(dep)
+                        if not field.startswith("__")
+                        and type(getattr(dep, field, Sentinal)) in scalar_types
+                    }
+                    row["manifest_filename"], row["manifest_id"] = (
+                        manifest_edge.filename,
+                        manifest_edge.id,
+                    )
                     row.update(base_dict)
 
                     if not wrote_header:
@@ -603,43 +634,88 @@ def main():
 
                     writer.writerow(row)
 
-        print("saving", output_path / pathlib.Path("vulnerabilityAlerts.csv"), file=sys.stderr)
+        print(
+            "saving",
+            output_path / pathlib.Path("vulnerabilityAlerts.csv"),
+            file=sys.stderr,
+        )
         with open(output_path / pathlib.Path("vulnerabilityAlerts.csv"), "w") as fout:
+
             def serialize_vuln(vuln):
                 return {
-                    'firstPatchedVersion.identifier': getattr(vuln, 'firstPatchedVersion', None) and getattr(vuln.firstPatchedVersion, 'identifier', None),
-                    'package.ecosystem': getattr(vuln, 'package', None) and getattr(vuln.package, 'ecosystem', None) and vuln.package.ecosystem.value,
-                    'package.name': getattr(vuln, 'package', None) and getattr(vuln.package, 'name', None),
-                    'severity': getattr(vuln, 'severity', None) and vuln.severity.value,
-                    'updatedAt': getattr(vuln, 'updatedAt', None),
-                    'vulnerableVersionRange': getattr(vuln, 'vulnerableVersionRange', None),
+                    "firstPatchedVersion.identifier": getattr(
+                        vuln, "firstPatchedVersion", None
+                    )
+                    and getattr(vuln.firstPatchedVersion, "identifier", None),
+                    "package.ecosystem": getattr(vuln, "package", None)
+                    and getattr(vuln.package, "ecosystem", None)
+                    and vuln.package.ecosystem.value,
+                    "package.name": getattr(vuln, "package", None)
+                    and getattr(vuln.package, "name", None),
+                    "severity": getattr(vuln, "severity", None) and vuln.severity.value,
+                    "updatedAt": getattr(vuln, "updatedAt", None),
+                    "vulnerableVersionRange": getattr(
+                        vuln, "vulnerableVersionRange", None
+                    ),
                 }
 
             for i, edge in enumerate(repo.vulnerabilityAlerts.edges):
-                row = {field: getattr(edge.node, field, Sentinal) for field in dir(edge.node) if not field.startswith('__') and type(getattr(edge.node, field, Sentinal)) in scalar_types}
-                advisory = {'securityAdvisory.' + field: getattr(edge.node.securityAdvisory, field, Sentinal) for field in dir(edge.node.securityAdvisory) if not field.startswith('__') and type(getattr(edge.node.securityAdvisory, field, Sentinal)) in scalar_types}
+                row = {
+                    field: getattr(edge.node, field, Sentinal)
+                    for field in dir(edge.node)
+                    if not field.startswith("__")
+                    and type(getattr(edge.node, field, Sentinal)) in scalar_types
+                }
+                advisory = {
+                    "securityAdvisory."
+                    + field: getattr(edge.node.securityAdvisory, field, Sentinal)
+                    for field in dir(edge.node.securityAdvisory)
+                    if not field.startswith("__")
+                    and type(getattr(edge.node.securityAdvisory, field, Sentinal))
+                    in scalar_types
+                }
 
-                advisory['securityAdvisory.severity'] = edge.node.securityAdvisory.severity.value # .value since it's an enum
-                advisory['securityAdvisory.identifiers'] = [(sa_id.type, sa_id.value) for sa_id in edge.node.securityAdvisory.identifiers]
-                advisory['securityAdvisory.vulnerabilities'] = [serialize_vuln(n) for n in edge.node.securityAdvisory.vulnerabilities.nodes]
-                advisory['securityAdvisory.referenceUrls'] = [getattr(r, 'url', None) for r in getattr(edge.node.securityAdvisory, 'references', [])]
+                advisory[
+                    "securityAdvisory.severity"
+                ] = (
+                    edge.node.securityAdvisory.severity.value
+                )  # .value since it's an enum
+                advisory["securityAdvisory.identifiers"] = [
+                    (sa_id.type, sa_id.value)
+                    for sa_id in edge.node.securityAdvisory.identifiers
+                ]
+                advisory["securityAdvisory.vulnerabilities"] = [
+                    serialize_vuln(n)
+                    for n in edge.node.securityAdvisory.vulnerabilities.nodes
+                ]
+                advisory["securityAdvisory.referenceUrls"] = [
+                    getattr(r, "url", None)
+                    for r in getattr(edge.node.securityAdvisory, "references", [])
+                ]
 
                 row.update(advisory)
                 row.update(base_dict)
                 # TODO: make less gross
-                for field in ['dismisser.id', 'dismisser.name', 'dismissedAt', 'dismissReason']:
+                for field in [
+                    "dismisser.id",
+                    "dismisser.name",
+                    "dismissedAt",
+                    "dismissReason",
+                ]:
                     if field in row:
                         continue
-                    if field.startswith('dismisser.'):
-                        dismisser = getattr(edge.node, 'dismisser', None)
+                    if field.startswith("dismisser."):
+                        dismisser = getattr(edge.node, "dismisser", None)
                         if dismisser:
-                            row[field] = getattr(dismisser, field.split('.', 1)[-1], None)
+                            row[field] = getattr(
+                                dismisser, field.split(".", 1)[-1], None
+                            )
                         else:
                             row[field] = None
                     else:
                         row[field] = getattr(edge.node, field, None)
-                if 'dismisser' in row:  # we only want the nested dismisser.* fields
-                    del row['dismisser']
+                if "dismisser" in row:  # we only want the nested dismisser.* fields
+                    del row["dismisser"]
 
                 if i == 0:
                     writer = csv.DictWriter(fout, fieldnames=sorted(row.keys()))
