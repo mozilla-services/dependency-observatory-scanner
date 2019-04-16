@@ -3,7 +3,7 @@
 """
 Fetches repo, language, manifest, dep metadata, and vuln alerts (if
 accessible) for a github repo and saves it as CSVs files in
-./github_repo_metadata/:org_name/:repo_name/
+./:output_dir/:org_name/:repo_name/
 
 Caches github graphql schema to: ./github_graphql_schema.json
 This needs to be cleared manually to be updated.
@@ -167,7 +167,7 @@ def repo_query(schema, org_name, repo_name, first=10):
                                 _.pageInfo[_.hasNextPage.endCursor].totalCount.nodes[
                                     _.package[
                                         _.name.ecosystem
-                                    ].severity.updatedAt.vulnerableVersionRange.firstPatchedVersion
+                                    ].severity.updatedAt.vulnerableVersionRange
                                 ]
                             ]
                         ]
