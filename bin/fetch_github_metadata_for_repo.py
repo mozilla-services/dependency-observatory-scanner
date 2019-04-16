@@ -461,7 +461,9 @@ async def async_main(args):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description="Fetch github repo metadata", usage=__doc__
+    )
 
     parser.add_argument(
         "-a",
