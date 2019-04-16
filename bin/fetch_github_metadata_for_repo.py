@@ -167,7 +167,7 @@ def repo_query(schema, org_name, repo_name, first=10):
                                 _.pageInfo[_.hasNextPage.endCursor].totalCount.nodes[
                                     _.package[
                                         _.name.ecosystem
-                                    ].severity.updatedAt.vulnerableVersionRange
+                                    ].severity.updatedAt.vulnerableVersionRange.firstPatchedVersion
                                 ]
                             ]
                         ]
