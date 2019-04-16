@@ -10,7 +10,7 @@ ADD requirements-lock.txt /app
 
 RUN pip install --no-cache-dir -r /app/requirements-lock.txt
 
-ADD fetch_github_metadata_for_repo.py /app
+ADD bin/fetch_github_metadata_for_repo.py /app
 
 USER app
 WORKDIR /app
