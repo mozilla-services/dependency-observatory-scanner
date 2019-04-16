@@ -22,6 +22,8 @@ def text_output_with_returncode(*args, **kwargs):
         return (0, text_output(*args, **kwargs))
     except CalledProcessError as e:
         return e.returncode, e.output.decode("utf-8").strip()
+    except OSError as e:
+        return -1, repr(e)
 
 
 def text_output_or_none(*args, **kwargs):
@@ -34,6 +36,7 @@ def text_output_or_none(*args, **kwargs):
 def read_version_json():
     """
     Read the dockerflow version.json object:
+
     https://github.com/mozilla-services/Dockerflow/blob/master/docs/version_object.md
     """
     with open("version.json", "r") as fin:
@@ -46,6 +49,9 @@ def get_lang_versions():
             ["python", "-c", "import platform; print(platform.python_version())"]
         ),
         node=text_output_or_none(["node", "--version"]),
+        rust=text_output_or_none(["rustc", "--version"]),
+        go=text_output_or_none(["go", "version"]),
+        java=text_output_or_none(["java", "-version"]),
     )
 
 
@@ -53,6 +59,10 @@ def get_pkg_manager_versions():
     return dict(
         yarn=text_output_or_none(["yarn", "--version"]),
         npm=text_output_or_none(["npm", "--version"]),
+        pip=text_output_or_none(["pip", "--version"]),
+        pipenv=text_output_or_none(["pipenv", "--version"]),
+        poetry=text_output_or_none(["poetry", "--version"]),
+        cargo=text_output_or_none(["cargo", "--version"]),
     )
 
 
