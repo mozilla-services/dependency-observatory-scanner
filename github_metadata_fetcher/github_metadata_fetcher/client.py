@@ -363,3 +363,50 @@ async def query_repo_data(schema, org_repo, async_exec):
 
     # TODO: add vuln reports back; skipping for now since we don't have their data
     return repo
+
+
+async def async_main(auth_token, org_repos):
+    async with aiohttp_session() as s:
+        async_exec = quiz.async_executor(
+            url="https://api.github.com/graphql",
+            auth=auth_factory(auth_token),
+            client=s,
+        )
+
+        schema = await async_github_schema_from_cache_or_url(
+            "github_graphql_schema.json", async_exec
+        )
+
+        tasks = []
+        for org_repo in org_repos:
+            tasks.append(
+                asyncio.ensure_future(query_repo_data(schema, org_repo, async_exec))
+            )
+
+        await asyncio.gather(*tasks)
+        return list(zip(org_repos, tasks))
+
+
+def run(auth_token, org_repos):
+    loop = asyncio.get_event_loop()
+    async_results = loop.run_until_complete(async_main(auth_token, org_repos))
+
+    results = []
+    for org_repo, task in async_results:
+        if not isinstance(task, asyncio.Task) and isinstance(task, str):  # dry run
+            print(org_repo, task)
+            continue
+        if not task.done():
+            print("task for ", org_repo, "still running somehow", file=sys.stderr)
+            continue
+        if task.cancelled():
+            print("task for ", org_repo, "was cancelled", file=sys.stderr)
+            continue
+        if task.exception():
+            print("task for ", org_repo, "errored.", file=sys.stderr)
+            task.print_stack()
+            continue
+
+        results.append((org_repo, task.result()))
+
+    return results
