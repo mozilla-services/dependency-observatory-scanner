@@ -247,7 +247,7 @@ async def query_repo_data(schema, org_repo, async_exec):
     repo = await async_query(async_exec, query)
     if repo is None or repo.repository is None:
         print(org_repo, "fetching repo page returned repo.repository None", file=sys.stderr)
-        return repo
+        return None
 
     print(
         org_repo,
