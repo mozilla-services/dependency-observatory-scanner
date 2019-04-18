@@ -300,6 +300,14 @@ async def query_repo_data(schema, org_repo, async_exec):
             file=sys.stderr,
         )
         response = await async_query(async_exec, query)
+        if response is None:
+            print(
+                org_repo,
+                "failed to fetch lang page of size %d w/ cursor %s" % (lang_page_size, cursor),
+                file=sys.stderr,
+            )
+            break
+
         repo.repository.languages.edges.extend(response.repository.languages.edges)
         print(
             org_repo,
@@ -326,6 +334,14 @@ async def query_repo_data(schema, org_repo, async_exec):
             file=sys.stderr,
         )
         response = await async_query(async_exec, query)
+        if response is None:
+            print(
+                org_repo,
+                "failed to fetch manifests of size %d w/ cursor %s" % (manifests_page_size, cursor),
+                file=sys.stderr,
+            )
+            break
+
         print(
             org_repo,
             "fetched %d/%d manifests"
@@ -367,6 +383,16 @@ async def query_repo_data(schema, org_repo, async_exec):
             )
 
             response = await async_query(async_exec, query)
+            if response is None:
+                print(
+                    org_repo,
+                    manifest.filename,
+                    "failed to fetch %d deps from manifest cursor %s and dep cursor %s"
+                    % (dep_page_size, manifest_cursor, cursor),
+                    file=sys.stderr,
+                )
+                break
+
             for response_edge in response.repository.dependencyGraphManifests.edges:
                 if response_edge.node.id == manifest_id:
                     manifest.dependencies.nodes.extend(
