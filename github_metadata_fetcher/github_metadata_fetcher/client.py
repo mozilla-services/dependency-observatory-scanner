@@ -2,6 +2,7 @@ import sys
 
 import asyncio
 import aiohttp
+import time
 
 import snug
 import quiz
@@ -30,14 +31,55 @@ def aiohttp_session():
 
 
 async def async_query(async_executor, query):
-    try:
-        result = await async_executor(query)
-    except quiz.HTTPError as err:
-        print(err, err.response, file=sys.stderr)
-        result = None
-    except quiz.ErrorResponse as err:
-        print(err, err.errors, file=sys.stderr)
-        result = None
+    max_tries = 5
+    try_num = 0
+    while try_num < max_tries:
+        try:
+            result = await async_executor(query)
+            status = result.__metadata__.response.status_code
+            print(status, result.rateLimit, file=sys.stderr)
+            break
+        except quiz.ErrorResponse as err:
+            print('got a quiz.ErrorResponse', err, err.data, err.errors, file=sys.stderr)
+            result = None
+            if len(err.errors) and err.errors[0].get('message', None) == 'timedout':
+                # exponential backoff
+                backoff_sleep_seconds = 2 ** try_num  + 60
+                print('on try {} sleeping for backoff {}'.format(try_num, backoff_sleep_seconds), file=sys.stderr)
+                await asyncio.sleep(backoff_sleep_seconds)
+            else:
+                break
+        except quiz.HTTPError as err:
+            print('got a quiz.HTTPError', err, err.response, file=sys.stderr)
+            result = None
+            if err.response.status_code == 404:
+                break
+            # if we hit the rate limit or the server is down
+            elif err.response.status_code in {403, 503}:
+                # exponential backoff
+                backoff_sleep_seconds = 2 ** try_num + 60
+
+                retry_after = err.response.headers.get('Retry-After', None)
+                reset_at = err.response.headers.get('X-RateLimit-Reset', None)
+                if retry_after and int(retry_after) > 0:
+                    retry_after_seconds = int(retry_after)
+                    print('on try {} sleeping for retry {}'.format(try_num, retry_after_seconds), file=sys.stderr)
+                    await asyncio.sleep(retry_after_seconds)
+                elif reset_at:
+                    # wait for the window to reset
+                    # https://developer.github.com/v3/#rate-limiting
+                    reset_sleep_seconds = int(reset_at) - int(time.time())
+                    if reset_sleep_seconds > 0:
+                        print('on try {} sleeping until reset {}'.format(try_num, reset_sleep_seconds), file=sys.stderr)
+                        await asyncio.sleep(reset_sleep_seconds)
+                    else:
+                        print('on try {} sleeping for backoff {}'.format(try_num, backoff_sleep_seconds), file=sys.stderr)
+                        await asyncio.sleep(backoff_sleep_seconds)
+                else:
+                    print('on try {} sleeping for backoff {}'.format(try_num, backoff_sleep_seconds), file=sys.stderr)
+                    await asyncio.sleep(backoff_sleep_seconds)
+
+        try_num += 1
     return result
 
 
