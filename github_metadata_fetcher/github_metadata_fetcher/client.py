@@ -21,8 +21,11 @@ def auth_factory(auth):
 
 
 def aiohttp_session():
+    headers = dict(Accept=",".join([DEP_GRAPH_PREVIEW, VULN_ALERT_PREVIEW]))
+    headers['User-Agent'] = 'Mozilla-Dependency-Observatory/g-k'
     return aiohttp.ClientSession(
-        headers=dict(Accept=",".join([DEP_GRAPH_PREVIEW, VULN_ALERT_PREVIEW]))
+        connector=aiohttp.TCPConnector(limit=4),
+        headers=headers,
     )
 
 
