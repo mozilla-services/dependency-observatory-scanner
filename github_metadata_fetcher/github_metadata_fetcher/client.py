@@ -243,6 +243,10 @@ async def query_repo_data(schema, org_repo, async_exec):
     query = repo_query(schema, *org_repo.split("/", 1), first=repo_page_size)
     print(org_repo, "fetching repo page", file=sys.stderr)
     repo = await async_query(async_exec, query)
+    if repo is None or repo.repository is None:
+        print(org_repo, "fetching repo page returned repo.repository None", file=sys.stderr)
+        return repo
+
     print(
         org_repo,
         "fetched repo page with %d/%d langs, %d/%d dep manifests, and %d/%d vuln alerts"
@@ -450,7 +454,10 @@ def run(auth_token, org_repos):
             print("task for ", org_repo, "errored.", file=sys.stderr)
             task.print_stack()
             continue
+        result = task.result()
+        if result is None:
+            print("task for ", org_repo, "returned result None.", file=sys.stderr)
 
-        results.append((org_repo, task.result()))
+        results.append((org_repo, result))
 
     return results
