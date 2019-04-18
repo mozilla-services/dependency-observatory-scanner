@@ -406,7 +406,6 @@ async def query_repo_data(schema, org_repo, async_exec):
             if e.node.id == manifest_id
         )
 
-    # TODO: add vuln reports back; skipping for now since we don't have their data
     return repo
 
 
