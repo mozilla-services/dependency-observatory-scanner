@@ -457,6 +457,7 @@ def run(auth_token, org_repos):
         result = task.result()
         if result is None:
             print("task for ", org_repo, "returned result None.", file=sys.stderr)
+            continue
 
         results.append((org_repo, result))
 
