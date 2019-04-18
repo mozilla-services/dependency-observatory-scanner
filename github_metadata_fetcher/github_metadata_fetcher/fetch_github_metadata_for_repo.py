@@ -78,6 +78,13 @@ def parse_args():
     )
 
     parser.add_argument(
+        "--append-results",
+        action='store_true',
+        default=False,
+        help="Append results to files in the output directory instead of truncating them.",
+    )
+
+    parser.add_argument(
         "org_repos",
         type=str,
         nargs="+",
@@ -108,7 +115,7 @@ def main():
     ).items():
         fout_path = args.output_dir / pathlib.Path(response_type.name.lower() + ".csv")
         print("saving {} items to {}".format(len(rows), fout_path), file=sys.stderr)
-        with open(fout_path, "w") as fout:
+        with open(fout_path, "a" if args.append_results else "w") as fout:
             if not rows:
                 print("no rows to save", file=sys.stderr)
                 break
