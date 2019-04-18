@@ -81,7 +81,7 @@ def parse_args():
         "--append-results",
         action='store_true',
         default=False,
-        help="Append results to files in the output directory instead of truncating them.",
+        help="Append results to files in the output directory instead of truncating them and don't write a CSV header line",
     )
 
     parser.add_argument(
@@ -120,7 +120,8 @@ def main():
                 print("no rows to save", file=sys.stderr)
                 break
             writer = csv.DictWriter(fout, fieldnames=sorted(rows[0].keys()))
-            writer.writeheader()
+            if not args.append_results:
+                writer.writeheader()
             writer.writerows(rows)
 
 
