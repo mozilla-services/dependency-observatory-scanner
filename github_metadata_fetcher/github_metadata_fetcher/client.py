@@ -36,19 +36,21 @@ async def async_query(async_executor, query):
     while try_num < max_tries:
         try:
             result = await async_executor(query)
-            status = result.__metadata__.response.status_code
-            print(status, result.rateLimit, file=sys.stderr)
+            # status = result.__metadata__.response.status_code
+            # print(status, result.rateLimit, file=sys.stderr)
             break
         except quiz.ErrorResponse as err:
-            print('got a quiz.ErrorResponse', err, err.data, err.errors, file=sys.stderr)
+            # err.data,
+            print('got a quiz.ErrorResponse', err, err.errors, file=sys.stderr)
             result = None
-            if len(err.errors) and err.errors[0].get('message', None) == 'timedout':
-                # exponential backoff
-                backoff_sleep_seconds = 2 ** try_num  + 60
-                print('on try {} sleeping for backoff {}'.format(try_num, backoff_sleep_seconds), file=sys.stderr)
-                await asyncio.sleep(backoff_sleep_seconds)
-            else:
+            if len(err.errors) and err.errors[0].get('type', None) == 'NOT_FOUND':
                 break
+
+            # if len(err.errors) and err.errors[0].get('message', None) == 'timedout':
+            # exponential backoff
+            backoff_sleep_seconds = 2 ** try_num  + 60
+            print('on try {} sleeping for backoff {}'.format(try_num, backoff_sleep_seconds), file=sys.stderr)
+            await asyncio.sleep(backoff_sleep_seconds)
         except quiz.HTTPError as err:
             print('got a quiz.HTTPError', err, err.response, file=sys.stderr)
             result = None
