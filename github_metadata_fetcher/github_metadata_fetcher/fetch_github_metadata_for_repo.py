@@ -2,8 +2,8 @@
 
 """
 Fetches repo, language, manifest, dep metadata, and vuln alerts (if
-accessible) for a github repo and saves it as CSVs files in
-./<output_dir>/<response_type>.csv
+accessible) for a github repo and saves it as JSON files in
+./<output_dir>/<response_type>.json
 
 Caches github graphql schema to: ./github_graphql_schema.json
 This needs to be cleared manually to be updated.
@@ -47,7 +47,7 @@ import sys
 
 import asyncio
 import argparse
-import csv
+import json
 import io
 import pathlib
 
@@ -79,9 +79,9 @@ def parse_args():
 
     parser.add_argument(
         "--append-results",
-        action='store_true',
+        action="store_true",
         default=False,
-        help="Append results to files in the output directory instead of truncating them and don't write a CSV header line",
+        help="Append results to files in the output directory instead of truncating them",
     )
 
     parser.add_argument(
@@ -113,16 +113,17 @@ def main():
     for response_type, rows in aggregate_by_type(
         run(args.auth_token, args.org_repos)
     ).items():
-        fout_path = args.output_dir / pathlib.Path(response_type.name.lower() + ".csv")
+        fout_path = args.output_dir / pathlib.Path(response_type.name.lower() + ".json")
         print("saving {} items to {}".format(len(rows), fout_path), file=sys.stderr)
         with open(fout_path, "a" if args.append_results else "w") as fout:
             if not rows:
                 print("no rows to save", file=sys.stderr)
                 break
-            writer = csv.DictWriter(fout, fieldnames=sorted(rows[0].keys()))
-            if not args.append_results:
-                writer.writeheader()
-            writer.writerows(rows)
+
+            json.dump(row, fout, sort_keys=True)
+            # BigQuery wants newline delimited JSON
+            # https://cloud.google.com/bigquery/docs/loading-data-cloud-storage-json
+            fout.write("\n")
 
 
 if __name__ == "__main__":
