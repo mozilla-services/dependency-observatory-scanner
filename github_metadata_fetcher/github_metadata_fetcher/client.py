@@ -467,6 +467,10 @@ async def query_repo_data(schema, org_repo, async_exec):
             for e in repo.repository.dependencyGraphManifests.edges
             if e.node.id == manifest_id
         )
+    assert (
+        len(repo.repository.vulnerabilityAlerts)
+        == repo.repository.vulnerabilityAlerts.totalCount
+    )
 
     return repo
 
