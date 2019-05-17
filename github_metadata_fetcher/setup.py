@@ -10,7 +10,7 @@ setup(
     packages=find_packages(),
     package_data={'': ['README.md']},
     zip_safe=True,
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     install_requires=install_requires,
     entry_points={
         'console_scripts': [

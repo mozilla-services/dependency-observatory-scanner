@@ -1,4 +1,4 @@
-FROM python:3.7-slim
+FROM python:3-slim
 
 RUN addgroup --gid 10001 app \
     && \
@@ -6,12 +6,13 @@ RUN addgroup --gid 10001 app \
     --home /app --shell /sbin/nologin \
     --disabled-password app
 
-ADD requirements-lock.txt /app
+ADD README.md /app
+ADD requirements.txt /app
+ADD setup.py /app
+COPY github_metadata_fetcher/ /app/github_metadata_fetcher/
 
-RUN pip install --no-cache-dir -r /app/requirements-lock.txt
-
-ADD bin/fetch_github_metadata_for_repo.py /app
+WORKDIR /app
+RUN pip install -e .
 
 USER app
-WORKDIR /app
-CMD ["python", "/app/fetch_github_metadata_for_repo.py"]
+CMD ["python", "fetch_github_metadata"]

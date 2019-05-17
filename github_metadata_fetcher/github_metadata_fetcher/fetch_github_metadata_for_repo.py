@@ -53,8 +53,8 @@ import pathlib
 
 import quiz
 
-from client import run
-from serializer import ResponseType, serialize_result
+from .client import run
+from .serializer import ResponseType, serialize_result
 
 
 def parse_args():
