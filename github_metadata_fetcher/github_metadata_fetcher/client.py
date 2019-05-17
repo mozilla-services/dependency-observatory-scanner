@@ -468,7 +468,7 @@ async def query_repo_data(schema, org_repo, async_exec):
             if e.node.id == manifest_id
         )
     assert (
-        len(repo.repository.vulnerabilityAlerts)
+        len(repo.repository.vulnerabilityAlerts.edges)
         == repo.repository.vulnerabilityAlerts.totalCount
     )
 
