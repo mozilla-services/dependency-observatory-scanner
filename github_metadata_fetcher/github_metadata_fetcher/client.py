@@ -23,10 +23,9 @@ def auth_factory(auth):
 
 def aiohttp_session():
     headers = dict(Accept=",".join([DEP_GRAPH_PREVIEW, VULN_ALERT_PREVIEW]))
-    headers['User-Agent'] = 'Mozilla-Dependency-Observatory/g-k'
+    headers["User-Agent"] = "Mozilla-Dependency-Observatory/g-k"
     return aiohttp.ClientSession(
-        connector=aiohttp.TCPConnector(limit=4),
-        headers=headers,
+        connector=aiohttp.TCPConnector(limit=4), headers=headers
     )
 
 
@@ -41,18 +40,23 @@ async def async_query(async_executor, query):
             break
         except quiz.ErrorResponse as err:
             # err.data,
-            print('got a quiz.ErrorResponse', err, err.errors, file=sys.stderr)
+            print("got a quiz.ErrorResponse", err, err.errors, file=sys.stderr)
             result = None
-            if len(err.errors) and err.errors[0].get('type', None) == 'NOT_FOUND':
+            if len(err.errors) and err.errors[0].get("type", None) == "NOT_FOUND":
                 break
 
             # if len(err.errors) and err.errors[0].get('message', None) == 'timedout':
             # exponential backoff
-            backoff_sleep_seconds = 2 ** try_num  + 60
-            print('on try {} sleeping for backoff {}'.format(try_num, backoff_sleep_seconds), file=sys.stderr)
+            backoff_sleep_seconds = 2 ** try_num + 60
+            print(
+                "on try {} sleeping for backoff {}".format(
+                    try_num, backoff_sleep_seconds
+                ),
+                file=sys.stderr,
+            )
             await asyncio.sleep(backoff_sleep_seconds)
         except quiz.HTTPError as err:
-            print('got a quiz.HTTPError', err, err.response, file=sys.stderr)
+            print("got a quiz.HTTPError", err, err.response, file=sys.stderr)
             result = None
             if err.response.status_code == 404:
                 break
@@ -61,24 +65,44 @@ async def async_query(async_executor, query):
                 # exponential backoff
                 backoff_sleep_seconds = 2 ** try_num + 60
 
-                retry_after = err.response.headers.get('Retry-After', None)
-                reset_at = err.response.headers.get('X-RateLimit-Reset', None)
+                retry_after = err.response.headers.get("Retry-After", None)
+                reset_at = err.response.headers.get("X-RateLimit-Reset", None)
                 if retry_after and int(retry_after) > 0:
                     retry_after_seconds = int(retry_after)
-                    print('on try {} sleeping for retry {}'.format(try_num, retry_after_seconds), file=sys.stderr)
+                    print(
+                        "on try {} sleeping for retry {}".format(
+                            try_num, retry_after_seconds
+                        ),
+                        file=sys.stderr,
+                    )
                     await asyncio.sleep(retry_after_seconds)
                 elif reset_at:
                     # wait for the window to reset
                     # https://developer.github.com/v3/#rate-limiting
                     reset_sleep_seconds = int(reset_at) - int(time.time())
                     if reset_sleep_seconds > 0:
-                        print('on try {} sleeping until reset {}'.format(try_num, reset_sleep_seconds), file=sys.stderr)
+                        print(
+                            "on try {} sleeping until reset {}".format(
+                                try_num, reset_sleep_seconds
+                            ),
+                            file=sys.stderr,
+                        )
                         await asyncio.sleep(reset_sleep_seconds)
                     else:
-                        print('on try {} sleeping for backoff {}'.format(try_num, backoff_sleep_seconds), file=sys.stderr)
+                        print(
+                            "on try {} sleeping for backoff {}".format(
+                                try_num, backoff_sleep_seconds
+                            ),
+                            file=sys.stderr,
+                        )
                         await asyncio.sleep(backoff_sleep_seconds)
                 else:
-                    print('on try {} sleeping for backoff {}'.format(try_num, backoff_sleep_seconds), file=sys.stderr)
+                    print(
+                        "on try {} sleeping for backoff {}".format(
+                            try_num, backoff_sleep_seconds
+                        ),
+                        file=sys.stderr,
+                    )
                     await asyncio.sleep(backoff_sleep_seconds)
 
         try_num += 1
@@ -246,7 +270,11 @@ async def query_repo_data(schema, org_repo, async_exec):
     print(org_repo, "fetching repo page", file=sys.stderr)
     repo = await async_query(async_exec, query)
     if repo is None or repo.repository is None:
-        print(org_repo, "fetching repo page returned repo.repository None", file=sys.stderr)
+        print(
+            org_repo,
+            "fetching repo page returned repo.repository None",
+            file=sys.stderr,
+        )
         return None
 
     print(
@@ -303,7 +331,8 @@ async def query_repo_data(schema, org_repo, async_exec):
         if response is None:
             print(
                 org_repo,
-                "failed to fetch lang page of size %d w/ cursor %s" % (lang_page_size, cursor),
+                "failed to fetch lang page of size %d w/ cursor %s"
+                % (lang_page_size, cursor),
                 file=sys.stderr,
             )
             break
@@ -337,7 +366,8 @@ async def query_repo_data(schema, org_repo, async_exec):
         if response is None:
             print(
                 org_repo,
-                "failed to fetch manifests of size %d w/ cursor %s" % (manifests_page_size, cursor),
+                "failed to fetch manifests of size %d w/ cursor %s"
+                % (manifests_page_size, cursor),
                 file=sys.stderr,
             )
             break
