@@ -120,10 +120,12 @@ def main():
                 print("no rows to save", file=sys.stderr)
                 break
 
-            json.dump(row, fout, sort_keys=True)
-            # BigQuery wants newline delimited JSON
-            # https://cloud.google.com/bigquery/docs/loading-data-cloud-storage-json
-            fout.write("\n")
+            for row in rows:
+                json.dump(row, fout, sort_keys=True)
+
+                # BigQuery wants newline delimited JSON
+                # https://cloud.google.com/bigquery/docs/loading-data-cloud-storage-json
+                fout.write("\n")
 
 
 if __name__ == "__main__":
