@@ -4,10 +4,6 @@ import enum
 @enum.unique
 class ResponseType(enum.Enum):
     REPOSITORY = enum.auto()
-    LANGUAGE = enum.auto()
-    DEPENDENCY_MANIFEST = enum.auto()
-    DEPENDENCY = enum.auto()
-    VULNERABILITY_ALERT = enum.auto()
 
 
 class Sentinal:
@@ -25,12 +21,22 @@ def serialize_repo(repo):
         for f in dir(repo)
         if not f.startswith("__") and type(getattr(repo, f, Sentinal)) in SCALAR_TYPES
     }
-    row["languages.totalCount"] = repo.languages.totalCount
+
+    # assume there aren't too enough of items in array fields to exceed
+    # BigQuerie's 100MB row size limit
+    row["languages"] = list(serialize_repo_langs_iter(repo))
+    row["languages.totalCount"] = len(row["languages"])
     row["languages.totalSize"] = repo.languages.totalSize  # in bytes
-    row[
-        "dependencyGraphManifests.totalCount"
-    ] = repo.dependencyGraphManifests.totalCount
-    row["vulnerabilityAlerts.totalCount"] = repo.vulnerabilityAlerts.totalCount
+
+    row["dependencyGraphManifests"] = list(serialize_repo_manifests_iter(repo))
+    row["dependencyGraphManifests.totalCount"] = len(row["dependencyGraphManifests"])
+
+    row["dependencies"] = list(serialize_repo_manifest_deps_iter(repo))
+    row["dependencies.totalCount"] = len(row["dependencies"])
+
+    row["vulnerabilityAlerts"] = list(serialize_repo_vuln_alerts_iter(repo))
+    row["vulnerabilityAlerts.totalCount"] = len(row["vulnerabilityAlerts"])
+
     return row
 
 
@@ -99,7 +105,7 @@ def serialize_advisory(advisory):
         "securityAdvisory.severity"
     ] = advisory.severity.value  # .value since it's an enum
     row["securityAdvisory.identifiers"] = [
-        (sa_id.type, sa_id.value) for sa_id in advisory.identifiers
+        {"type": sa_id.type, "value": sa_id.value} for sa_id in advisory.identifiers
     ]
     row["securityAdvisory.vulnerabilities"] = [
         n for n in serialize_vulns_iter(advisory.vulnerabilities.nodes)
@@ -148,15 +154,3 @@ def serialize_result(repo):
     org-repo and its constituent items.
     """
     yield ResponseType.REPOSITORY, serialize_repo(repo)
-
-    for row in serialize_repo_langs_iter(repo):
-        yield ResponseType.LANGUAGE, row
-
-    for row in serialize_repo_manifests_iter(repo):
-        yield ResponseType.DEPENDENCY_MANIFEST, row
-
-    for row in serialize_repo_manifest_deps_iter(repo):
-        yield ResponseType.DEPENDENCY, row
-
-    for row in serialize_repo_vuln_alerts_iter(repo):
-        yield ResponseType.VULNERABILITY_ALERT, row
