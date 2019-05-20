@@ -70,10 +70,8 @@ def serialize_repo_manifest_deps_iter(repo):
                 if not field.startswith("__")
                 and type(getattr(dep, field, Sentinal)) in SCALAR_TYPES
             }
-            row["manifest_filename"], row["manifest_id"] = (
-                manifest_edge.filename,
-                manifest_edge.id,
-            )
+            row["manifest_filename"] = manifest_edge.filename
+            row["manifest_id"] = manifest_edge.id
             yield row
 
 
@@ -105,9 +103,7 @@ def serialize_advisory(advisory):
     row["identifiers"] = [
         {"type": sa_id.type, "value": sa_id.value} for sa_id in advisory.identifiers
     ]
-    row["vulnerabilities"] = [
-        n for n in serialize_vulns_iter(advisory.vulnerabilities.nodes)
-    ]
+    row["vulnerabilities"] = list(serialize_vulns_iter(advisory.vulnerabilities.nodes))
     row["referenceUrls"] = [
         getattr(r, "url", None) for r in getattr(advisory, "references", [])
     ]
@@ -144,7 +140,7 @@ def serialize_vuln_alert_dismissal(vuln_alert):
 
     dismisser = getattr(vuln_alert, "dismisser", None)
     row["dismisser"] = {
-        getattr(dismisser, field, None) for field in ["id", "name"] if dismisser
+        field: getattr(dismisser, field, None) for field in ["id", "name"] if dismisser
     }
     return row
 
