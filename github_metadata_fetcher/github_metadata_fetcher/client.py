@@ -30,7 +30,7 @@ def aiohttp_session():
 
 
 async def async_query(async_executor, query):
-    max_tries = 12
+    max_tries = 15
     try_num = 0
     while try_num < max_tries:
         try:
