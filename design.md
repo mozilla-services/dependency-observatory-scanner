@@ -29,6 +29,11 @@ analysis step or a final result aggregator.
 * individual analysis steps should include Python input and output
   types and as much as possible document any IO side effects
 
+* pipelines should be language and package manager specific, but
+  overall analysis should be exclude any combination of them
+  (i.e. repos or dependencies may contain multiple languages or use
+  multiple package managers for the same language)
+
 #### Execution framework
 
 Workload is IO heavy and (for now) small data so Beam, Spark, etc. and

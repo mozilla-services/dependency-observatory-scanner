@@ -1,0 +1,30 @@
+# These environment variables must be set in CircleCI UI
+#
+# DOCKERHUB_REPO - docker hub repo, format: <username>/<repo>
+# DOCKER_USER
+# DOCKER_PASS
+#
+version: 2
+jobs:
+  unit-test:
+    docker:
+      - image: python:3.7-buster
+    working_directory: /usr/src/app
+    steps:
+      - checkout
+      - run:
+          name: run code checks and unit tests
+          command: |
+            make install install-dev-tools
+            make format && test "$(git diff | wc -l)" = "0"
+            make style-check
+            make test
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - unit-test:
+          filters:
+            tags:
+              only: /.*/
