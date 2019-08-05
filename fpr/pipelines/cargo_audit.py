@@ -9,7 +9,7 @@ import rx.operators as op
 from rx.subject import Subject
 
 from fpr.rx_util import map_async
-from fpr.serialize_util import get_in
+from fpr.serialize_util import get_in, extract_fields, REPO_FIELDS, RUST_FIELDS
 import fpr.containers as containers
 from fpr.models.org_repo import OrgRepo
 from fpr.pipelines.util import exc_to_str
@@ -91,9 +91,7 @@ async def run_cargo_audit(org_repo, commit="master"):
                 org=org_repo.org,
                 repo=org_repo.repo,
                 commit=commit,
-                # branch
-                # tag
-                cargo_lockfile=cargo_lockfile,
+                cargo_lockfile_path=cargo_lockfile,
                 cargo_version=cargo_version,
                 ripgrep_version=ripgrep_version,
                 rustc_version=rustc_version,
@@ -167,26 +165,16 @@ def serialize_cargo_audit_output(audit_output):
     return result
 
 
+FIELDS = (
+    RUST_FIELDS
+    | REPO_FIELDS
+    | {"cargo_lockfile_path", "cargo_audit_version", "ripgrep_version"}
+)
+
+
 def serialize(audit_result):
     log.debug("serializing result {}".format(audit_result))
-    r = {
-        k: v
-        for k, v in audit_result.items()
-        if k
-        in {
-            "org",
-            "repo",
-            "commit",
-            "branch",
-            "tag",
-            "commit",
-            "cargo_lockfile_path",
-            "cargo_version",
-            "rustc_version",
-            "cargo_audit_version",
-            "ripgrep_version",
-        }
-    }
+    r = extract_fields(audit_result, FIELDS)
     r["audit"] = serialize_cargo_audit_output(audit_result["audit_output"])
     log.debug("serialized result {}".format(r))
     return r
