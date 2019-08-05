@@ -17,6 +17,9 @@ style-check:
 test:
 	pytest -vv --cov=fpr/ fpr/ tests/
 
+test-clear-cache:
+	pytest --cache-clear -vv --cov=fpr/ fpr/ tests/
+
 coverage: test
 	coverage html
 	python -m webbrowser htmlcov/index.html
