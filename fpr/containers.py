@@ -161,12 +161,21 @@ async def _run(
         "container {} in {} running {!r}".format(container_log_name, working_dir, cmd)
     )
     exec_ = await self.exec_create(**config)
-    exec_.start_result = await exec_.start(Detach=detach, Tty=tty)
-    log.debug(
-        "container {} in {} ran {} with start result {}".format(
-            container_log_name, working_dir, config, exec_.start_result
+
+    with tempfile.NamedTemporaryFile(
+        mode="w+",
+        encoding="utf-8",
+        prefix="fpr_container_{0[Id]}_exec_{1.exec_id}_stdout".format(self, exec_),
+        delete=False,
+    ) as tmpout:
+        exec_.start_result = await exec_.start(Detach=detach, Tty=tty)
+        for line in exec_.decoded_start_result_stdout:
+            tmpout.write(line + "\n")
+        log.info(
+            "container {} in {} ran {} saved start result to {}".format(
+                container_log_name, working_dir, config, tmpout.name
+            )
         )
-    )
     if wait:
         await exec_.wait()
     if check:
