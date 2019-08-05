@@ -314,6 +314,13 @@ async def cargo_audit(container, working_dir="/repo"):
     return exec_.decoded_start_result_stdout[0]
 
 
+async def cargo_metadata(container, working_dir="/repo"):
+    exec_ = await container.run(
+        "cargo metadata --format-version 1 --locked", working_dir="/repo", check=True
+    )
+    return exec_.decoded_start_result_stdout
+
+
 async def find_files(filename, container, working_dir="/repo"):
     cmd = "rg --no-ignore -g {} --files".format(filename)
     exec_ = await container.run(cmd, working_dir="/repo", check=True)
