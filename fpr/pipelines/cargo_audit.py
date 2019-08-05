@@ -102,7 +102,7 @@ async def run_cargo_audit(org_repo, commit="master"):
                 ripgrep_version=ripgrep_version,
                 rustc_version=rustc_version,
                 cargo_audit_version=cargo_audit_version,
-                audit_output=await containers.cargo_audit(c, working_dir=working_dir),
+                audit_output=cargo_audit,
             )
             log.debug("{} audit result {}".format(name, result))
             log.debug("{} stdout: {}".format(name, await c.log(stdout=True)))
