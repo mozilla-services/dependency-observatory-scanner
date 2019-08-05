@@ -8,6 +8,7 @@ import os
 import subprocess
 import logging
 import json
+import pathlib
 import struct
 import time
 from io import BytesIO
@@ -342,3 +343,7 @@ find_cargo_lockfiles.__doc__ = """Find the relative paths to Cargo.lock files in
     TODO use searchfox.org (mozilla central only)
     TODO using github search
     """
+
+
+def path_relative_to_working_dir(working_dir: "Path", file_path: "Path") -> "Path":
+    return pathlib.Path(working_dir) / pathlib.Path(file_path).parent

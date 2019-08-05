@@ -2,7 +2,6 @@ import logging
 import sys
 import time
 import json
-import pathlib
 from dataclasses import dataclass
 from typing import Any, Dict, List
 
@@ -59,10 +58,6 @@ async def build_container(args: CargoAuditBuildArgs = None) -> "Future[None]":
     return args.repo_tag
 
 
-def path_relative_to_working_dir(working_dir: "Path", file_path: "Path") -> "Path":
-    return pathlib.Path(working_dir) / pathlib.Path(file_path).parent
-
-
 async def run_cargo_audit(org_repo, commit="master"):
     name = "dep-obs-cargo-audit-{0.org}-{0.repo}".format(org_repo)
     async with containers.run(
@@ -84,7 +79,7 @@ async def run_cargo_audit(org_repo, commit="master"):
         results = []
         for cargo_lockfile in cargo_lockfiles:
             working_dir = str(
-                path_relative_to_working_dir(
+                containers.path_relative_to_working_dir(
                     working_dir="/repo", file_path=cargo_lockfile
                 )
             )
