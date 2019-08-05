@@ -187,6 +187,7 @@ def serialize(audit_result):
             "repo",
             "commit",
             "branch",
+            "tag",
             "commit",
             "cargo_lockfile_path",
             "cargo_version",
