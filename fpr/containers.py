@@ -18,7 +18,7 @@ from typing import BinaryIO, IO, Sequence
 import aiodocker
 import traceback
 
-from fpr.docker_log_reader import DockerRawLog
+import fpr.docker_log_reader as dlog
 
 log = logging.getLogger("fpr.containers")
 
@@ -119,12 +119,12 @@ class Exec:
 
     @property
     def decoded_start_result_stdout(self: "Exec") -> [str]:
-        return [
-            line
-            for msg in DockerRawLog.decode_lines(self.start_result).stdout
-            for line in msg.split("\n")
-            if line
-        ]
+        return list(
+            dlog.iter_lines(
+                dlog.iter_messages(self.start_result),
+                output_stream=dlog.DockerLogStream.STDOUT,
+            )
+        )
 
 
 async def _exec_create(self, **kwargs) -> Exec:
