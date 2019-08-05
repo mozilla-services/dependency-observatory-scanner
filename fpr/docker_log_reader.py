@@ -1,6 +1,7 @@
 import enum
 import logging
 import struct
+import sys
 from io import BytesIO
 from typing import BinaryIO, IO, Sequence
 
@@ -106,3 +107,8 @@ def iter_lines(
 
     if len(buf):
         yield buf.decode("utf-8")
+
+
+if __name__ == "__main__":
+    for line in iter_lines(iter_messages(sys.stdin.buffer.read())):
+        print(line, file=sys.stdout)
