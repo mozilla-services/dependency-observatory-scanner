@@ -12,6 +12,7 @@ from fpr.rx_util import map_async
 from fpr.serialize_util import get_in
 import fpr.containers as containers
 from fpr.models.org_repo import OrgRepo
+from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.cargo_audit")
 
@@ -133,8 +134,8 @@ def run_pipeline(source):
         ),
     )
 
-    def on_run_cargo_audit_error(*args):
-        log.error("error running run_cargo_audit {!r}".format(args))
+    def on_run_cargo_audit_error(e, _, *args):
+        log.error("error running run_cargo_audit:\n{}".format(exc_to_str()))
         return rx.from_iterable([])
 
     pipeline = rx.concat(build_pipeline, source).pipe(
