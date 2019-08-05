@@ -173,8 +173,6 @@ FIELDS = (
 
 
 def serialize(audit_result):
-    log.debug("serializing result {}".format(audit_result))
     r = extract_fields(audit_result, FIELDS)
     r["audit"] = serialize_cargo_audit_output(audit_result["audit_output"])
-    log.debug("serialized result {}".format(r))
     return r
