@@ -322,6 +322,11 @@ async def find_files(filename, container, working_dir="/repo"):
     return exec_.decoded_start_result_stdout
 
 
+find_cargo_tomlfiles = functools.partial(find_files, "Cargo.toml")
+find_cargo_tomlfiles.__doc__ = (
+    """Finds the relative paths to Cargo.toml files in a repo using ripgrep"""
+)
+
 find_cargo_lockfiles = functools.partial(find_files, "Cargo.lock")
 find_cargo_lockfiles.__doc__ = """Find the relative paths to Cargo.lock files in a repo in one or
     more ways:
