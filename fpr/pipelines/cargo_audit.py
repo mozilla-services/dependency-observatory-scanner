@@ -3,13 +3,13 @@ import sys
 import time
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, List
 
 import rx
 import rx.operators as op
 from rx.subject import Subject
 
 from fpr.rx_util import map_async
+from fpr.serialize_util import get_in
 import fpr.containers as containers
 from fpr.models.org_repo import OrgRepo
 
@@ -150,16 +150,6 @@ def run_pipeline(source):
     )
 
     return pipeline
-
-
-def get_in(v: Dict, key_path: List, default: Any = None):
-    if default is None:
-        sentinel = object()
-    for key_part in key_path:
-        v = v.get(key_part, sentinel)
-        if v == sentinel:
-            return default
-    return v
 
 
 def serialize_cargo_audit_output(audit_output):
