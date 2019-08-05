@@ -329,7 +329,7 @@ async def cargo_metadata(container, working_dir="/repo"):
     exec_ = await container.run(
         "cargo metadata --format-version 1 --locked", working_dir="/repo", check=True
     )
-    return exec_.decoded_start_result_stdout
+    return exec_.decoded_start_result_stdout[0]
 
 
 async def find_files(filename, container, working_dir="/repo"):

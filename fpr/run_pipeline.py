@@ -18,6 +18,7 @@ import rx.operators as op
 from rx.scheduler.eventloop import AsyncIOScheduler
 
 import pipelines.cargo_audit
+import pipelines.cargo_metadata
 
 log = logging.getLogger("fpr")
 log.setLevel(logging.DEBUG)
@@ -40,7 +41,7 @@ def parse_args():
     parser.add_argument(
         "pipeline_name",
         type=str,
-        choices=["cargo_audit"],
+        choices=["cargo_audit", "cargo_metadata"],
         help="pipeline step or name torun",
     )
     parser.add_argument(
