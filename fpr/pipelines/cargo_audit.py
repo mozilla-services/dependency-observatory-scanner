@@ -137,10 +137,9 @@ def run_pipeline(source):
         op.skip(1),  # skip the build_pipeline sentinal
         op.map(lambda x: x["repo_url"]),
         op.map(OrgRepo.from_github_repo_url),
-        op.do_action(lambda x: log.debug("processing {}".format(x))),
+        op.do_action(lambda x: log.debug("processing {!r}".format(x))),
         map_async(run_cargo_audit),
         op.catch(on_run_cargo_audit_error),
-        op.do_action(lambda x: log.debug("processed {}".format(x))),
         op.map(lambda x: rx.from_iterable(x)),
         op.merge_all(),
     )
