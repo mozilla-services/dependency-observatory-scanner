@@ -19,6 +19,7 @@ from rx.scheduler.eventloop import AsyncIOScheduler
 
 import pipelines.cargo_audit
 import pipelines.cargo_metadata
+from pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr")
 log.setLevel(logging.DEBUG)
@@ -67,8 +68,8 @@ def on_next_save_to_jsonl(outfile: IO, item):
     log.debug("wrote jsonl to {0}:\n{1}".format(outfile, line))
 
 
-def on_error(*args):
-    log.error("error running pipeline: {}".format(args))
+def on_error(pipeline_name, e, *args):
+    log.error("error running {} pipeline:\n{}".format(pipeline_name, exc_to_str()))
 
 
 def on_completed(loop):
@@ -97,7 +98,7 @@ def main():
     source = rx.from_iterable(csv.DictReader(args.infile))
     pipeline.run_pipeline(source).pipe(op.map(pipeline.serialize)).subscribe(
         on_next=functools.partial(on_next_save_to_jsonl, args.outfile),
-        on_error=on_error,
+        on_error=functools.partial(on_error, args.pipeline_name),
         on_completed=functools.partial(on_completed, loop=loop),
         scheduler=aio_scheduler,
     )
