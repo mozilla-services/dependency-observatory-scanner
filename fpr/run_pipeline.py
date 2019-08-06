@@ -17,9 +17,10 @@ import rx
 import rx.operators as op
 from rx.scheduler.eventloop import AsyncIOScheduler
 
-import pipelines.cargo_audit
-import pipelines.cargo_metadata
-from pipelines.util import exc_to_str
+import fpr.pipelines
+import fpr.pipelines.cargo_audit
+import fpr.pipelines.cargo_metadata
+from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr")
 log.setLevel(logging.DEBUG)
@@ -86,7 +87,7 @@ def main():
     asyncio.set_event_loop(loop)
     aio_scheduler = AsyncIOScheduler(loop=loop)  # NB: not thread safe
 
-    pipeline = getattr(pipelines, args.pipeline_name)
+    pipeline = getattr(fpr.pipelines, args.pipeline_name)
 
     import csv
 
