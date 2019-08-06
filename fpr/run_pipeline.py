@@ -69,6 +69,14 @@ def on_next_save_to_jsonl(outfile: IO, item):
     log.debug("wrote jsonl to {0}:\n{1}".format(outfile, line))
 
 
+def on_serialize_error(pipeline_name, e, *args):
+    log.error(
+        "error serializing result for {} pipeline:\n{}".format(
+            pipeline_name, exc_to_str()
+        )
+    )
+
+
 def on_error(pipeline_name, e, *args):
     log.error("error running {} pipeline:\n{}".format(pipeline_name, exc_to_str()))
 
@@ -97,7 +105,10 @@ def main():
         )
     )
     source = rx.from_iterable(csv.DictReader(args.infile))
-    pipeline.run_pipeline(source).pipe(op.map(pipeline.serialize)).subscribe(
+    pipeline.run_pipeline(source).pipe(
+        op.map(pipeline.serialize),
+        op.catch(functools.partial(on_serialize_error, args.pipeline_name)),
+    ).subscribe(
         on_next=functools.partial(on_next_save_to_jsonl, args.outfile),
         on_error=functools.partial(on_error, args.pipeline_name),
         on_completed=functools.partial(on_completed, loop=loop),
