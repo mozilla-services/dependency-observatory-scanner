@@ -33,16 +33,16 @@ clean:
 	docker container prune -f
 
 run-cargo-audit:
-	$(FPR_PYTHON) fpr/run_pipeline.py cargo_audit tests/fixtures/mozilla_services_channelserver.jsonl
+	$(FPR_PYTHON) fpr/run_pipeline.py cargo_audit tests/fixtures/mozilla_services_channelserver_branch.jsonl
 
 run-cargo-audit-and-save:
-	$(FPR_PYTHON) fpr/run_pipeline.py cargo_audit tests/fixtures/mozilla_services_channelserver.jsonl -o output.jsonl
+	$(FPR_PYTHON) fpr/run_pipeline.py cargo_audit tests/fixtures/mozilla_services_channelserver_branch.jsonl -o output.jsonl
 
 run-cargo-metadata:
-	$(FPR_PYTHON) fpr/run_pipeline.py cargo_metadata tests/fixtures/mozilla_services_channelserver.jsonl
+	$(FPR_PYTHON) fpr/run_pipeline.py cargo_metadata tests/fixtures/mozilla_services_channelserver_branch.jsonl
 
 run-cargo-metadata-and-save:
-	$(FPR_PYTHON) fpr/run_pipeline.py cargo_metadata tests/fixtures/mozilla_services_channelserver.jsonl -o output.jsonl
+	$(FPR_PYTHON) fpr/run_pipeline.py cargo_metadata tests/fixtures/mozilla_services_channelserver_branch.jsonl -o output.jsonl
 
 update-pipenv:
 	pipenv update

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 import enum
 from typing import Dict, Tuple, Sequence
 
@@ -21,3 +21,8 @@ class GitRef:
         -> GitRef(value="0.9.0", kind=GitRefKind.TAG)
         """
         return GitRef(value=d["value"], kind=GitRefKind[d["kind"].upper()])
+
+    def to_dict(self: "GitRef") -> Dict:
+        d = asdict(self)
+        d["kind"] = self.kind.value
+        return d

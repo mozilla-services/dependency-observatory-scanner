@@ -12,13 +12,7 @@ def get_in(d: Dict, key_path: List, default: Any = None):
     return d
 
 
-REPO_FIELDS = {
-    "org",
-    "repo",
-    "commit",
-    # "branch",
-    # "tag",
-}
+REPO_FIELDS = {"org", "repo", "commit", "branch", "tag", "ref"}
 
 RUST_FIELDS = {"cargo_version", "rustc_version"}
 

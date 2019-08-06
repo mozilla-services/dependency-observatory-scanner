@@ -3,6 +3,7 @@ import sys
 import time
 import json
 from dataclasses import dataclass
+from typing import Tuple
 
 import rx
 import rx.operators as op
@@ -10,10 +11,12 @@ import rx.operators as op
 from fpr.rx_util import map_async
 from fpr.serialize_util import get_in, extract_fields, REPO_FIELDS, RUST_FIELDS
 import fpr.containers as containers
-from fpr.models.org_repo import OrgRepo
+from fpr.models import GitRef, OrgRepo
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.cargo_metadata")
+
+name = "cargo_metadata"
 
 
 @dataclass
@@ -48,13 +51,22 @@ async def build_container(args: CargoMetadataBuildArgs = None) -> "Future[None]"
     return args.repo_tag
 
 
-async def run_cargo_metadata(org_repo, commit="master"):
+async def run_cargo_metadata(item: Tuple[OrgRepo, GitRef]):
+    org_repo, git_ref = item
+    log.debug(
+        "running cargo-metadata on repo {!r} ref {!r}".format(
+            org_repo.github_clone_url, git_ref
+        )
+    )
     name = "dep-obs-cargo-metadata-{0.org}-{0.repo}".format(org_repo)
     async with containers.run(
         "dep-obs/cargo-metadata:latest", name=name, cmd="/bin/bash"
     ) as c:
-        await containers.ensure_repo(c, org_repo.github_clone_url, commit=commit)
+        await containers.ensure_repo(c, org_repo.github_clone_url)
+        await containers.ensure_ref(c, git_ref, working_dir="/repo")
+        branch = await containers.get_branch(c)
         commit = await containers.get_commit(c)
+        tag = await containers.get_tag(c)
         cargo_version = await containers.get_cargo_version(c)
         rustc_version = await containers.get_rustc_version(c)
         ripgrep_version = await containers.get_ripgrep_version(c)
@@ -79,6 +91,9 @@ async def run_cargo_metadata(org_repo, commit="master"):
                 org=org_repo.org,
                 repo=org_repo.repo,
                 commit=commit,
+                branch=branch,
+                tag=tag,
+                ref=git_ref.to_dict(),
                 cargo_tomlfile_path=cargo_tomlfile,
                 cargo_version=cargo_version,
                 ripgrep_version=ripgrep_version,
@@ -123,8 +138,12 @@ def run_pipeline(source):
 
     pipeline = rx.concat(build_pipeline, source).pipe(
         op.skip(1),  # skip the build_pipeline sentinal
-        op.map(lambda x: x["repo_url"]),
-        op.map(OrgRepo.from_github_repo_url),
+        op.map(
+            lambda x: (
+                OrgRepo.from_github_repo_url(x["repo_url"]),
+                GitRef.from_dict(x["ref"]),
+            )
+        ),
         op.do_action(lambda x: log.debug("processing {!r}".format(x))),
         map_async(run_cargo_metadata),
         op.catch(on_run_cargo_metadata_error),

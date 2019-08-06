@@ -19,6 +19,8 @@ import aiodocker
 import traceback
 
 import fpr.docker_log_reader as dlog
+from fpr.models import GitRef
+
 
 log = logging.getLogger("fpr.containers")
 
@@ -276,7 +278,7 @@ async def build(dockerfile: str, tag: str, pull: bool = False):
     return tag
 
 
-async def ensure_repo(container, repo_url, working_dir="/repo", commit=None):
+async def ensure_repo(container, repo_url, working_dir="/repo"):
     cmds = [
         "rm -rf repo",
         "git clone --depth=1 {repo_url} repo".format(repo_url=repo_url),
@@ -284,10 +286,14 @@ async def ensure_repo(container, repo_url, working_dir="/repo", commit=None):
     for cmd in cmds:
         await container.run(cmd, wait=True, check=True, working_dir="/")
 
-    if commit:
-        await container.run(
-            "git checkout {commit}".format(commit=commit), working_dir=working_dir
-        )
+
+async def ensure_ref(container, ref: GitRef, working_dir="/repo"):
+    await container.run(
+        "git checkout {ref}".format(ref=ref.value),
+        working_dir=working_dir,
+        wait=True,
+        check=True,
+    )
 
 
 async def get_commit(container, working_dir="/repo"):
@@ -295,6 +301,26 @@ async def get_commit(container, working_dir="/repo"):
         "git rev-parse HEAD", working_dir=working_dir, detach=False
     )
     return exec_.decoded_start_result_stdout[0]
+
+
+async def get_branch(container, working_dir="/repo"):
+    exec_ = await container.run(
+        "git rev-parse --abbrev-ref HEAD", working_dir=working_dir, detach=False
+    )
+    if len(exec_.decoded_start_result_stdout):
+        return exec_.decoded_start_result_stdout[0]
+    else:
+        return None
+
+
+async def get_tag(container, working_dir="/repo"):
+    exec_ = await container.run(
+        "git tag -l --points-at HEAD", working_dir=working_dir, detach=False
+    )
+    if len(exec_.decoded_start_result_stdout):
+        return exec_.decoded_start_result_stdout[0]
+    else:
+        return None
 
 
 async def get_cargo_version(container, working_dir="/repo"):

@@ -21,6 +21,7 @@ import fpr.pipelines
 import fpr.pipelines.cargo_audit
 import fpr.pipelines.cargo_metadata
 from fpr.pipelines.util import exc_to_str
+from fpr.rx_util import save_to_tmpfile
 from fpr.serialize_util import iter_jsonlines
 
 log = logging.getLogger("fpr")
@@ -105,8 +106,18 @@ def main():
     )
     source = rx.from_iterable(iter_jsonlines(args.infile))
     pipeline.run_pipeline(source).pipe(
+        op.do_action(
+            functools.partial(
+                save_to_tmpfile, "{}_unserialized_".format(args.pipeline_name)
+            )
+        ),
         op.map(pipeline.serialize),
         op.catch(functools.partial(on_serialize_error, args.pipeline_name)),
+        op.do_action(
+            functools.partial(
+                save_to_tmpfile, "{}_serialized_".format(args.pipeline_name)
+            )
+        ),
     ).subscribe(
         on_next=functools.partial(on_next_save_to_jsonl, args.outfile),
         on_error=functools.partial(on_error, args.pipeline_name),
