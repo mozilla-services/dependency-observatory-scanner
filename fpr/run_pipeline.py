@@ -21,6 +21,7 @@ import fpr.pipelines
 import fpr.pipelines.cargo_audit
 import fpr.pipelines.cargo_metadata
 from fpr.pipelines.util import exc_to_str
+from fpr.serialize_util import iter_jsonlines
 
 log = logging.getLogger("fpr")
 log.setLevel(logging.DEBUG)
@@ -97,14 +98,12 @@ def main():
 
     pipeline = getattr(fpr.pipelines, args.pipeline_name)
 
-    import csv
-
     log.info(
         "running pipeline {0.pipeline_name} on {0.infile.name} writing to {0.outfile.name}".format(
             args
         )
     )
-    source = rx.from_iterable(csv.DictReader(args.infile))
+    source = rx.from_iterable(iter_jsonlines(args.infile))
     pipeline.run_pipeline(source).pipe(
         op.map(pipeline.serialize),
         op.catch(functools.partial(on_serialize_error, args.pipeline_name)),
