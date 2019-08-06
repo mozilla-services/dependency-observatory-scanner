@@ -4,6 +4,7 @@ import pytest
 
 import context
 import fpr.pipelines.cargo_audit as m
+import fpr.serialize_util as su
 
 
 @pytest.fixture
@@ -18,12 +19,25 @@ def cargo_audit_run_output():
         "ripgrep_version": "ripgrep 11.0.1 (rev 1f1cd9b467)",
         "rustc_version": "rustc 1.36.0 (a53f9df32 2019-07-03)",
         "cargo_audit_version": "cargo-audit 0.7.0",
+        "cargo_lockfile_path": "Cargo.lock",
         "audit_output": audit_output,
     }
 
 
 def test_serialize_returns_audit_result(cargo_audit_run_output):
+    serialized = m.serialize(cargo_audit_run_output)
+    for field in m.FIELDS:
+        assert serialized[field] == cargo_audit_run_output[field]
+
     assert m.serialize(cargo_audit_run_output) == {
+        "cargo_lockfile_path": "Cargo.lock",
+        "cargo_audit_version": "cargo-audit 0.7.0",
+        "cargo_version": "cargo 1.36.0 (c4fcfb725 2019-05-15)",
+        "commit": "79157df7b193857a2e7e3fe8e61e38305e1d47d4",
+        "org": "mozilla-services",
+        "repo": "channelserver",
+        "ripgrep_version": "ripgrep 11.0.1 (rev 1f1cd9b467)",
+        "rustc_version": "rustc 1.36.0 (a53f9df32 2019-07-03)",
         "audit": {
             "lockfile_dependency_count": 250,
             "lockfile_path": "Cargo.lock",
@@ -197,11 +211,4 @@ def test_serialize_returns_audit_result(cargo_audit_run_output):
             "vulnerabilities_count": 3,
             "vulnerabilities_found": True,
         },
-        "cargo_audit_version": "cargo-audit 0.7.0",
-        "cargo_version": "cargo 1.36.0 (c4fcfb725 2019-05-15)",
-        "commit": "79157df7b193857a2e7e3fe8e61e38305e1d47d4",
-        "org": "mozilla-services",
-        "repo": "channelserver",
-        "ripgrep_version": "ripgrep 11.0.1 (rev 1f1cd9b467)",
-        "rustc_version": "rustc 1.36.0 (a53f9df32 2019-07-03)",
     }

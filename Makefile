@@ -17,6 +17,9 @@ style-check:
 test:
 	pytest -vv --cov=fpr/ fpr/ tests/
 
+test-clear-cache:
+	pytest --cache-clear -vv --cov=fpr/ fpr/ tests/
+
 coverage: test
 	coverage html
 	python -m webbrowser htmlcov/index.html
@@ -25,9 +28,16 @@ clean:
 	rm -rf htmlcov/
 	docker container prune -f
 
-run:
+run-cargo-audit:
 	PYTHONPATH=$$PYTHONPATH:fpr/ python fpr/run_pipeline.py cargo_audit tests/fixtures/mozilla_services_channelserver.csv
-run-and-save:
+
+run-cargo-audit-and-save:
 	PYTHONPATH=$$PYTHONPATH:fpr/ python fpr/run_pipeline.py cargo_audit tests/fixtures/mozilla_services_channelserver.csv -o output.jsonl
 
-.PHONY: coverage format typecheck style-check test clean install install-dev-tools run
+run-cargo-metadata:
+	PYTHONPATH=$$PYTHONPATH:fpr/ python fpr/run_pipeline.py cargo_metadata tests/fixtures/mozilla_services_channelserver.csv
+
+run-cargo-metadata-and-save:
+	PYTHONPATH=$$PYTHONPATH:fpr/ python fpr/run_pipeline.py cargo_metadata tests/fixtures/mozilla_services_channelserver.csv -o output.jsonl
+
+.PHONY: coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save

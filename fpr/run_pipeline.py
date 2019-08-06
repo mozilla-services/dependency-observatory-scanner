@@ -18,6 +18,7 @@ import rx.operators as op
 from rx.scheduler.eventloop import AsyncIOScheduler
 
 import pipelines.cargo_audit
+import pipelines.cargo_metadata
 
 log = logging.getLogger("fpr")
 log.setLevel(logging.DEBUG)
@@ -37,7 +38,12 @@ log.addHandler(ch)
 def parse_args():
     parser = argparse.ArgumentParser(description="", usage=__doc__)
 
-    parser.add_argument("pipeline_name", type=str, help="pipeline step or name torun")
+    parser.add_argument(
+        "pipeline_name",
+        type=str,
+        choices=["cargo_audit", "cargo_metadata"],
+        help="pipeline step or name torun",
+    )
     parser.add_argument(
         "infile",
         type=argparse.FileType("r", encoding="UTF-8"),
@@ -79,7 +85,7 @@ def main():
     asyncio.set_event_loop(loop)
     aio_scheduler = AsyncIOScheduler(loop=loop)  # NB: not thread safe
 
-    pipeline = pipelines.cargo_audit
+    pipeline = getattr(pipelines, args.pipeline_name)
 
     import csv
 

@@ -8,6 +8,7 @@ import os
 import subprocess
 import logging
 import json
+import pathlib
 import struct
 import time
 from io import BytesIO
@@ -17,7 +18,7 @@ from typing import BinaryIO, IO, Sequence
 import aiodocker
 import traceback
 
-from fpr.docker_log_reader import DockerRawLog
+import fpr.docker_log_reader as dlog
 
 log = logging.getLogger("fpr.containers")
 
@@ -118,12 +119,12 @@ class Exec:
 
     @property
     def decoded_start_result_stdout(self: "Exec") -> [str]:
-        return [
-            line
-            for msg in DockerRawLog.decode_lines(self.start_result).stdout
-            for line in msg.split("\n")
-            if line
-        ]
+        return list(
+            dlog.iter_lines(
+                dlog.iter_messages(self.start_result),
+                output_stream=dlog.DockerLogStream.STDOUT,
+            )
+        )
 
 
 async def _exec_create(self, **kwargs) -> Exec:
@@ -143,6 +144,7 @@ async def _run(
     detach=False,
     tty=False,
     working_dir=None,
+    # fpr specific args
     wait=True,
     check=True,
     **kwargs
@@ -159,12 +161,21 @@ async def _run(
         "container {} in {} running {!r}".format(container_log_name, working_dir, cmd)
     )
     exec_ = await self.exec_create(**config)
-    exec_.start_result = await exec_.start(Detach=detach, Tty=tty)
-    log.debug(
-        "container {} in {} ran {} with start result {}".format(
-            container_log_name, working_dir, config, exec_.start_result
+
+    with tempfile.NamedTemporaryFile(
+        mode="w+",
+        encoding="utf-8",
+        prefix="fpr_container_{0[Id]}_exec_{1.exec_id}_stdout".format(self, exec_),
+        delete=False,
+    ) as tmpout:
+        exec_.start_result = await exec_.start(Detach=detach, Tty=tty)
+        for line in exec_.decoded_start_result_stdout:
+            tmpout.write(line + "\n")
+        log.info(
+            "container {} in {} ran {} saved start result to {}".format(
+                container_log_name, working_dir, config, tmpout.name
+            )
         )
-    )
     if wait:
         await exec_.wait()
     if check:
@@ -314,6 +325,13 @@ async def cargo_audit(container, working_dir="/repo"):
     return exec_.decoded_start_result_stdout[0]
 
 
+async def cargo_metadata(container, working_dir="/repo"):
+    exec_ = await container.run(
+        "cargo metadata --format-version 1 --locked", working_dir="/repo", check=True
+    )
+    return exec_.decoded_start_result_stdout[0]
+
+
 async def find_files(filename, container, working_dir="/repo"):
     cmd = "rg --no-ignore -g {} --files".format(filename)
     exec_ = await container.run(cmd, working_dir="/repo", check=True)
@@ -321,6 +339,11 @@ async def find_files(filename, container, working_dir="/repo"):
 
     return exec_.decoded_start_result_stdout
 
+
+find_cargo_tomlfiles = functools.partial(find_files, "Cargo.toml")
+find_cargo_tomlfiles.__doc__ = (
+    """Finds the relative paths to Cargo.toml files in a repo using ripgrep"""
+)
 
 find_cargo_lockfiles = functools.partial(find_files, "Cargo.lock")
 find_cargo_lockfiles.__doc__ = """Find the relative paths to Cargo.lock files in a repo in one or
@@ -330,3 +353,7 @@ find_cargo_lockfiles.__doc__ = """Find the relative paths to Cargo.lock files in
     TODO use searchfox.org (mozilla central only)
     TODO using github search
     """
+
+
+def path_relative_to_working_dir(working_dir: "Path", file_path: "Path") -> "Path":
+    return pathlib.Path(working_dir) / pathlib.Path(file_path).parent

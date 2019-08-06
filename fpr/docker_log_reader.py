@@ -1,20 +1,9 @@
-import asyncio
-import contextlib
-from dataclasses import dataclass
 import enum
-import sys
-import os
-import subprocess
 import logging
-import json
 import struct
-import time
+import sys
 from io import BytesIO
-import tarfile
-import tempfile
 from typing import BinaryIO, IO, Sequence
-import aiodocker
-import traceback
 
 
 log = logging.getLogger("fpr.docker_log_reader")
@@ -33,63 +22,93 @@ class DockerLogStream(enum.Enum):
     STDERR = 2
 
 
-def read_message(msg_bytes: BytesIO) -> BytesIO:
-    if len(msg_bytes) < 8:
+# byte lengths from https://github.com/moby/moby/blob/master/pkg/stdcopy/stdcopy.go
+# commit 0f95b23d98384a3ae3769b75292cd5b14ba38437
+HEADER_LENGTH = 8
+STARTING_BUF_CONTENTS_LEN = 32 * 1024
+
+# big endian
+# B: bool of 1 for stdout or 2 for stderr
+# xxx: three padding bytes
+# L: length of the following message
+#
+# see also: https://ahmet.im/blog/docker-logs-api-binary-format-explained/
+LOG_HEADER_FORMAT = ">BxxxL"
+
+
+def stream_no_to_DockerLogStream(stream_no: int) -> DockerLogStream:
+    if stream_no == DockerLogStream.STDOUT.value:
+        return DockerLogStream.STDOUT
+    elif stream_no == DockerLogStream.STDERR.value:
+        return DockerLogStream.STDERR
+    else:
         raise DockerLogReadError(
-            "Too few bytes in {!r}. Need at least 8.".format(msg_bytes)
+            "Unrecognized raw log stream no {!r}".format(stream_no)
         )
 
-    msg_header, rest = msg_bytes[:8], msg_bytes[8:]
-    stream_no, msg_length_from_header = struct.unpack(
-        DockerRawLog._LOG_HEADER_FORMAT, msg_header
-    )
+
+def read_message(msg_bytes: BytesIO) -> BytesIO:
+    log.debug("reading {} byte message {}".format(len(msg_bytes), msg_bytes))
+    if len(msg_bytes) < HEADER_LENGTH:
+        raise DockerLogReadError(
+            "Too few bytes in {!r}. Need at least {}.".format(msg_bytes, HEADER_LENGTH)
+        )
+
+    msg_header, rest = msg_bytes[:HEADER_LENGTH], msg_bytes[HEADER_LENGTH:]
+    stream_no, msg_length_from_header = struct.unpack(LOG_HEADER_FORMAT, msg_header)
     if len(rest) < msg_length_from_header:
         raise DockerLogReadError(
             "message header wants {} bytes but message only has {} left".format(
                 msg_length_from_header, len(rest)
             )
         )
-    return stream_no, rest[:msg_length_from_header], rest[msg_length_from_header:]
+    return (
+        stream_no_to_DockerLogStream(stream_no),
+        rest[:msg_length_from_header],
+        rest[msg_length_from_header:],
+    )
 
 
 def iter_messages(msg_bytes: BytesIO) -> BytesIO:
     msg_bytes_remaining = msg_bytes
+    log.debug("itering through {} msg bytes".format(len(msg_bytes)))
     while True:
-        stream_no, content, msg_bytes_remaining = read_message(msg_bytes_remaining)
+        if not msg_bytes_remaining:
+            log.debug("nothing to read from {!r}".format(msg_bytes_remaining))
+            break
+
+        stream, content, msg_bytes_remaining = read_message(msg_bytes_remaining)
         log.debug(
-            "read msg {} {} {}".format(stream_no, content, len(msg_bytes_remaining))
+            "read msg {} ({} bytes, {} left) {}".format(
+                stream, len(content), len(msg_bytes_remaining), content
+            )
         )
-        yield stream_no, content
+        yield stream, content
         if not msg_bytes_remaining:
             break
 
 
-@dataclass
-class DockerRawLog:
-    # big endian
-    # B: bool of 1 for stdout or 2 for stderr
-    # xxx: three padding bytes
-    # L: length of the following message
-    #
-    # see also: https://ahmet.im/blog/docker-logs-api-binary-format-explained/
-    _LOG_HEADER_FORMAT = ">BxxxL"
+def iter_lines(
+    msgs_iter: Sequence[BytesIO],
+    output_stream: DockerLogStream = DockerLogStream.STDOUT,
+) -> Sequence[str]:
+    buf = bytes()
+    for stream, msg in msgs_iter:
+        if stream != output_stream:
+            log.debug("Skipping {} message {}".format(stream, msg))
+            continue
 
-    stdout: Sequence[str]
-    stderr: Sequence[str]
+        before, newline, after = msg.partition(b"\n")
+        if newline:
+            yield str(buf + before, "utf-8")
+            buf = bytes()
+        else:
+            buf += before
 
-    @classmethod
-    def decode_lines(cls, lines: BytesIO):
-        log.debug("decoding lines {}".format(lines))
-        stdout_lines, stderr_lines = [], []
+    if len(buf):
+        yield buf.decode("utf-8")
 
-        for stream_no, msg_content in iter_messages(lines):
-            if stream_no == DockerLogStream.STDOUT.value:
-                stdout_lines.append(msg_content.decode("utf-8"))
-            elif stream_no == DockerLogStream.STDERR.value:
-                stderr_lines.append(msg_content.decode("utf-8"))
-            else:
-                raise DockerLogReadError(
-                    "Unrecognized raw log stream no {!r}".format(stream_no)
-                )
 
-        return cls(stdout=stdout_lines, stderr=stderr_lines)
+if __name__ == "__main__":
+    for line in iter_lines(iter_messages(sys.stdin.buffer.read())):
+        print(line, file=sys.stdout)
