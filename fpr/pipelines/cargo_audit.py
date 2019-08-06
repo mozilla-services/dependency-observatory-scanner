@@ -6,7 +6,6 @@ from dataclasses import dataclass
 
 import rx
 import rx.operators as op
-from rx.subject import Subject
 
 from fpr.rx_util import map_async
 from fpr.serialize_util import get_in, extract_fields, REPO_FIELDS, RUST_FIELDS
@@ -119,8 +118,6 @@ def on_build_complete():
 
 
 def run_pipeline(source):
-    build_status = Subject()
-
     # workaround for 'RuntimeError: no running event loop'
     build_pipeline = rx.of(["start_build"]).pipe(
         op.do_action(lambda x: log.info("pipeline started")),
