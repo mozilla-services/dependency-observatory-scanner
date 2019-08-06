@@ -15,7 +15,8 @@ jobs:
       - run:
           name: run code checks and unit tests
           command: |
-            make install install-dev-tools
+            pip install pipenv
+            pipenv install --dev
             make format && test "$(git diff | wc -l)" = "0"
             make style-check
             make test
