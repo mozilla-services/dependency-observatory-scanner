@@ -21,6 +21,8 @@ import fpr.pipelines
 import fpr.pipelines.cargo_audit
 import fpr.pipelines.cargo_metadata
 from fpr.pipelines.util import exc_to_str
+from fpr.rx_util import save_to_tmpfile
+from fpr.serialize_util import iter_jsonlines
 
 log = logging.getLogger("fpr")
 log.setLevel(logging.DEBUG)
@@ -69,6 +71,14 @@ def on_next_save_to_jsonl(outfile: IO, item):
     log.debug("wrote jsonl to {0}:\n{1}".format(outfile, line))
 
 
+def on_serialize_error(pipeline_name, e, *args):
+    log.error(
+        "error serializing result for {} pipeline:\n{}".format(
+            pipeline_name, exc_to_str()
+        )
+    )
+
+
 def on_error(pipeline_name, e, *args):
     log.error("error running {} pipeline:\n{}".format(pipeline_name, exc_to_str()))
 
@@ -89,15 +99,26 @@ def main():
 
     pipeline = getattr(fpr.pipelines, args.pipeline_name)
 
-    import csv
-
     log.info(
         "running pipeline {0.pipeline_name} on {0.infile.name} writing to {0.outfile.name}".format(
             args
         )
     )
-    source = rx.from_iterable(csv.DictReader(args.infile))
-    pipeline.run_pipeline(source).pipe(op.map(pipeline.serialize)).subscribe(
+    source = rx.from_iterable(iter_jsonlines(args.infile))
+    pipeline.run_pipeline(source).pipe(
+        op.do_action(
+            functools.partial(
+                save_to_tmpfile, "{}_unserialized_".format(args.pipeline_name)
+            )
+        ),
+        op.map(pipeline.serialize),
+        op.catch(functools.partial(on_serialize_error, args.pipeline_name)),
+        op.do_action(
+            functools.partial(
+                save_to_tmpfile, "{}_serialized_".format(args.pipeline_name)
+            )
+        ),
+    ).subscribe(
         on_next=functools.partial(on_next_save_to_jsonl, args.outfile),
         on_error=functools.partial(on_error, args.pipeline_name),
         on_completed=functools.partial(on_completed, loop=loop),

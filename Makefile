@@ -1,4 +1,8 @@
 
+IN_PIPENV := pipenv run
+FPR_PYTHON := PYTHONPATH=$$PYTHONPATH:fpr/ pipenv run python
+
+
 install:
 	pip install -r requirements.txt
 
@@ -6,39 +10,39 @@ install-dev-tools:
 	pip install -r dev-requirements.txt
 
 format:
-	black fpr/*.py fpr/**/*.py tests/**/*.py
+	$(IN_PIPENV) black fpr/*.py fpr/**/*.py tests/**/*.py
 
 type-check:
-	pyre --source-directory fpr/ --no-saved-state --show-error-traces --search-path venv/lib/python3.7/ check
+	$(IN_PIPENV) pyre --source-directory fpr/ --no-saved-state --show-error-traces --search-path venv/lib/python3.7/ check
 
 style-check:
-	pytest -v -o codestyle_max_line_length=120 --codestyle fpr/ tests/
+	$(IN_PIPENV) pytest -v -o codestyle_max_line_length=120 --codestyle fpr/ tests/
 
 test:
-	pytest -vv --cov=fpr/ fpr/ tests/
+	$(IN_PIPENV) pytest -vv --cov=fpr/ fpr/ tests/
 
 test-clear-cache:
-	pytest --cache-clear -vv --cov=fpr/ fpr/ tests/
+	$(IN_PIPENV)  pytest --cache-clear -vv --cov=fpr/ fpr/ tests/
 
 coverage: test
-	coverage html
-	python -m webbrowser htmlcov/index.html
+	$(IN_PIPENV) coverage html
+	$(IN_PIPENV) python -m webbrowser htmlcov/index.html
 
 clean:
 	rm -rf htmlcov/
 	docker container prune -f
 
 run-cargo-audit:
-	PYTHONPATH=$$PYTHONPATH:fpr/ python fpr/run_pipeline.py cargo_audit tests/fixtures/mozilla_services_channelserver.csv
+	$(FPR_PYTHON) fpr/run_pipeline.py cargo_audit tests/fixtures/mozilla_services_channelserver_branch.jsonl
 
 run-cargo-audit-and-save:
-	PYTHONPATH=$$PYTHONPATH:fpr/ python fpr/run_pipeline.py cargo_audit tests/fixtures/mozilla_services_channelserver.csv -o output.jsonl
+	$(FPR_PYTHON) fpr/run_pipeline.py cargo_audit tests/fixtures/mozilla_services_channelserver_branch.jsonl -o output.jsonl
 
 run-cargo-metadata:
-	PYTHONPATH=$$PYTHONPATH:fpr/ python fpr/run_pipeline.py cargo_metadata tests/fixtures/mozilla_services_channelserver.csv
+	$(FPR_PYTHON) fpr/run_pipeline.py cargo_metadata tests/fixtures/mozilla_services_channelserver_branch.jsonl
 
 run-cargo-metadata-and-save:
-	PYTHONPATH=$$PYTHONPATH:fpr/ python fpr/run_pipeline.py cargo_metadata tests/fixtures/mozilla_services_channelserver.csv -o output.jsonl
+	$(FPR_PYTHON) fpr/run_pipeline.py cargo_metadata tests/fixtures/mozilla_services_channelserver_branch.jsonl -o output.jsonl
 
 update-pipenv:
 	pipenv update

@@ -12,10 +12,8 @@ repository and tests and flags suspicious open source packages (like
 $ git clone https://github.com/mozilla-services/find-package-rugaru.git
 $ cd find-package-rugaru
 $ pipenv install --python 3.7.4
-$ cat tests/fixtures/mozilla_services_channelserver.csv
-
-repo_url
-https://github.com/mozilla-services/channelserver
+$ cat tests/fixtures/mozilla_services_channelserver_branch.jsonl
+{"repo_url": "https://github.com/mozilla-services/channelserver", "ref": {"value": "master", "kind": "branch"}}
 $ PYTHONPATH=$PYTHONPATH:fpr/ pipenv run python fpr/run_pipeline.py cargo_metadata tests/fixtures/mozilla_services_channelserver.csv --outfile=output.jsonl
 2019-08-06 16:23:20,159 - fpr - INFO - running pipeline cargo_metadata on tests/fixtures/mozilla_services_channelserver.csv writing to output.jsonl
 2019-08-06 16:23:20,162 - fpr.pipelines.cargo_metadata - INFO - pipeline started
