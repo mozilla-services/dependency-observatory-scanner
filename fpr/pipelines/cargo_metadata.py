@@ -22,7 +22,7 @@ name = "cargo_metadata"
 @dataclass
 class CargoMetadataBuildArgs:
     base_image_name: str = "rust"
-    base_image_tag: str = "1"
+    base_image_tag: str = "1-slim"
 
     # NB: for buster variants a ripgrep package is available
     _DOCKERFILE = """
