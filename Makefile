@@ -34,6 +34,8 @@ clean:
 
 run-cargo-audit:
 	$(FPR_PYTHON) fpr/run_pipeline.py cargo_audit tests/fixtures/mozilla_services_channelserver_branch.jsonl
+	$(FPR_PYTHON) fpr/run_pipeline.py cargo_audit tests/fixtures/mozilla_services_channelserver_tag.jsonl
+	$(FPR_PYTHON) fpr/run_pipeline.py cargo_audit tests/fixtures/mozilla_services_channelserver_commit.jsonl
 
 run-cargo-audit-and-save:
 	$(FPR_PYTHON) fpr/run_pipeline.py cargo_audit tests/fixtures/mozilla_services_channelserver_branch.jsonl -o output.jsonl
