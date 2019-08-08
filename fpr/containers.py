@@ -338,7 +338,6 @@ async def cargo_audit(container, working_dir="/repo"):
     exec_ = await container.run(
         "cargo audit --json", working_dir=working_dir, check=False, wait=True
     )
-    await exec_.wait()
     return exec_.decoded_start_result_stdout[0]
 
 
