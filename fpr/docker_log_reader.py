@@ -98,12 +98,16 @@ def iter_lines(
             log.debug("Skipping {} message {}".format(stream, msg))
             continue
 
-        before, newline, after = msg.partition(b"\n")
-        if newline:
-            yield str(buf + before, "utf-8")
-            buf = bytes()
-        else:
-            buf += before
+        before = msg
+        while True:
+            before, newline, after = before.partition(b"\n")
+            if newline:
+                yield str(buf + before, encoding="utf-8")
+                buf = bytes()
+                before = after
+            else:
+                buf += before
+                break
 
     if len(buf):
         yield buf.decode("utf-8")
