@@ -19,6 +19,7 @@ from rx.scheduler.eventloop import AsyncIOScheduler
 import fpr.pipelines
 import fpr.pipelines.cargo_audit
 import fpr.pipelines.cargo_metadata
+import fpr.pipelines.crate_graph
 from fpr.pipelines.util import exc_to_str
 from fpr.rx_util import save_to_tmpfile
 
@@ -43,7 +44,7 @@ def parse_args():
     parser.add_argument(
         "pipeline_name",
         type=str,
-        choices=["cargo_audit", "cargo_metadata"],
+        choices=["cargo_audit", "cargo_metadata", "crate_graph"],
         help="pipeline step or name torun",
     )
     parser.add_argument(
