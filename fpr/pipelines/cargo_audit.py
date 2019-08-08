@@ -17,14 +17,14 @@ from fpr.serialize_util import (
     RUST_FIELDS,
 )
 import fpr.containers as containers
-from fpr.models import GitRef, OrgRepo
+from fpr.models import GitRef, OrgRepo, Pipeline
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.cargo_audit")
 
-pipeline_name = name = "cargo_audit"
-pipeline_reader = reader = iter_jsonlines
-pipeline_writer = writer = on_next_save_to_jsonl
+__doc__ = """
+Given a repo_url and git ref, clones the repo, finds Cargo.lock files, and runs cargo audit on them.
+"""
 
 
 @dataclass
@@ -200,3 +200,14 @@ def serialize(audit_result):
     r = extract_fields(audit_result, FIELDS)
     r["audit"] = serialize_cargo_audit_output(audit_result["audit_output"])
     return r
+
+
+pipeline = Pipeline(
+    name="cargo_audit",
+    desc=__doc__,
+    fields=FIELDS,
+    reader=iter_jsonlines,
+    runner=run_pipeline,
+    serializer=serialize,
+    writer=on_next_save_to_jsonl,
+)

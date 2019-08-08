@@ -17,14 +17,14 @@ from fpr.serialize_util import (
     RUST_FIELDS,
 )
 import fpr.containers as containers
-from fpr.models import GitRef, OrgRepo
+from fpr.models import GitRef, OrgRepo, Pipeline
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.cargo_metadata")
 
-pipeline_name = name = "cargo_metadata"
-pipeline_reader = reader = iter_jsonlines
-pipeline_writer = writer = on_next_save_to_jsonl
+__doc__ = """
+Given a repo_url and git ref, clones the repo, finds Cargo.lock files, and runs cargo metadata on them.
+"""
 
 
 @dataclass
@@ -190,3 +190,14 @@ def serialize(metadata_result):
     r = extract_fields(metadata_result, FIELDS)
     r["metadata"] = serialize_cargo_metadata_output(metadata_result["metadata_output"])
     return r
+
+
+pipeline = Pipeline(
+    name="cargo_metadata",
+    desc=__doc__,
+    fields=FIELDS,
+    reader=iter_jsonlines,
+    runner=run_pipeline,
+    serializer=serialize,
+    writer=on_next_save_to_jsonl,
+)

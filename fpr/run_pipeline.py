@@ -16,10 +16,7 @@ import rx
 import rx.operators as op
 from rx.scheduler.eventloop import AsyncIOScheduler
 
-import fpr.pipelines
-import fpr.pipelines.cargo_audit
-import fpr.pipelines.cargo_metadata
-import fpr.pipelines.crate_graph
+from fpr.pipelines import __all__ as pipelines
 from fpr.pipelines.util import exc_to_str
 from fpr.rx_util import save_to_tmpfile
 
@@ -29,7 +26,6 @@ fh = logging.FileHandler("fpr-debug.log")
 fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.INFO)
-# ch.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 fh.setFormatter(formatter)
 ch.setFormatter(formatter)
@@ -39,26 +35,8 @@ log.addHandler(ch)
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="", usage=__doc__)
-
-    parser.add_argument(
-        "pipeline_name",
-        type=str,
-        choices=["cargo_audit", "cargo_metadata", "crate_graph"],
-        help="pipeline step or name torun",
-    )
-    parser.add_argument(
-        "infile",
-        type=argparse.FileType("r", encoding="UTF-8"),
-        help="pipeline input file (use '-' for stdin)",
-    )
-    parser.add_argument(
-        "-o",
-        "--outfile",
-        type=argparse.FileType("w", encoding="UTF-8"),
-        required=False,
-        default=sys.stdout,
-        help="pipeline output file (defaults to stdout)",
+    parser = argparse.ArgumentParser(
+        description="Runs a single pipeline", usage=__doc__
     )
     parser.add_argument(
         "-q",
@@ -67,6 +45,11 @@ def parse_args():
         default=False,
         help="don't log anything to the console",
     )
+
+    subparsers = parser.add_subparsers(help="available pipelines", dest="pipeline_name")
+    for pipeline in pipelines:
+        pipeline_parser = subparsers.add_parser(pipeline.name, help=pipeline.desc)
+        pipeline.argparser(pipeline_parser)
     return parser.parse_args()
 
 
@@ -98,21 +81,20 @@ def main():
     asyncio.set_event_loop(loop)
     aio_scheduler = AsyncIOScheduler(loop=loop)  # NB: not thread safe
 
-    pipeline = getattr(fpr.pipelines, args.pipeline_name)
-
+    pipeline = next(p for p in pipelines if p.name == args.pipeline_name)
     log.info(
         "running pipeline {0.pipeline_name} on {0.infile.name} writing to {0.outfile.name}".format(
             args
         )
     )
     source = rx.from_iterable(pipeline.reader(args.infile))
-    pipeline.run_pipeline(source).pipe(
+    pipeline.runner(source).pipe(
         op.do_action(
             functools.partial(
                 save_to_tmpfile, "{}_unserialized_".format(args.pipeline_name)
             )
         ),
-        op.map(pipeline.serialize),
+        op.map(pipeline.serializer),
         op.catch(functools.partial(on_serialize_error, args.pipeline_name)),
         op.do_action(
             functools.partial(
