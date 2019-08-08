@@ -37,8 +37,8 @@ class CargoAuditBuildArgs:
     # NB: for buster variants a ripgrep package is available
     _DOCKERFILE = """
 FROM {0.base_image}
-RUN curl -LO https://github.com/BurntSushi/ripgrep/releases/download/11.0.1/ripgrep_11.0.1_amd64.deb
-RUN dpkg -i ripgrep_11.0.1_amd64.deb
+RUN curl -LO https://github.com/BurntSushi/ripgrep/releases/download/11.0.2/ripgrep_11.0.2_amd64.deb
+RUN dpkg -i ripgrep_11.0.2_amd64.deb
 RUN cargo install {0._cargo_audit_install_args}
 CMD ["cargo", "audit", "--json"]
 """
