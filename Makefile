@@ -57,6 +57,8 @@ run-cargo-metadata:
 run-cargo-metadata-and-save:
 	$(FPR_PYTHON) fpr/run_pipeline.py cargo_metadata tests/fixtures/mozilla_services_channelserver_branch.jsonl -o output.jsonl
 
+integration-test: run-cargo-audit run-cargo-metadata run-crate-graph-and-save
+
 update-pipenv:
 	pipenv update
 
@@ -64,4 +66,4 @@ update-requirements:
 	pipenv lock -r > requirements.txt
 	pipenv lock -r --dev > dev-requirements.txt
 
-.PHONY: coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save update-pipenv update-requirements show-dot
+.PHONY: coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save update-pipenv update-requirements show-dot integration-test
