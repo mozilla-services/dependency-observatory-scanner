@@ -3,7 +3,7 @@ import functools
 import json
 import logging
 import tempfile
-from typing import Dict
+from typing import Dict, IO
 
 import rx
 import rx.operators as op
@@ -35,3 +35,10 @@ def save_to_tmpfile(prefix: str, item: Dict):
     ) as tmpout:
         json.dump(item, tmpout, sort_keys=True, indent=2)
         log.debug("saved to {}".format(tmpout.name))
+
+
+def on_next_save_to_jsonl(outfile: IO, item):
+    log.debug("saving final pipeline item to {0}:\n{1}".format(outfile, item))
+    line = "{}\n".format(json.dumps(item))
+    outfile.write(line)
+    log.debug("wrote jsonl to {0}:\n{1}".format(outfile, line))

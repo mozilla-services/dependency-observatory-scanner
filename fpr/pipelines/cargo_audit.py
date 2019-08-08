@@ -8,7 +8,7 @@ from typing import Tuple
 import rx
 import rx.operators as op
 
-from fpr.rx_util import map_async
+from fpr.rx_util import map_async, on_next_save_to_jsonl
 from fpr.serialize_util import (
     get_in,
     extract_fields,
@@ -24,6 +24,7 @@ log = logging.getLogger("fpr.pipelines.cargo_audit")
 
 pipeline_name = name = "cargo_audit"
 pipeline_reader = reader = iter_jsonlines
+pipeline_writer = writer = on_next_save_to_jsonl
 
 
 @dataclass
