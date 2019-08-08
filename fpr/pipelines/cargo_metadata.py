@@ -34,6 +34,7 @@ class CargoMetadataBuildArgs:
     # NB: for buster variants a ripgrep package is available
     _DOCKERFILE = """
 FROM {0.base_image}
+RUN apt-get -y update && apt-get install -y curl git
 RUN curl -LO https://github.com/BurntSushi/ripgrep/releases/download/11.0.1/ripgrep_11.0.1_amd64.deb
 RUN dpkg -i ripgrep_11.0.1_amd64.deb
 CMD ["cargo", "metadata"]
