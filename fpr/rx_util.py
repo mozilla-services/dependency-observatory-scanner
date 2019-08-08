@@ -42,3 +42,9 @@ def on_next_save_to_jsonl(outfile: IO, item):
     line = "{}\n".format(json.dumps(item))
     outfile.write(line)
     log.debug("wrote jsonl to {0}:\n{1}".format(outfile, line))
+
+
+def on_next_save_to_file(outfile: IO, item):
+    log.debug("saving final pipeline item to {0}:\n{1}".format(outfile, item))
+    outfile.write(item)
+    log.debug("wrote to {0}:\n{1}".format(outfile, item))
