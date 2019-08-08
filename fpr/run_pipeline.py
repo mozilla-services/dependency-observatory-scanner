@@ -22,7 +22,6 @@ import fpr.pipelines.cargo_audit
 import fpr.pipelines.cargo_metadata
 from fpr.pipelines.util import exc_to_str
 from fpr.rx_util import save_to_tmpfile
-from fpr.serialize_util import iter_jsonlines
 
 log = logging.getLogger("fpr")
 log.setLevel(logging.DEBUG)
@@ -104,7 +103,7 @@ def main():
             args
         )
     )
-    source = rx.from_iterable(iter_jsonlines(args.infile))
+    source = rx.from_iterable(pipeline.reader(args.infile))
     pipeline.run_pipeline(source).pipe(
         op.do_action(
             functools.partial(

@@ -9,14 +9,21 @@ import rx
 import rx.operators as op
 
 from fpr.rx_util import map_async
-from fpr.serialize_util import get_in, extract_fields, REPO_FIELDS, RUST_FIELDS
+from fpr.serialize_util import (
+    get_in,
+    extract_fields,
+    iter_jsonlines,
+    REPO_FIELDS,
+    RUST_FIELDS,
+)
 import fpr.containers as containers
 from fpr.models import GitRef, OrgRepo
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.cargo_audit")
 
-name = "cargo_audit"
+pipeline_name = name = "cargo_audit"
+pipeline_reader = reader = iter_jsonlines
 
 
 @dataclass
