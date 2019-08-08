@@ -263,9 +263,10 @@ async def build(dockerfile: str, tag: str, pull: bool = False):
     log.info("building image {}".format(tag))
     log.debug("building image {} with dockerfile:\n{}".format(tag, dockerfile))
     with temp_dockerfile_tgz(BytesIO(dockerfile)) as tar_obj:
-        await client.images.build(
-            fileobj=tar_obj, encoding="utf-8", rm=True, tag=tag, pull=pull
-        )
+        async for build_log_line in await client.images.build(
+            fileobj=tar_obj, encoding="utf-8", rm=True, tag=tag, pull=pull, stream=True
+        ):
+            log.debug("building image {}: {}".format(tag, build_log_line))
 
     image_info = await client.images.inspect(tag)
     log.info("built docker image: {} {}".format(tag, image_info["Id"]))
