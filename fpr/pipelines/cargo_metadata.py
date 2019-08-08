@@ -8,15 +8,23 @@ from typing import Tuple
 import rx
 import rx.operators as op
 
-from fpr.rx_util import map_async
-from fpr.serialize_util import get_in, extract_fields, REPO_FIELDS, RUST_FIELDS
+from fpr.rx_util import map_async, on_next_save_to_jsonl
+from fpr.serialize_util import (
+    get_in,
+    extract_fields,
+    iter_jsonlines,
+    REPO_FIELDS,
+    RUST_FIELDS,
+)
 import fpr.containers as containers
 from fpr.models import GitRef, OrgRepo
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.cargo_metadata")
 
-name = "cargo_metadata"
+pipeline_name = name = "cargo_metadata"
+pipeline_reader = reader = iter_jsonlines
+pipeline_writer = writer = on_next_save_to_jsonl
 
 
 @dataclass
@@ -27,6 +35,7 @@ class CargoMetadataBuildArgs:
     # NB: for buster variants a ripgrep package is available
     _DOCKERFILE = """
 FROM {0.base_image}
+RUN apt-get -y update && apt-get install -y curl git
 RUN curl -LO https://github.com/BurntSushi/ripgrep/releases/download/11.0.1/ripgrep_11.0.1_amd64.deb
 RUN dpkg -i ripgrep_11.0.1_amd64.deb
 CMD ["cargo", "metadata"]

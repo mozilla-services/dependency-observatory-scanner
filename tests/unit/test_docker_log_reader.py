@@ -152,6 +152,19 @@ def test_messages_final_line_returned_even_without_final_newline():
     assert len(tuple(m.iter_lines(msgs))) == 1
 
 
+def test_messages_line_containing_newline():
+    msgs = (
+        msg for msg in [(m.DockerLogStream.STDOUT, b"Cargo.lock\nfoo/Cargo.lock\n")]
+    )
+    assert tuple(m.iter_lines(msgs)) == ("Cargo.lock", "foo/Cargo.lock")
+    msgs = (msg for msg in [(m.DockerLogStream.STDOUT, b"Cargo.lock\nfoo/Cargo.lock")])
+    assert tuple(m.iter_lines(msgs)) == ("Cargo.lock", "foo/Cargo.lock")
+    msgs = (msg for msg in [(m.DockerLogStream.STDOUT, b"\nCargo.lock\nfoo")])
+    assert tuple(m.iter_lines(msgs)) == ("", "Cargo.lock", "foo")
+    msgs = (msg for msg in [(m.DockerLogStream.STDOUT, b"\nCargo.lock\n")])
+    assert tuple(m.iter_lines(msgs)) == ("", "Cargo.lock")
+
+
 def test_messages_defaults_to_returning_stdout():
     msgs = (
         msg

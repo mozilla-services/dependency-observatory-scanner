@@ -10,7 +10,6 @@ import functools
 import logging
 import os
 import sys
-from typing import IO
 import json
 
 import rx
@@ -20,9 +19,9 @@ from rx.scheduler.eventloop import AsyncIOScheduler
 import fpr.pipelines
 import fpr.pipelines.cargo_audit
 import fpr.pipelines.cargo_metadata
+import fpr.pipelines.crate_graph
 from fpr.pipelines.util import exc_to_str
 from fpr.rx_util import save_to_tmpfile
-from fpr.serialize_util import iter_jsonlines
 
 log = logging.getLogger("fpr")
 log.setLevel(logging.DEBUG)
@@ -45,7 +44,7 @@ def parse_args():
     parser.add_argument(
         "pipeline_name",
         type=str,
-        choices=["cargo_audit", "cargo_metadata"],
+        choices=["cargo_audit", "cargo_metadata", "crate_graph"],
         help="pipeline step or name torun",
     )
     parser.add_argument(
@@ -61,14 +60,14 @@ def parse_args():
         default=sys.stdout,
         help="pipeline output file (defaults to stdout)",
     )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        default=False,
+        help="don't log anything to the console",
+    )
     return parser.parse_args()
-
-
-def on_next_save_to_jsonl(outfile: IO, item):
-    log.debug("saving final pipeline item to {0}:\n{1}".format(outfile, item))
-    line = "{}\n".format(json.dumps(item))
-    outfile.write(line)
-    log.debug("wrote jsonl to {0}:\n{1}".format(outfile, line))
 
 
 def on_serialize_error(pipeline_name, e, *args):
@@ -92,6 +91,8 @@ def on_completed(loop):
 def main():
     args = parse_args()
     log.debug("args: {}".format(args))
+    if args.quiet:
+        log.removeHandler(ch)
 
     loop = asyncio.get_event_loop()
     asyncio.set_event_loop(loop)
@@ -104,7 +105,7 @@ def main():
             args
         )
     )
-    source = rx.from_iterable(iter_jsonlines(args.infile))
+    source = rx.from_iterable(pipeline.reader(args.infile))
     pipeline.run_pipeline(source).pipe(
         op.do_action(
             functools.partial(
@@ -119,7 +120,7 @@ def main():
             )
         ),
     ).subscribe(
-        on_next=functools.partial(on_next_save_to_jsonl, args.outfile),
+        on_next=functools.partial(getattr(pipeline, "writer"), args.outfile),
         on_error=functools.partial(on_error, args.pipeline_name),
         on_completed=functools.partial(on_completed, loop=loop),
         scheduler=aio_scheduler,
