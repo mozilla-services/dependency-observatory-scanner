@@ -22,9 +22,6 @@ from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.cargo_metadata")
 
-pipeline_name = name = "cargo_metadata"
-pipeline_reader = reader = iter_jsonlines
-pipeline_writer = writer = on_next_save_to_jsonl
 __doc__ = """
 Given a repo_url and git ref, clones the repo, finds Cargo.lock files, and runs cargo metadata on them.
 """

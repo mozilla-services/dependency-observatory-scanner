@@ -14,9 +14,6 @@ from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.crate_tree")
 
-pipeline_name = name = "crate_tree"
-pipeline_reader = reader = lambda infile: [json.load(infile)]
-pipeline_writer = writer = on_next_save_to_file
 __doc__ = """Parses the output of the cargo metadata pipeline and writes a .dot
 file of the dependencies to outfile"""
 
