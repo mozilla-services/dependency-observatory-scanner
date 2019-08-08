@@ -60,6 +60,13 @@ def parse_args():
         default=sys.stdout,
         help="pipeline output file (defaults to stdout)",
     )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        default=False,
+        help="don't log anything to the console",
+    )
     return parser.parse_args()
 
 
@@ -91,6 +98,8 @@ def on_completed(loop):
 def main():
     args = parse_args()
     log.debug("args: {}".format(args))
+    if args.quiet:
+        log.removeHandler(ch)
 
     loop = asyncio.get_event_loop()
     asyncio.set_event_loop(loop)
