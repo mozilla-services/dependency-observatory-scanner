@@ -285,7 +285,7 @@ async def ensure_repo(container, repo_url, working_dir="/repo"):
 
 async def ensure_ref(container, ref: GitRef, working_dir="/repo"):
     await container.run(
-        "git fetch --tags origin {ref}".format(ref=ref.value),
+        "git fetch --tags origin".format(ref=ref.value),
         working_dir=working_dir,
         wait=True,
         check=True,
