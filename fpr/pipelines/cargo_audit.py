@@ -1,9 +1,10 @@
+import argparse
 import logging
 import sys
 import time
 import json
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Dict, Tuple
 
 import rx
 import rx.operators as op
@@ -141,7 +142,7 @@ def on_build_complete():
     log.info("image built successfully")
 
 
-def run_pipeline(source):
+def run_pipeline(source: rx.Observable, _: argparse.Namespace):
     # workaround for 'RuntimeError: no running event loop'
     build_pipeline = rx.of(["start_build"]).pipe(
         op.do_action(lambda x: log.info("pipeline started")),
@@ -196,7 +197,7 @@ FIELDS = (
 )
 
 
-def serialize(audit_result):
+def serialize(_: argparse.Namespace, audit_result: Dict):
     r = extract_fields(audit_result, FIELDS)
     r["audit"] = serialize_cargo_audit_output(audit_result["audit_output"])
     return r

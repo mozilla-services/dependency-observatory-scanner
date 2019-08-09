@@ -1,9 +1,10 @@
+import argparse
 import logging
 import sys
 import time
 import json
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Dict, Tuple
 
 import rx
 import rx.operators as op
@@ -129,7 +130,7 @@ def on_build_complete():
     log.info("image built successfully")
 
 
-def run_pipeline(source):
+def run_pipeline(source: rx.Observable, _: argparse.Namespace):
     # workaround for 'RuntimeError: no running event loop'
     build_pipeline = rx.of(["start_build"]).pipe(
         op.do_action(lambda x: log.info("pipeline started")),
@@ -170,6 +171,7 @@ def serialize_cargo_metadata_output(metadata_output):
     for read_key_path, output_key in [
         [["version"], "version"],  # str should be 1
         [["resolve", "root"], "root"],  # can be null str of pkg id
+        [["packages"], "packages"],  # additional data parsed from the Cargo.toml file
     ]:
         result[output_key] = get_in(metadata_output, read_key_path)
 
@@ -186,7 +188,7 @@ NODE_FIELDS = {"id", "features", "deps"}
 FIELDS = RUST_FIELDS | REPO_FIELDS | {"cargo_tomlfile_path", "ripgrep_version"}
 
 
-def serialize(metadata_result):
+def serialize(_: argparse.Namespace, metadata_result: Dict):
     r = extract_fields(metadata_result, FIELDS)
     r["metadata"] = serialize_cargo_metadata_output(metadata_result["metadata_output"])
     return r

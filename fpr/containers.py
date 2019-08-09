@@ -285,7 +285,7 @@ async def ensure_repo(container, repo_url, working_dir="/repo"):
 
 async def ensure_ref(container, ref: GitRef, working_dir="/repo"):
     await container.run(
-        "git fetch --tags origin {ref}".format(ref=ref.value),
+        "git fetch --tags origin".format(ref=ref.value),
         working_dir=working_dir,
         wait=True,
         check=True,
@@ -298,58 +298,46 @@ async def ensure_ref(container, ref: GitRef, working_dir="/repo"):
     )
 
 
-async def get_commit(container, working_dir="/repo"):
-    exec_ = await container.run(
-        "git rev-parse HEAD", working_dir=working_dir, detach=False
-    )
-    return exec_.decoded_start_result_stdout[0]
-
-
-async def get_branch(container, working_dir="/repo"):
-    exec_ = await container.run(
-        "git rev-parse --abbrev-ref HEAD", working_dir=working_dir, detach=False
-    )
+async def run_container_cmd_no_args_return_first_line_or_none(
+    cmd, container, working_dir="/repo"
+):
+    exec_ = await container.run(cmd, working_dir=working_dir, detach=False)
     if len(exec_.decoded_start_result_stdout):
         return exec_.decoded_start_result_stdout[0]
     else:
         return None
 
-
-async def get_tag(container, working_dir="/repo"):
-    exec_ = await container.run(
-        "git tag -l --points-at HEAD", working_dir=working_dir, detach=False
-    )
-    if len(exec_.decoded_start_result_stdout):
-        return exec_.decoded_start_result_stdout[0]
-    else:
-        return None
-
-
-async def get_cargo_version(container, working_dir="/repo"):
-    exec_ = await container.run("cargo --version", working_dir="/repo")
     return exec_.decoded_start_result_stdout[0]
 
 
-async def get_cargo_audit_version(container, working_dir="/repo"):
-    exec_ = await container.run("cargo audit --version", working_dir="/repo")
-    return exec_.decoded_start_result_stdout[0]
-
-
-async def get_ripgrep_version(container, working_dir="/repo"):
-    exec_ = await container.run("rg --version", working_dir="/repo")
-    return exec_.decoded_start_result_stdout[0]
-
-
-async def get_rustc_version(container, working_dir="/repo"):
-    exec_ = await container.run("rustc --version", working_dir="/repo")
-    return exec_.decoded_start_result_stdout[0]
+get_commit = functools.partial(
+    run_container_cmd_no_args_return_first_line_or_none, "git rev-parse HEAD"
+)
+get_branch = functools.partial(
+    run_container_cmd_no_args_return_first_line_or_none,
+    "git rev-parse --abbrev-ref HEAD",
+)
+get_tag = functools.partial(
+    run_container_cmd_no_args_return_first_line_or_none, "git tag -l --points-at HEAD"
+)
+get_cargo_version = functools.partial(
+    run_container_cmd_no_args_return_first_line_or_none, "cargo --version"
+)
+get_cargo_audit_version = functools.partial(
+    run_container_cmd_no_args_return_first_line_or_none, "cargo audit --version"
+)
+get_ripgrep_version = functools.partial(
+    run_container_cmd_no_args_return_first_line_or_none, "rg --version"
+)
+get_rustc_version = functools.partial(
+    run_container_cmd_no_args_return_first_line_or_none, "rustc --version"
+)
 
 
 async def cargo_audit(container, working_dir="/repo"):
     exec_ = await container.run(
         "cargo audit --json", working_dir=working_dir, check=False, wait=True
     )
-    await exec_.wait()
     return exec_.decoded_start_result_stdout[0]
 
 
