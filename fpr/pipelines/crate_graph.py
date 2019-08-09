@@ -1,3 +1,4 @@
+import argparse
 import logging
 import json
 from typing import Dict
@@ -44,7 +45,7 @@ def cargo_metadata_pipeline_to_networkx_digraph(cargo_meta_out: Dict) -> "Digrap
     return g
 
 
-def run_pipeline(source):
+def run_pipeline(source: rx.Observable, args: argparse.Namespace):
     pipeline = source.pipe(
         op.do_action(lambda x: log.debug("processing {!r}".format(x))),
         op.map(cargo_metadata_pipeline_to_networkx_digraph),

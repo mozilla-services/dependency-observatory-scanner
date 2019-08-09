@@ -88,7 +88,7 @@ def main():
         )
     )
     source = rx.from_iterable(pipeline.reader(args.infile))
-    pipeline.runner(source).pipe(
+    pipeline.runner(source, args).pipe(
         op.do_action(
             functools.partial(
                 save_to_tmpfile, "{}_unserialized_".format(args.pipeline_name)

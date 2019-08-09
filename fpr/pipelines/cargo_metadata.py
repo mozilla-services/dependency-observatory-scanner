@@ -1,3 +1,4 @@
+import argparse
 import logging
 import sys
 import time
@@ -129,7 +130,7 @@ def on_build_complete():
     log.info("image built successfully")
 
 
-def run_pipeline(source):
+def run_pipeline(source: rx.Observable, _: argparse.Namespace):
     # workaround for 'RuntimeError: no running event loop'
     build_pipeline = rx.of(["start_build"]).pipe(
         op.do_action(lambda x: log.info("pipeline started")),
