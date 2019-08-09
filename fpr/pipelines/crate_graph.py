@@ -13,7 +13,7 @@ from fpr.models import Pipeline
 from fpr.serialize_util import extract_fields, get_in
 from fpr.pipelines.util import exc_to_str
 
-log = logging.getLogger("fpr.pipelines.crate_tree")
+log = logging.getLogger("fpr.pipelines.crate_graph")
 
 __doc__ = """Parses the output of the cargo metadata pipeline and writes a .dot
 file of the dependencies to outfile"""
@@ -21,7 +21,7 @@ file of the dependencies to outfile"""
 
 def cargo_metadata_pipeline_to_networkx_digraph(cargo_meta_out: Dict) -> "Digraph":
     log.debug(
-        "running crate-tree on {0[cargo_tomlfile_path]} in {0[org]}/{0[repo]} at {0[commit]} ".format(
+        "running crate-graph on {0[cargo_tomlfile_path]} in {0[org]}/{0[repo]} at {0[commit]} ".format(
             cargo_meta_out
         )
     )
