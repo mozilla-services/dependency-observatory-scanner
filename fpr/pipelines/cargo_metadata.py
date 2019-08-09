@@ -4,7 +4,7 @@ import sys
 import time
 import json
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Dict, Tuple
 
 import rx
 import rx.operators as op
@@ -188,7 +188,7 @@ NODE_FIELDS = {"id", "features", "deps"}
 FIELDS = RUST_FIELDS | REPO_FIELDS | {"cargo_tomlfile_path", "ripgrep_version"}
 
 
-def serialize(metadata_result):
+def serialize(_: argparse.Namespace, metadata_result: Dict):
     r = extract_fields(metadata_result, FIELDS)
     r["metadata"] = serialize_cargo_metadata_output(metadata_result["metadata_output"])
     return r

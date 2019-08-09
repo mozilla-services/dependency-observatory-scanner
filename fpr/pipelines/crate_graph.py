@@ -53,7 +53,7 @@ def run_pipeline(source: rx.Observable, args: argparse.Namespace):
     return pipeline
 
 
-def serialize(g: "DiGraph"):
+def serialize(_: argparse.Namespace, g: "DiGraph"):
     pdot = to_pydot(g)
     pdot.set("rankdir", "LR")
     return str(pdot)

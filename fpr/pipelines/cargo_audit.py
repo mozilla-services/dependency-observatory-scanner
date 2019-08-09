@@ -4,7 +4,7 @@ import sys
 import time
 import json
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Dict, Tuple
 
 import rx
 import rx.operators as op
@@ -197,7 +197,7 @@ FIELDS = (
 )
 
 
-def serialize(audit_result):
+def serialize(_: argparse.Namespace, audit_result: Dict):
     r = extract_fields(audit_result, FIELDS)
     r["audit"] = serialize_cargo_audit_output(audit_result["audit_output"])
     return r

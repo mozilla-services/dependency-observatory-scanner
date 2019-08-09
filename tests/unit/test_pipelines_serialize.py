@@ -23,7 +23,7 @@ def test_serialize_returns_audit_result(pipeline):
     unserialized = load_test_fixture("{}_unserialized.json".format(pipeline.name))
     expected_serialized = load_test_fixture("{}_serialized.json".format(pipeline.name))
 
-    serialized = pipeline.serializer(unserialized)
+    serialized = pipeline.serializer(None, unserialized)
     for field in sorted(pipeline.fields):
         assert field in serialized
         assert field in expected_serialized
