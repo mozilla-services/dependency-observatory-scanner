@@ -4,7 +4,9 @@ from dataclasses import dataclass, field
 from typing import AbstractSet, Callable, Optional
 
 
-def add_infile_and_outfile(pipeline_parser: Callable) -> None:
+def add_infile_and_outfile(
+    pipeline_parser: argparse.ArgumentParser
+) -> argparse.ArgumentParser:
     pipeline_parser.add_argument(
         "-i",
         "--infile",
@@ -21,6 +23,7 @@ def add_infile_and_outfile(pipeline_parser: Callable) -> None:
         default=sys.stdout,
         help="pipeline output file (defaults to stdout)",
     )
+    return pipeline_parser
 
 
 @dataclass
