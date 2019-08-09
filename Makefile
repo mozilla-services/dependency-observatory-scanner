@@ -37,7 +37,12 @@ run-crate-graph:
 	$(IN_PIPENV) python -m webbrowser fpr-graph.svg
 
 run-crate-graph-and-save:
-	$(FPR_PYTHON) fpr/run_pipeline.py crate_graph -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
+	# $(FPR_PYTHON) fpr/run_pipeline.py crate_graph -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
+	#$(FPR_PYTHON) fpr/run_pipeline.py crate_graph --node-key name --node-label name_authors -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
+	# $(FPR_PYTHON) fpr/run_pipeline.py crate_graph --node-key name_version --node-label name_readme -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
+	# $(FPR_PYTHON) fpr/run_pipeline.py crate_graph --node-key name_version --node-label name_repository -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
+	# $(FPR_PYTHON) fpr/run_pipeline.py crate_graph --node-key name_version --node-label name_package_source -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
+	$(FPR_PYTHON) fpr/run_pipeline.py crate_graph --node-key name_version --node-label name_metadata -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
 
 show-dot:
 	dot -Tsvg output.dot > fpr-graph.svg
