@@ -170,6 +170,7 @@ def serialize_cargo_metadata_output(metadata_output):
     for read_key_path, output_key in [
         [["version"], "version"],  # str should be 1
         [["resolve", "root"], "root"],  # can be null str of pkg id
+        [["packages"], "packages"],  # additional data parsed from the Cargo.toml file
     ]:
         result[output_key] = get_in(metadata_output, read_key_path)
 
