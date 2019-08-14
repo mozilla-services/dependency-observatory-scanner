@@ -1,0 +1,38 @@
+
+{
+    "target_packages": [
+        {
+            "name": "purescript-installer",
+            "affected_versions:": "TODO",
+            "patched_version": "0.2.5",
+            "repo_url": "https://github.com/purescript/npm-installer"
+        }
+    ],
+    "compromised_packages": [
+        {
+            "name": "rate-map",
+            "affected_versions:": "1.0.3",
+            "patched_version": "TODO",
+            "repo_url": "https://github.com/shinnn/rate-map",
+            "advisory_urls": [
+                "https://www.npmjs.com/advisories/1082"
+            ]
+        },
+        {
+            "name": "load-from-cwd-or-npm",
+            "affected_versions:": "3.0.2",
+            "patched_version": "TODO",
+            "repo_url": "https://github.com/shinnn/load-from-cwd-or-npm",
+            "advisory_urls": [
+                "https://www.npmjs.com/advisories/1083"
+            ]
+        }
+    ],
+    "package_manager": "npm",
+    "language": "node.js",
+    "description_urls": [
+        "https://harry.garrood.me/blog/malicious-code-in-purescript-npm-installer/"
+    ],
+    "detection_method": "end user bug reports e.g. https://github.com/purescript/npm-installer/issues/12",
+    "run_conditions": "run from purescript-installer package and a .git folder not present"
+}
