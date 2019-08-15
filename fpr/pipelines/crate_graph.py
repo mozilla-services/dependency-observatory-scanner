@@ -1,4 +1,5 @@
 import argparse
+from dataclasses import dataclass
 import functools
 import logging
 import json
@@ -70,6 +71,14 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
         required=False,
         # TODO: filter by path, features, edge attrs, or non-label node data
         help="Node label substring filters to apply",
+    )
+    parser.add_argument(
+        "-s",
+        "--style",
+        type=str,
+        action="append",
+        help="Style nodes with a label matching the substring with the provided graphviz dot attr. "
+        "Format is <label substring>:<dot attr name>:<dot attr value> e.g. serde:shape:egg",
     )
     return parser
 
@@ -155,17 +164,46 @@ def filter_graph_nodes(filters: Sequence[str], g: nx.DiGraph) -> nx.DiGraph:
     return g
 
 
+@dataclass
+class GraphStyle:
+    label_substr: str
+    # dot attrs at https://www.graphviz.org/doc/info/lang.html
+    dot_attr_name: str
+    dot_attr_value: str
+
+
+def style_graph_nodes(styles: Sequence[Dict[str, str]], g: nx.DiGraph) -> nx.DiGraph:
+    """Styles nodes with labels matching the style
+
+    string. Rightmost / last style arg wins.
+    """
+    if not styles:
+        return g
+
+    styles = [GraphStyle(*s.split(":", 2)) for s in styles]
+    log.debug("applying styles: {}".format(styles))
+
+    for (nid, attrs) in g.nodes.items():
+        for s in styles:
+            if s.label_substr in attrs["label"]:
+                g.nodes[nid][s.dot_attr_name] = s.dot_attr_value
+    return g
+
+
 def run_pipeline(source: rx.Observable, args: argparse.Namespace):
     pipeline = source.pipe(
         op.do_action(lambda x: log.debug("processing {!r}".format(x))),
         op.map(cargo_metadata_to_rust_crate_and_packages),
         op.map(functools.partial(rust_crates_and_packages_to_networkx_digraph, args)),
         op.map(functools.partial(filter_graph_nodes, args.filter)),
+        op.map(functools.partial(style_graph_nodes_and_edges, args.style)),
     )
     return pipeline
 
 
-def serialize(_: argparse.Namespace, g: "DiGraph"):
+def serialize(args: argparse.Namespace, g: nx.DiGraph):
+    # https://github.com/pydot/pydot/issues/169#issuecomment-378000510
+    g = style_graph_nodes_and_edges(args.style, g)
     pdot = to_pydot(g)
     pdot.set("rankdir", "LR")
     return str(pdot)
