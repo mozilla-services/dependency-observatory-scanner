@@ -2,7 +2,7 @@ import argparse
 import functools
 import logging
 import json
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Sequence
 
 import networkx as nx
 from networkx.drawing.nx_pydot import to_pydot
@@ -61,6 +61,15 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
         required=False,
         default="name_version",
         help="The node label to display",
+    )
+    parser.add_argument(
+        "-f",
+        "--filter",
+        type=str,
+        action="append",
+        required=False,
+        # TODO: filter by path, features, edge attrs, or non-label node data
+        help="Node label substring filters to apply",
     )
     return parser
 
@@ -125,11 +134,33 @@ def rust_crates_and_packages_to_networkx_digraph(
     return g
 
 
+def filter_graph_nodes(filters: Sequence[str], g: nx.DiGraph) -> nx.DiGraph:
+    """Removes nodes from the graph with labels that do not match at
+    least one substring of the filters args
+    """
+    if not filters:
+        return g
+
+    unfiltered_node_count = len(g.nodes)
+    log.debug("removing nodes matching: {}".format(filters))
+    matching_nodes = [
+        nid
+        for (nid, attrs) in g.nodes.items()
+        if not any(f in attrs["label"] for f in filters)
+    ]
+    g.remove_nodes_from(matching_nodes)
+    log.debug(
+        "removed {} nodes of {}".format(len(matching_nodes), unfiltered_node_count)
+    )
+    return g
+
+
 def run_pipeline(source: rx.Observable, args: argparse.Namespace):
     pipeline = source.pipe(
         op.do_action(lambda x: log.debug("processing {!r}".format(x))),
         op.map(cargo_metadata_to_rust_crate_and_packages),
         op.map(functools.partial(rust_crates_and_packages_to_networkx_digraph, args)),
+        op.map(functools.partial(filter_graph_nodes, args.filter)),
     )
     return pipeline
 
