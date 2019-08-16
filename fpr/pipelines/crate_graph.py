@@ -201,7 +201,7 @@ def get_graph_groups(
         sorted_nodes = sorted(g.nodes.items(), key=grouper)
         for key, group in itertools.groupby(sorted_nodes, key=grouper):
             subgraph_node_ids = list(n[0] for n in group)
-            groups[key] = g.subgraph(subgraph_node_ids)
+            groups[str(key)] = g.subgraph(subgraph_node_ids)
         grouped_groups[g_attr] = groups
 
     return grouped_groups
