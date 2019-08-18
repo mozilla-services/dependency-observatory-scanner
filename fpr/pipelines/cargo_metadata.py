@@ -73,6 +73,7 @@ async def run_cargo_metadata(item: Tuple[OrgRepo, GitRef]):
     name = "dep-obs-cargo-metadata-{0.org}-{0.repo}-{1}".format(
         org_repo, hex(randrange(1 << 32))[2:]
     )
+    results = []
     async with containers.run(
         "dep-obs/cargo-metadata:latest", name=name, cmd="/bin/bash"
     ) as c:
@@ -91,7 +92,6 @@ async def run_cargo_metadata(item: Tuple[OrgRepo, GitRef]):
         cargo_tomlfiles = await containers.find_cargo_tomlfiles(c, working_dir="/repo")
         log.info("{} found Cargo.toml files: {}".format(c["Name"], cargo_tomlfiles))
 
-        results = []
         for cargo_tomlfile in cargo_tomlfiles:
             working_dir = str(
                 containers.path_relative_to_working_dir(
@@ -118,7 +118,7 @@ async def run_cargo_metadata(item: Tuple[OrgRepo, GitRef]):
             log.debug("{} stdout: {}".format(name, await c.log(stdout=True)))
             log.debug("{} stderr: {}".format(name, await c.log(stderr=True)))
             results.append(result)
-        return results
+    return results
 
 
 def on_build_next(tag):
