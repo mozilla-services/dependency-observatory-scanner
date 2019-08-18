@@ -6,8 +6,8 @@ import pathlib
 import pytest
 
 import context
-import fpr.pipelines.cargo_audit as cargo_audit
-import fpr.pipelines.cargo_metadata as cargo_metadata
+
+from fpr.pipelines import __all__ as pipelines
 
 
 def load_test_fixture(filename):
@@ -16,10 +16,12 @@ def load_test_fixture(filename):
         return json.load(fin)
 
 
-@pytest.mark.parametrize(
-    "pipeline", [cargo_audit, cargo_metadata], ids=lambda p: p.name
-)
+@pytest.mark.parametrize("pipeline", pipelines, ids=lambda p: p.name)
 def test_serialize_returns_audit_result(pipeline):
+    # TODO: have crate graph output jsonl and extract dot graph from each line
+    if pipeline.name == "crate_graph":
+        return pytest.xfail()
+
     unserialized = load_test_fixture("{}_unserialized.json".format(pipeline.name))
     expected_serialized = load_test_fixture("{}_serialized.json".format(pipeline.name))
 

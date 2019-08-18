@@ -292,13 +292,14 @@ async def ensure_repo(container, repo_url, working_dir="/repo"):
         await container.run(cmd, wait=True, check=True, working_dir="/")
 
 
-async def ensure_ref(container, ref: GitRef, working_dir="/repo"):
+async def fetch_tags(container, working_dir="/repo"):
     await container.run(
-        "git fetch --tags origin".format(ref=ref.value),
-        working_dir=working_dir,
-        wait=True,
-        check=True,
+        "git fetch --tags origin", working_dir=working_dir, wait=True, check=True
     )
+
+
+async def ensure_ref(container, ref: GitRef, working_dir="/repo"):
+    await fetch_tags(container, working_dir=working_dir)
     await container.run(
         "git checkout {ref}".format(ref=ref.value),
         working_dir=working_dir,
@@ -363,6 +364,16 @@ async def cargo_metadata(container, working_dir="/repo"):
 
 async def find_files(filename, container, working_dir="/repo"):
     cmd = "rg --no-ignore -g {} --files".format(filename)
+    exec_ = await container.run(cmd, working_dir="/repo", check=True)
+    log.info("{} result: {}".format(cmd, exec_.start_result))
+
+    return exec_.decoded_start_result_stdout
+
+
+async def get_tags(container, working_dir="/repo"):
+    await fetch_tags(container, working_dir=working_dir)
+    # sort tags from oldest to newest
+    cmd = "git tag -l --sort=creatordate"
     exec_ = await container.run(cmd, working_dir="/repo", check=True)
     log.info("{} result: {}".format(cmd, exec_.start_result))
 
