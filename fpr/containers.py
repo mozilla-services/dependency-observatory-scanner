@@ -15,7 +15,7 @@ import traceback
 
 import fpr.docker_log_reader as dlog
 from fpr.models import GitRef
-
+from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.containers")
 
@@ -212,6 +212,15 @@ async def run(repository_tag, name, cmd=None, entrypoint=None, working_dir=None)
     await container.show()
     try:
         yield container
+    except DockerRunException as e:
+        container_log_name = (
+            container["Name"] if "Name" in container._container else container["Id"]
+        )
+        log.error(
+            "{} error running docker command {}:\n{}".format(
+                container_log_name, cmd, exc_to_str()
+            )
+        )
     finally:
         await container.kill()
         await container.delete()
