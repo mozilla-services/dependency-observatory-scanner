@@ -329,6 +329,10 @@ get_branch = functools.partial(
 get_tag = functools.partial(
     run_container_cmd_no_args_return_first_line_or_none, "git tag -l --points-at HEAD"
 )
+get_committer_timestamp = functools.partial(
+    run_container_cmd_no_args_return_first_line_or_none,
+    'git show -s --format="%ct" HEAD',
+)
 get_cargo_version = functools.partial(
     run_container_cmd_no_args_return_first_line_or_none, "cargo --version"
 )
