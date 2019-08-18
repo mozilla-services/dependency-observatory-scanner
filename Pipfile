@@ -15,7 +15,7 @@ pytest-cov = "==2.7.1"
 
 [packages]
 aiodocker = "==0.14.0"
-Rx = "==3.0.0b5"
+Rx = "*"
 networkx = "*"
 pydot = "*"
 
