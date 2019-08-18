@@ -30,6 +30,7 @@ coverage: test
 
 clean:
 	rm -rf htmlcov/ fpr-debug.log fpr-graph.png fpr-graph.svg output.dot
+	docker stop $(shell docker ps -f "name=dep-obs-" -f "status=running" --format "{{.ID}}") || true
 	docker container prune -f
 
 run-crate-graph:
