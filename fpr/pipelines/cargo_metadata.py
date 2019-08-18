@@ -4,7 +4,9 @@ import sys
 import time
 import json
 from dataclasses import dataclass
+from random import randrange
 from typing import Dict, Tuple
+
 
 import rx
 import rx.operators as op
@@ -68,7 +70,9 @@ async def run_cargo_metadata(item: Tuple[OrgRepo, GitRef]):
             org_repo.github_clone_url, git_ref
         )
     )
-    name = "dep-obs-cargo-metadata-{0.org}-{0.repo}".format(org_repo)
+    name = "dep-obs-cargo-metadata-{0.org}-{0.repo}-{1}".format(
+        org_repo, hex(randrange(1 << 32))[2:]
+    )
     async with containers.run(
         "dep-obs/cargo-metadata:latest", name=name, cmd="/bin/bash"
     ) as c:
