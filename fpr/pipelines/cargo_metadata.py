@@ -100,7 +100,15 @@ async def run_cargo_metadata(item: Tuple[OrgRepo, GitRef]):
                 )
             )
             log.info("working_dir: {}".format(working_dir))
-            cargo_meta = await containers.cargo_metadata(c, working_dir=working_dir)
+            try:
+                cargo_meta = await containers.cargo_metadata(c, working_dir=working_dir)
+            except containers.DockerRunException as e:
+                log.debug(
+                    "in {} error running cargo metadata in {}: {}".format(
+                        name, working_dir, e
+                    )
+                )
+                continue
 
             result = dict(
                 org=org_repo.org,
