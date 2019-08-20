@@ -84,6 +84,7 @@ async def run_find_git_refs(org_repo: OrgRepo):
     # takes a json line with a repo_url
     log.debug("finding git refs for repo {!r}".format(org_repo.github_clone_url))
     name = "dep-obs-find-git-refs-{0.org}-{0.repo}".format(org_repo)
+    results = []
     async with containers.run(
         "dep-obs/find-git-refs:latest", name=name, cmd="/bin/bash"
     ) as c:
@@ -92,7 +93,6 @@ async def run_find_git_refs(org_repo: OrgRepo):
 
         log.debug("{} stdout: {}".format(name, await c.log(stdout=True)))
         log.debug("{} stderr: {}".format(name, await c.log(stderr=True)))
-        results = []
         for tag in tags:
             git_ref = GitRef.from_dict(dict(value=tag, kind="tag"))
             result = dict(
@@ -103,7 +103,7 @@ async def run_find_git_refs(org_repo: OrgRepo):
             )
             log.debug("{} find git refs result {}".format(name, result))
             results.append(result)
-        return results
+    return results
 
 
 def run_pipeline(source: rx.Observable, _: argparse.Namespace):
