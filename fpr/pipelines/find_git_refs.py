@@ -1,5 +1,6 @@
 import argparse
 from dataclasses import dataclass
+import functools
 import logging
 from random import randrange
 from typing import Tuple, Dict
@@ -7,7 +8,7 @@ from typing import Tuple, Dict
 import rx
 import rx.operators as op
 
-from fpr.rx_util import map_async, on_next_save_to_jsonl
+from fpr.rx_util import map_async, sleep_by_index, on_next_save_to_jsonl
 from fpr.serialize_util import get_in, extract_fields, iter_jsonlines
 import fpr.containers as containers
 from fpr.models import GitRef, OrgRepo, Pipeline
@@ -127,7 +128,8 @@ def run_pipeline(source: rx.Observable, _: argparse.Namespace):
 
     pipeline = rx.concat(build_pipeline, source).pipe(
         op.skip(1),  # skip the build_pipeline sentinal
-        op.map(lambda x: OrgRepo.from_github_repo_url(x["repo_url"])),
+        op.map_indexed(lambda x, i: (i, OrgRepo.from_github_repo_url(x["repo_url"]))),
+        map_async(functools.partial(sleep_by_index, 3.0)),
         op.do_action(lambda x: log.debug("processing {!r}".format(x))),
         map_async(run_find_git_refs),
         op.catch(on_run_error),
