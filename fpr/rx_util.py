@@ -3,7 +3,7 @@ import functools
 import json
 import logging
 import tempfile
-from typing import Dict, IO
+from typing import Dict, IO, Tuple, Any
 
 import rx
 import rx.operators as op
@@ -22,6 +22,13 @@ def do_async(func, *args, **kwds):
 
 def map_async(func, *args, **kwds):
     return op.flat_map(do_async(func, *args, **kwds))
+
+
+async def sleep_by_index(sleep_per_index: float, item: Tuple[int, Any]):
+    i, val = item
+    log.debug("got index {} sleeping for {} seconds".format(i, sleep_per_index * i))
+    await asyncio.sleep(sleep_per_index * i)
+    return val
 
 
 def save_to_tmpfile(prefix: str, item: Dict):
