@@ -72,6 +72,9 @@ run-cargo-metadata:
 run-cargo-metadata-and-save:
 	$(FPR_PYTHON) cargo_metadata -i tests/fixtures/mozilla_services_channelserver_branch.jsonl -o output.jsonl
 
+run-cargo-metadata-fxa-and-save:
+	$(FPR_PYTHON) cargo_metadata -i tests/fixtures/mozilla_services_fxa_branch.jsonl -o output.jsonl
+
 run-rust-changelog:
 	$(FPR_PYTHON) rust_changelog -i tests/fixtures/mozilla_services_channelserver_tag_comparisions.jsonl
 
