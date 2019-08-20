@@ -1,6 +1,7 @@
 import argparse
 from dataclasses import dataclass
 import logging
+from random import randrange
 from typing import Tuple, Dict
 
 import rx
@@ -83,7 +84,9 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
 async def run_find_git_refs(org_repo: OrgRepo):
     # takes a json line with a repo_url
     log.debug("finding git refs for repo {!r}".format(org_repo.github_clone_url))
-    name = "dep-obs-find-git-refs-{0.org}-{0.repo}".format(org_repo)
+    name = "dep-obs-find-git-refs-{0.org}-{0.repo}-{1}".format(
+        org_repo, hex(randrange(1 << 32))[2:]
+    )
     results = []
     async with containers.run(
         "dep-obs/find-git-refs:latest", name=name, cmd="/bin/bash"
