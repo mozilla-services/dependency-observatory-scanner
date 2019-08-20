@@ -222,7 +222,7 @@ async def run(repository_tag, name, cmd=None, entrypoint=None, working_dir=None)
             )
         )
     finally:
-        await container.kill()
+        await container.stop()
         await container.delete()
         await client.close()
 
