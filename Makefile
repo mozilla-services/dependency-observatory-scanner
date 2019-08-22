@@ -72,6 +72,17 @@ run-cargo-metadata:
 run-cargo-metadata-and-save:
 	$(FPR_PYTHON) fpr/run_pipeline.py cargo_metadata -i tests/fixtures/mozilla_services_channelserver_branch.jsonl -o output.jsonl
 
+run-rust-changelog:
+	$(FPR_PYTHON) rust_changelog -i tests/fixtures/mozilla_services_channelserver_tag_comparisions.jsonl
+
+run-rust-changelog-and-save:
+	$(FPR_PYTHON) rust_changelog -i  -o output.jsonl
+
+run-repo-analysis:
+	# $(FPR_PYTHON) find_git_refs -i tests/fixtures/mozilla_services_channelserver_repo_url.jsonl -o mozilla_services_channelserver_tags.jsonl
+	# $(FPR_PYTHON) cargo_metadata -i mozilla_services_channelserver_tags.jsonl -o mozilla_services_channelserver_tags_meta.jsonl
+	$(FPR_PYTHON) compare_rust_commits -i mozilla_services_channelserver_tags_meta.jsonl
+
 integration-test: run-cargo-audit run-cargo-metadata run-crate-graph-and-save
 
 update-pipenv:
