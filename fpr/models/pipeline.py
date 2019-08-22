@@ -26,6 +26,82 @@ def add_infile_and_outfile(
     return pipeline_parser
 
 
+NODE_ID_FORMATS = {
+    "name": "{pkg_id.name}",
+    "name_version": "{pkg_id.name} {pkg_id.version}",
+    "name_version_source": "{pkg_id.name} {pkg_id.version} {pkg_id.source}",
+    "source": "{pkg_id.source}",
+}
+
+NODE_LABEL_FORMATS = {
+    "name": "{crate.package_id.name}",
+    "name_version": "{crate.package_id.name} {crate.package_id.version}",
+    "name_version_source": "{crate.package_id.name} {crate.package_id.version} {crate.package_id.source}",
+    "source": "{crate.package_id.source}",
+    "name_authors": "{crate.package_id.name}\n{crate_package.authors}",
+    "name_readme": "{crate.package_id.name}\n{crate_package.readme}",
+    "name_repository": "{crate.package_id.name}\n{crate_package.repository}",
+    "name_version_repository": "{crate.package_id.name} {crate.package_id.version}\n{crate_package.repository}",
+    "name_license": "{crate.package_id.name}\n{crate_package.license}",
+    "name_package_source": "{crate.package_id.name}\n{crate_package.source}",
+    "name_metadata": "{crate.package_id.name}\n{crate_package.metadata}",
+}
+
+GROUP_ATTRS = {
+    "author": lambda node: node[1]["crate_package"].authors or [],
+    "repository": lambda node: node[1]["crate_package"].repository or "",
+    # 'workspace':
+    # 'manifest_path':
+    # 'source_repository':
+}
+
+
+def add_graphviz_graph_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    parser.add_argument(
+        "-k",
+        "--node-key",
+        type=str,
+        choices=NODE_ID_FORMATS.keys(),
+        required=False,
+        default="name_version",
+        help="The node key to use to link nodes",
+    )
+    parser.add_argument(
+        "-l",
+        "--node-label",
+        type=str,
+        choices=NODE_LABEL_FORMATS.keys(),
+        required=False,
+        default="name_version",
+        help="The node label to display",
+    )
+    parser.add_argument(
+        "-f",
+        "--filter",
+        type=str,
+        action="append",
+        required=False,
+        # TODO: filter by path, features, edge attrs, or non-label node data
+        help="Node label substring filters to apply",
+    )
+    parser.add_argument(
+        "-s",
+        "--style",
+        type=str,
+        action="append",
+        help="Style nodes with a label matching the substring with the provided graphviz dot attr. "
+        "Format is <label substring>:<dot attr name>:<dot attr value> e.g. serde:shape:egg",
+    )
+    parser.add_argument(
+        "-g",
+        "--groupby",
+        choices=GROUP_ATTRS.keys(),
+        action="append",
+        help="Group nodes by crate attribute",
+    )
+    return parser
+
+
 @dataclass
 class Pipeline:
     """

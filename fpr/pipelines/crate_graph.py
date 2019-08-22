@@ -16,7 +16,13 @@ import pydot
 
 from fpr.rx_util import on_next_save_to_file
 from fpr.models import Pipeline, RustCrate, RustPackageID, RustPackage
-from fpr.models.pipeline import add_infile_and_outfile
+from fpr.models.pipeline import (
+    add_infile_and_outfile,
+    add_graphviz_graph_args,
+    NODE_ID_FORMATS,
+    NODE_LABEL_FORMATS,
+    GROUP_ATTRS,
+)
 from fpr.serialize_util import extract_fields, get_in
 from fpr.pipelines.util import exc_to_str
 
@@ -26,80 +32,9 @@ __doc__ = """Parses the output of the cargo metadata pipeline and writes a .dot
 file of the dependencies to outfile"""
 
 
-NODE_ID_FORMATS = {
-    "name": "{pkg_id.name}",
-    "name_version": "{pkg_id.name} {pkg_id.version}",
-    "name_version_source": "{pkg_id.name} {pkg_id.version} {pkg_id.source}",
-    "source": "{pkg_id.source}",
-}
-
-NODE_LABEL_FORMATS = {
-    "name": "{crate.package_id.name}",
-    "name_version": "{crate.package_id.name} {crate.package_id.version}",
-    "name_version_source": "{crate.package_id.name} {crate.package_id.version} {crate.package_id.source}",
-    "source": "{crate.package_id.source}",
-    "name_authors": "{crate.package_id.name}\n{crate_package.authors}",
-    "name_readme": "{crate.package_id.name}\n{crate_package.readme}",
-    "name_repository": "{crate.package_id.name}\n{crate_package.repository}",
-    "name_version_repository": "{crate.package_id.name} {crate.package_id.version}\n{crate_package.repository}",
-    "name_license": "{crate.package_id.name}\n{crate_package.license}",
-    "name_package_source": "{crate.package_id.name}\n{crate_package.source}",
-    "name_metadata": "{crate.package_id.name}\n{crate_package.metadata}",
-}
-
-GROUP_ATTRS = {
-    "author": lambda node: node[1]["crate_package"].authors or [],
-    "repository": lambda node: node[1]["crate_package"].repository or "",
-    # 'workspace':
-    # 'manifest_path':
-    # 'source_repository':
-}
-
-
 def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser = add_infile_and_outfile(pipeline_parser)
-    parser.add_argument(
-        "-k",
-        "--node-key",
-        type=str,
-        choices=NODE_ID_FORMATS.keys(),
-        required=False,
-        default="name_version",
-        help="The node key to use to link nodes",
-    )
-    parser.add_argument(
-        "-l",
-        "--node-label",
-        type=str,
-        choices=NODE_LABEL_FORMATS.keys(),
-        required=False,
-        default="name_version",
-        help="The node label to display",
-    )
-    parser.add_argument(
-        "-f",
-        "--filter",
-        type=str,
-        action="append",
-        required=False,
-        # TODO: filter by path, features, edge attrs, or non-label node data
-        help="Node label substring filters to apply",
-    )
-    parser.add_argument(
-        "-s",
-        "--style",
-        type=str,
-        action="append",
-        help="Style nodes with a label matching the substring with the provided graphviz dot attr. "
-        "Format is <label substring>:<dot attr name>:<dot attr value> e.g. serde:shape:egg",
-    )
-    parser.add_argument(
-        "-g",
-        "--groupby",
-        choices=GROUP_ATTRS.keys(),
-        action="append",
-        help="Group nodes by crate attribute",
-    )
+    parser = add_graphviz_graph_args(parser)
     return parser
 
 
@@ -136,7 +71,7 @@ def rust_crates_and_packages_to_networkx_digraph(
     args: argparse.Namespace,
     crates_and_packages: Tuple[Dict[str, RustCrate], Dict[str, RustPackage]],
 ) -> nx.DiGraph:
-    log.info("graphing with args: {}".format(args))
+    log.debug("graphing with args: {}".format(args))
     crates, packages = crates_and_packages
 
     node_id_format = NODE_ID_FORMATS[args.node_key]
@@ -240,11 +175,21 @@ def to_pydot_subgraph(N: nx.DiGraph, cluster_id: int) -> pydot.Subgraph:
     return P
 
 
-def group_graph_nodes(
-    group_attrs: Sequence[str], g: nx.DiGraph, pdot: pydot.Graph
-) -> pydot.Graph:
+def strip_crate_and_package_attrs(pdot: pydot.Graph):
+    """Remove crate and crate_package attrs from nodes, since it can
+    break graphviz dot rendering"""
+    for node in pdot.get_nodes():
+        del node.obj_dict["attributes"]["crate"]
+        del node.obj_dict["attributes"]["crate_package"]
+
+
+def group_graph_nodes(group_attrs: Sequence[str], g: nx.DiGraph, pdot: pydot.Graph):
     """Groups nodes with matching attrs into single subgraph nodes
     """
+    # TODO(#53): remove duplicate edges and nodes between subgraph and graph
+    if not group_attrs:
+        return
+
     for g_attr, groups in get_graph_groups(group_attrs, g).items():
         if not g_attr:
             continue
@@ -263,9 +208,6 @@ def group_graph_nodes(
         # relabel subgraphs so they show up
         subgraph.set_name("cluster{}".format(i))
         subgraph.set_bgcolor(random.choice(colors))
-
-    # TODO(#53): remove duplicate edges and nodes between subgraph and graph
-    return pdot
 
 
 @dataclass
@@ -308,7 +250,8 @@ def serialize(args: argparse.Namespace, g: nx.DiGraph):
     # https://github.com/pydot/pydot/issues/169#issuecomment-378000510
     g = style_graph_nodes(args.style, g)
     pdot = to_pydot(g)
-    pydot = group_graph_nodes(args.groupby, g, pdot)
+    group_graph_nodes(args.groupby, g, pdot)
+    strip_crate_and_package_attrs(pdot)
     pdot.set("rankdir", "LR")
     return str(pdot)
 
