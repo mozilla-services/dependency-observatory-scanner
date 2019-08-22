@@ -59,6 +59,7 @@ def on_serialize_error(pipeline_name, e, *args):
             pipeline_name, exc_to_str()
         )
     )
+    return rx.empty()
 
 
 def on_error(pipeline_name, e, *args):

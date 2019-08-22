@@ -15,7 +15,7 @@ import traceback
 
 import fpr.docker_log_reader as dlog
 from fpr.models import GitRef
-
+from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.containers")
 
@@ -212,6 +212,15 @@ async def run(repository_tag, name, cmd=None, entrypoint=None, working_dir=None)
     await container.show()
     try:
         yield container
+    except DockerRunException as e:
+        container_log_name = (
+            container["Name"] if "Name" in container._container else container["Id"]
+        )
+        log.error(
+            "{} error running docker command {}:\n{}".format(
+                container_log_name, cmd, exc_to_str()
+            )
+        )
     finally:
         await container.kill()
         await container.delete()
@@ -283,13 +292,14 @@ async def ensure_repo(container, repo_url, working_dir="/repo"):
         await container.run(cmd, wait=True, check=True, working_dir="/")
 
 
-async def ensure_ref(container, ref: GitRef, working_dir="/repo"):
+async def fetch_tags(container, working_dir="/repo"):
     await container.run(
-        "git fetch --tags origin".format(ref=ref.value),
-        working_dir=working_dir,
-        wait=True,
-        check=True,
+        "git fetch --tags origin", working_dir=working_dir, wait=True, check=True
     )
+
+
+async def ensure_ref(container, ref: GitRef, working_dir="/repo"):
+    await fetch_tags(container, working_dir=working_dir)
     await container.run(
         "git checkout {ref}".format(ref=ref.value),
         working_dir=working_dir,
@@ -319,6 +329,10 @@ get_branch = functools.partial(
 )
 get_tag = functools.partial(
     run_container_cmd_no_args_return_first_line_or_none, "git tag -l --points-at HEAD"
+)
+get_committer_timestamp = functools.partial(
+    run_container_cmd_no_args_return_first_line_or_none,
+    'git show -s --format="%ct" HEAD',
 )
 get_cargo_version = functools.partial(
     run_container_cmd_no_args_return_first_line_or_none, "cargo --version"
@@ -350,6 +364,16 @@ async def cargo_metadata(container, working_dir="/repo"):
 
 async def find_files(filename, container, working_dir="/repo"):
     cmd = "rg --no-ignore -g {} --files".format(filename)
+    exec_ = await container.run(cmd, working_dir="/repo", check=True)
+    log.info("{} result: {}".format(cmd, exec_.start_result))
+
+    return exec_.decoded_start_result_stdout
+
+
+async def get_tags(container, working_dir="/repo"):
+    await fetch_tags(container, working_dir=working_dir)
+    # sort tags from oldest to newest
+    cmd = "git tag -l --sort=creatordate"
     exec_ = await container.run(cmd, working_dir="/repo", check=True)
     log.info("{} result: {}".format(cmd, exec_.start_result))
 

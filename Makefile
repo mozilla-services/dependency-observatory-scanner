@@ -30,7 +30,14 @@ coverage: test
 
 clean:
 	rm -rf htmlcov/ fpr-debug.log fpr-graph.png fpr-graph.svg output.dot
+	docker stop $(shell docker ps -f "name=dep-obs-" -f "status=running" --format "{{.ID}}") || true
 	docker container prune -f
+
+run-find-git-refs:
+	$(FPR_PYTHON) fpr/run_pipeline.py find_git_refs -i tests/fixtures/mozilla_services_channelserver_repo_url.jsonl
+
+run-find-git-refs-and-save:
+	$(FPR_PYTHON) fpr/run_pipeline.py find_git_refs -i tests/fixtures/mozilla_services_channelserver_repo_url.jsonl -o output.jsonl
 
 run-crate-graph:
 	$(FPR_PYTHON) fpr/run_pipeline.py -q crate_graph -i tests/fixtures/cargo_metadata_serialized.json | dot -Tsvg > fpr-graph.svg
@@ -74,4 +81,4 @@ update-requirements:
 	pipenv lock -r > requirements.txt
 	pipenv lock -r --dev > dev-requirements.txt
 
-.PHONY: coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save update-pipenv update-requirements show-dot integration-test
+.PHONY: coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save update-pipenv update-requirements show-dot integration-test run-find-git-refs run-find-git-refs-and-save
