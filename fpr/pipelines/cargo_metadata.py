@@ -3,6 +3,7 @@ import logging
 import sys
 import time
 import json
+import functools
 from dataclasses import dataclass
 from random import randrange
 from typing import Dict, Tuple
@@ -11,7 +12,7 @@ from typing import Dict, Tuple
 import rx
 import rx.operators as op
 
-from fpr.rx_util import map_async, on_next_save_to_jsonl
+from fpr.rx_util import map_async, sleep_by_index, on_next_save_to_jsonl
 from fpr.serialize_util import (
     get_in,
     extract_fields,
@@ -99,7 +100,15 @@ async def run_cargo_metadata(item: Tuple[OrgRepo, GitRef]):
                 )
             )
             log.info("working_dir: {}".format(working_dir))
-            cargo_meta = await containers.cargo_metadata(c, working_dir=working_dir)
+            try:
+                cargo_meta = await containers.cargo_metadata(c, working_dir=working_dir)
+            except containers.DockerRunException as e:
+                log.debug(
+                    "in {} error running cargo metadata in {}: {}".format(
+                        name, working_dir, e
+                    )
+                )
+                continue
 
             result = dict(
                 org=org_repo.org,
@@ -158,6 +167,8 @@ def run_pipeline(source: rx.Observable, _: argparse.Namespace):
                 GitRef.from_dict(x["ref"]),
             )
         ),
+        op.map_indexed(lambda x, i: (i, x)),
+        map_async(functools.partial(sleep_by_index, 5.0)),
         op.do_action(lambda x: log.debug("processing {!r}".format(x))),
         map_async(run_cargo_metadata),
         op.catch(on_run_cargo_metadata_error),

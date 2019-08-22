@@ -157,24 +157,25 @@ class Package:
     #     "authors": [
     #         "Jane Doe <user@example.com>"
     #     ],
-    authors: Sequence[str]
+    authors: Sequence[str] = field(default_factory=list)
 
     # Array of categories from the manifest.
     #     "categories": [
     #         "command-line-utilities"
     #     ],
-    categories: str
+    categories: Sequence[str] = field(default_factory=list)
 
     # The default edition of the package. Note that individual targets may have different editions. e.g. "2018"
-    edition: str
+    edition: str = field(default=None)
+
     # Array of keywords from the manifest.
     #     "keywords": [
     #         "cli"
     #     ],
-    keywords: Sequence[str]
+    keywords: Sequence[str] = field(default_factory=list)
 
     # Optional string that is the name of a native library the package is linking to. e.g. "links": null
-    links: str
+    links: Optional[str] = field(default_factory=list)
 
     # Package metadata. This is null if no metadata is specified.
     #     "metadata": {
@@ -184,10 +185,10 @@ class Package:
     #             }
     #         }
     #     },
-    metadata: Optional[Dict]
+    metadata: Optional[Dict] = field(default=None)
 
     # The readme value from the manifest or null if not specified. e.g. "README.md"
-    readme: Optional[str]
+    readme: Optional[str] = field(default=None)
 
     #  The repository value from the manifest or null if not specified. e.g. "https://github.com/rust-lang/cargo"
-    repository: Optional[str]
+    repository: Optional[str] = field(default=None)
