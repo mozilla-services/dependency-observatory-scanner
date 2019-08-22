@@ -251,6 +251,7 @@ def strip_crate_and_package_attrs(pdot: pydot.Graph):
 def group_graph_nodes(group_attrs: Sequence[str], g: nx.DiGraph, pdot: pydot.Graph):
     """Groups nodes with matching attrs into single subgraph nodes
     """
+    # TODO(#53): remove duplicate edges and nodes between subgraph and graph
     for g_attr, groups in get_graph_groups(group_attrs, g).items():
         if not g_attr:
             continue
@@ -270,7 +271,6 @@ def group_graph_nodes(group_attrs: Sequence[str], g: nx.DiGraph, pdot: pydot.Gra
         subgraph.set_name("cluster{}".format(i))
         subgraph.set_bgcolor(random.choice(colors))
 
-    # TODO(#53): remove duplicate edges and nodes between subgraph and graph
 
 @dataclass
 class GraphStyle:
