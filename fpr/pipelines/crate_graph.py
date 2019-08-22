@@ -240,6 +240,14 @@ def to_pydot_subgraph(N: nx.DiGraph, cluster_id: int) -> pydot.Subgraph:
     return P
 
 
+def strip_crate_and_package_attrs(pdot: pydot.Graph):
+    """Remove crate and crate_package attrs from nodes, since it can
+    break graphviz dot rendering"""
+    for node in pdot.get_nodes():
+        del node.obj_dict["attributes"]["crate"]
+        del node.obj_dict["attributes"]["crate_package"]
+
+
 def group_graph_nodes(group_attrs: Sequence[str], g: nx.DiGraph, pdot: pydot.Graph):
     """Groups nodes with matching attrs into single subgraph nodes
     """
@@ -305,6 +313,7 @@ def serialize(args: argparse.Namespace, g: nx.DiGraph):
     g = style_graph_nodes(args.style, g)
     pdot = to_pydot(g)
     group_graph_nodes(args.groupby, g, pdot)
+    strip_crate_and_package_attrs(pdot)
     pdot.set("rankdir", "LR")
     return str(pdot)
 
