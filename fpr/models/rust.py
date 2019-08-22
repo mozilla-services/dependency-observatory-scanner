@@ -174,7 +174,7 @@ class Package:
     keywords: Sequence[str]
 
     # Optional string that is the name of a native library the package is linking to. e.g. "links": null
-    links: str
+    links: Optional[str]
 
     # Package metadata. This is null if no metadata is specified.
     #     "metadata": {
