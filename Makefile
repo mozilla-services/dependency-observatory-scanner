@@ -44,19 +44,22 @@ run-crate-graph:
 	$(IN_PIPENV) python -m webbrowser fpr-graph.svg
 
 run-crate-graph-and-save:
-	# $(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
-	# $(FPR_PYTHON) crate_graph --node-key name --node-label name_authors --filter dpc --filter serde -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
-	# $(FPR_PYTHON) crate_graph --node-key name --node-label name_authors --style 'dpc:color:red' --style 'serde:shape:box' -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
-	# $(FPR_PYTHON) crate_graph --node-key name_version --node-label name_version_repository -g 'repository' -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
-	$(FPR_PYTHON) crate_graph --node-key name_version --node-label name_authors -g 'author' -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
-	# $(FPR_PYTHON) crate_graph --node-key name_version --node-label name_readme -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
-	# $(FPR_PYTHON) crate_graph --node-key name_version --node-label name_repository -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
-	# $(FPR_PYTHON) crate_graph --node-key name_version --node-label name_package_source -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
-	# $(FPR_PYTHON) crate_graph --node-key name_version --node-label name_metadata -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
+	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -o default.dot
+	$(FPR_PYTHON) crate_graph --node-key name --node-label name_authors --filter dpc --filter serde -i tests/fixtures/cargo_metadata_serialized.json -o serde_authors_filtered.dot
+	$(FPR_PYTHON) crate_graph --node-key name --node-label name_authors --style 'dpc:color:red' --style 'serde:shape:box' -i tests/fixtures/cargo_metadata_serialized.json -o graph-with-style-args.dot
+	$(FPR_PYTHON) crate_graph --node-key name_version --node-label name_version_repository -g 'repository' -i tests/fixtures/cargo_metadata_serialized.json -o groupby-repo.dot
+	$(FPR_PYTHON) crate_graph --node-key name_version --node-label name_authors -g 'author' -i tests/fixtures/cargo_metadata_serialized.json -o groupby-author.dot
+	$(FPR_PYTHON) crate_graph --node-key name_version --node-label name_readme -i tests/fixtures/cargo_metadata_serialized.json -o readme-node-label.dot
+	$(FPR_PYTHON) crate_graph --node-key name_version --node-label name_repository -i tests/fixtures/cargo_metadata_serialized.json -o repo-node-label.dot
+	$(FPR_PYTHON) crate_graph --node-key name_version --node-label name_package_source -i tests/fixtures/cargo_metadata_serialized.json -o source-node-label.dot
+	$(FPR_PYTHON) crate_graph --node-key name_version --node-label name_metadata -i tests/fixtures/cargo_metadata_serialized.json -o metadata-node-label.dot
 
 show-dot:
-	dot -Tsvg output.dot > fpr-graph.svg
-	$(IN_PIPENV) python -m webbrowser fpr-graph.svg
+	dot -O -Tsvg *.dot
+	./bin/open_svgs.sh
+
+clean-graph:
+	rm -f *.dot *.svg
 
 run-cargo-audit:
 	$(FPR_PYTHON) cargo_audit -i tests/fixtures/mozilla_services_channelserver_branch.jsonl
