@@ -252,6 +252,9 @@ def group_graph_nodes(group_attrs: Sequence[str], g: nx.DiGraph, pdot: pydot.Gra
     """Groups nodes with matching attrs into single subgraph nodes
     """
     # TODO(#53): remove duplicate edges and nodes between subgraph and graph
+    if not group_attrs:
+        return
+
     for g_attr, groups in get_graph_groups(group_attrs, g).items():
         if not g_attr:
             continue
