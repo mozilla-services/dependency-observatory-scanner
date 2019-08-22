@@ -40,8 +40,13 @@ def save_to_tmpfile(prefix: str, item: Dict):
     with tempfile.NamedTemporaryFile(
         mode="w+", encoding="utf-8", prefix=prefix, delete=False
     ) as tmpout:
-        json.dump(item, tmpout, sort_keys=True, indent=2)
-        log.debug("saved to {}".format(tmpout.name))
+        try:
+            json.dump(item, tmpout, sort_keys=True, indent=2)
+            log.debug("saved to {}".format(tmpout.name))
+        except TypeError as e:
+            log.debug(
+                "error dumping JSON to save item to {}: {}".format(tmpout.name, e)
+            )
 
 
 def on_next_save_to_jsonl(outfile: IO, item):
