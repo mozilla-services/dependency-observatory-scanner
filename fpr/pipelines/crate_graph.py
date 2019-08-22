@@ -240,9 +240,7 @@ def to_pydot_subgraph(N: nx.DiGraph, cluster_id: int) -> pydot.Subgraph:
     return P
 
 
-def group_graph_nodes(
-    group_attrs: Sequence[str], g: nx.DiGraph, pdot: pydot.Graph
-) -> pydot.Graph:
+def group_graph_nodes(group_attrs: Sequence[str], g: nx.DiGraph, pdot: pydot.Graph):
     """Groups nodes with matching attrs into single subgraph nodes
     """
     for g_attr, groups in get_graph_groups(group_attrs, g).items():
@@ -265,8 +263,6 @@ def group_graph_nodes(
         subgraph.set_bgcolor(random.choice(colors))
 
     # TODO(#53): remove duplicate edges and nodes between subgraph and graph
-    return pdot
-
 
 @dataclass
 class GraphStyle:
@@ -308,7 +304,7 @@ def serialize(args: argparse.Namespace, g: nx.DiGraph):
     # https://github.com/pydot/pydot/issues/169#issuecomment-378000510
     g = style_graph_nodes(args.style, g)
     pdot = to_pydot(g)
-    pydot = group_graph_nodes(args.groupby, g, pdot)
+    group_graph_nodes(args.groupby, g, pdot)
     pdot.set("rankdir", "LR")
     return str(pdot)
 
