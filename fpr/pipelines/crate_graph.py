@@ -15,7 +15,9 @@ import rx.operators as op
 import pydot
 
 from fpr.rx_util import on_next_save_to_file
+from fpr.graph_util import rust_crates_and_packages_to_networkx_digraph
 from fpr.models import Pipeline, RustCrate, RustPackageID, RustPackage
+from fpr.models.rust import cargo_metadata_to_rust_crate_and_packages
 from fpr.models.pipeline import (
     add_infile_and_outfile,
     add_graphviz_graph_args,
@@ -36,67 +38,6 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     parser = add_infile_and_outfile(pipeline_parser)
     parser = add_graphviz_graph_args(parser)
     return parser
-
-
-def cargo_metadata_to_rust_crate_and_packages(
-    cargo_meta_out: Dict
-) -> Tuple[Dict[str, RustCrate], Dict[str, RustPackage]]:
-    log.debug(
-        "running crate-graph on {0[cargo_tomlfile_path]} in {0[org]}/{0[repo]} at {0[commit]} ".format(
-            cargo_meta_out
-        )
-    )
-    assert (
-        get_in(cargo_meta_out, ["metadata", "version"]) == 1
-    ), "cargo metadata format was not version 1"
-
-    # build hashmap by pkg_id so we can lookup additional package info from
-    # resolved crate as packages[crate.id]
-    crates = {}
-    for n in get_in(cargo_meta_out, ["metadata", "nodes"]):
-        crate = RustCrate(**extract_fields(n, {"id", "features", "deps"}))
-        assert crate.id not in crates
-        crates[crate.id] = crate
-
-    packages = {}
-    for p in get_in(cargo_meta_out, ["metadata", "packages"]):
-        pkg = RustPackage(**p)
-        assert pkg.id not in packages
-        packages[pkg.id] = pkg
-
-    return (crates, packages)
-
-
-def rust_crates_and_packages_to_networkx_digraph(
-    args: argparse.Namespace,
-    crates_and_packages: Tuple[Dict[str, RustCrate], Dict[str, RustPackage]],
-) -> nx.DiGraph:
-    log.debug("graphing with args: {}".format(args))
-    crates, packages = crates_and_packages
-
-    node_id_format = NODE_ID_FORMATS[args.node_key]
-    node_label_format = NODE_LABEL_FORMATS[args.node_label]
-
-    g = nx.DiGraph()
-    for c in crates.values():
-        node_id = node_id_format.format(pkg_id=c.package_id)
-
-        g.add_node(
-            node_id,
-            label=node_label_format.format(crate=c, crate_package=packages[c.id]),
-            crate=c,
-            crate_package=packages[c.id],
-        )
-        for dep in c.deps:
-            dep_id = node_id_format.format(pkg_id=RustPackageID.parse(dep["pkg"]))
-            g.add_edge(
-                node_id,
-                dep_id,
-                # name=dep["name"],
-                # features=dep["features"],
-            )
-
-    return g
 
 
 def filter_graph_nodes(filters: Sequence[str], g: nx.DiGraph) -> nx.DiGraph:
