@@ -136,7 +136,7 @@ def rust_crates_and_packages_to_networkx_digraph(
     args: argparse.Namespace,
     crates_and_packages: Tuple[Dict[str, RustCrate], Dict[str, RustPackage]],
 ) -> nx.DiGraph:
-    log.info("graphing with args: {}".format(args))
+    log.debug("graphing with args: {}".format(args))
     crates, packages = crates_and_packages
 
     node_id_format = NODE_ID_FORMATS[args.node_key]
