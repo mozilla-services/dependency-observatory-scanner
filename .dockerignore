@@ -1,0 +1,9 @@
+*.dot
+*.svg
+*.log
+tests/*
+*.jsonl
+*.json
+venv/
+*.org
+bin/*
