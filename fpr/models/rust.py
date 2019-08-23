@@ -1,11 +1,16 @@
+import logging
 from dataclasses import asdict, dataclass, field
 import enum
 from typing import Dict, Tuple, Sequence, List, Optional
 
+from fpr.serialize_util import extract_fields, get_in
+
+log = logging.getLogger("fpr.models.rust")
+
 
 @dataclass
-class PackageID:
-    """PackageID represents a Crate name, version, and url
+class RustPackageID:
+    """RustPackageID represents a Crate name, version, and url
 
     e.g. 'libc 0.2.51 (registry+https://github.com/rust-lang/crates.io-index)'
 
@@ -22,15 +27,15 @@ class PackageID:
     source: Optional[str]
 
     @staticmethod
-    def parse(spec: str) -> "PackageIDSpec":
+    def parse(spec: str) -> "RustPackageIDSpec":
         name, version, source = spec.split(" ", 3)
         source = source.strip("()")
-        return PackageID(name, version, source)
+        return RustPackageID(name, version, source)
 
 
 @dataclass
-class Crate:
-    """Crate represents a Rust dependency resolved for the given
+class RustCrate:
+    """RustCrate represents a Rust dependency resolved for the given
     features. A .resolve.nodes entry from `cargo metadata` output.
 
     deps is the list of its resolved dependencies.
@@ -40,16 +45,16 @@ class Crate:
     id: str
     # Array of features enabled on this package. Affects the resolved deps.
     features: List[str] = field(default_factory=list)
-    deps: List["Crate"] = field(default_factory=list)
+    deps: List["RustCrate"] = field(default_factory=list)
 
     @property
     def package_id(self):
-        return PackageID.parse(self.id)
+        return RustPackageID.parse(self.id)
 
 
 @dataclass
-class Package:
-    """Package represents an unresolved Rust dependency
+class RustPackage:
+    """RustPackage represents an unresolved Rust dependency
 
     A .packages entry from `cargo metadata` output.
 
@@ -60,7 +65,7 @@ class Package:
     name: str
     # The version of the package. e.g. "0.1.0"
     version: str
-    # The Package ID, a unique identifier for referring to the
+    # The RustPackage ID, a unique identifier for referring to the
     # package. e.g. "my-package 0.1.0 (path+file:///path/to/my-package)"
     id: str
     # The license value from the manifest, or null. e.g. "MIT/Apache-2.0"
@@ -192,3 +197,32 @@ class Package:
 
     #  The repository value from the manifest or null if not specified. e.g. "https://github.com/rust-lang/cargo"
     repository: Optional[str] = field(default=None)
+
+
+def cargo_metadata_to_rust_crate_and_packages(
+    cargo_meta_out: Dict
+) -> Tuple[Dict[str, RustCrate], Dict[str, RustPackage]]:
+    log.debug(
+        "running crate-graph on {0[cargo_tomlfile_path]} in {0[org]}/{0[repo]} at {0[commit]} ".format(
+            cargo_meta_out
+        )
+    )
+    assert (
+        get_in(cargo_meta_out, ["metadata", "version"]) == 1
+    ), "cargo metadata format was not version 1"
+
+    # build hashmap by pkg_id so we can lookup additional package info from
+    # resolved crate as packages[crate.id]
+    crates = {}
+    for n in get_in(cargo_meta_out, ["metadata", "nodes"]):
+        crate = RustCrate(**extract_fields(n, {"id", "features", "deps"}))
+        assert crate.id not in crates
+        crates[crate.id] = crate
+
+    packages = {}
+    for p in get_in(cargo_meta_out, ["metadata", "packages"]):
+        pkg = RustPackage(**p)
+        assert pkg.id not in packages
+        packages[pkg.id] = pkg
+
+    return (crates, packages)

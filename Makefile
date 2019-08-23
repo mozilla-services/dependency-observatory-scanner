@@ -1,6 +1,6 @@
 
 IN_PIPENV := pipenv run
-FPR_PYTHON := PYTHONPATH=$$PYTHONPATH:fpr/ pipenv run python
+FPR_PYTHON := PYTHONPATH=$$PYTHONPATH:fpr/ pipenv run python fpr/run_pipeline.py
 
 
 install:
@@ -34,43 +34,60 @@ clean:
 	docker container prune -f
 
 run-find-git-refs:
-	$(FPR_PYTHON) fpr/run_pipeline.py find_git_refs -i tests/fixtures/mozilla_services_channelserver_repo_url.jsonl
+	$(FPR_PYTHON) find_git_refs -i tests/fixtures/mozilla_services_channelserver_repo_url.jsonl
 
 run-find-git-refs-and-save:
-	$(FPR_PYTHON) fpr/run_pipeline.py find_git_refs -i tests/fixtures/mozilla_services_channelserver_repo_url.jsonl -o output.jsonl
+	$(FPR_PYTHON) find_git_refs -i tests/fixtures/mozilla_services_channelserver_repo_url.jsonl -o output.jsonl
 
 run-crate-graph:
-	$(FPR_PYTHON) fpr/run_pipeline.py -q crate_graph -i tests/fixtures/cargo_metadata_serialized.json | dot -Tsvg > fpr-graph.svg
+	$(FPR_PYTHON) -q crate_graph -i tests/fixtures/cargo_metadata_serialized.json | dot -Tsvg > fpr-graph.svg
 	$(IN_PIPENV) python -m webbrowser fpr-graph.svg
 
 run-crate-graph-and-save:
-	# $(FPR_PYTHON) fpr/run_pipeline.py crate_graph -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
-	# $(FPR_PYTHON) fpr/run_pipeline.py crate_graph --node-key name --node-label name_authors --filter dpc --filter serde -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
-	# $(FPR_PYTHON) fpr/run_pipeline.py crate_graph --node-key name --node-label name_authors --style 'dpc:color:red' --style 'serde:shape:box' -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
-	# $(FPR_PYTHON) fpr/run_pipeline.py crate_graph --node-key name_version --node-label name_version_repository -g 'repository' -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
-	$(FPR_PYTHON) fpr/run_pipeline.py crate_graph --node-key name_version --node-label name_authors -g 'author' -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
-	# $(FPR_PYTHON) fpr/run_pipeline.py crate_graph --node-key name_version --node-label name_readme -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
-	# $(FPR_PYTHON) fpr/run_pipeline.py crate_graph --node-key name_version --node-label name_repository -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
-	# $(FPR_PYTHON) fpr/run_pipeline.py crate_graph --node-key name_version --node-label name_package_source -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
-	# $(FPR_PYTHON) fpr/run_pipeline.py crate_graph --node-key name_version --node-label name_metadata -i tests/fixtures/cargo_metadata_serialized.json -o output.dot
+	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -o default.dot
+	$(FPR_PYTHON) crate_graph --node-key name --node-label name_authors --filter dpc --filter serde -i tests/fixtures/cargo_metadata_serialized.json -o serde_authors_filtered.dot
+	$(FPR_PYTHON) crate_graph --node-key name --node-label name_authors --style 'dpc:color:red' --style 'serde:shape:box' -i tests/fixtures/cargo_metadata_serialized.json -o graph-with-style-args.dot
+	$(FPR_PYTHON) crate_graph --node-key name_version --node-label name_version_repository -g 'repository' -i tests/fixtures/cargo_metadata_serialized.json -o groupby-repo.dot
+	$(FPR_PYTHON) crate_graph --node-key name_version --node-label name_authors -g 'author' -i tests/fixtures/cargo_metadata_serialized.json -o groupby-author.dot
+	$(FPR_PYTHON) crate_graph --node-key name_version --node-label name_readme -i tests/fixtures/cargo_metadata_serialized.json -o readme-node-label.dot
+	$(FPR_PYTHON) crate_graph --node-key name_version --node-label name_repository -i tests/fixtures/cargo_metadata_serialized.json -o repo-node-label.dot
+	$(FPR_PYTHON) crate_graph --node-key name_version --node-label name_package_source -i tests/fixtures/cargo_metadata_serialized.json -o source-node-label.dot
+	$(FPR_PYTHON) crate_graph --node-key name_version --node-label name_metadata -i tests/fixtures/cargo_metadata_serialized.json -o metadata-node-label.dot
 
 show-dot:
-	dot -Tsvg output.dot > fpr-graph.svg
-	$(IN_PIPENV) python -m webbrowser fpr-graph.svg
+	dot -O -Tsvg *.dot
+	./bin/open_svgs.sh
+
+clean-graph:
+	rm -f *.dot *.svg
 
 run-cargo-audit:
-	$(FPR_PYTHON) fpr/run_pipeline.py cargo_audit -i tests/fixtures/mozilla_services_channelserver_branch.jsonl
-	$(FPR_PYTHON) fpr/run_pipeline.py cargo_audit -i tests/fixtures/mozilla_services_channelserver_tag.jsonl
-	$(FPR_PYTHON) fpr/run_pipeline.py cargo_audit -i tests/fixtures/mozilla_services_channelserver_commit.jsonl
+	$(FPR_PYTHON) cargo_audit -i tests/fixtures/mozilla_services_channelserver_branch.jsonl
+	$(FPR_PYTHON) cargo_audit -i tests/fixtures/mozilla_services_channelserver_tag.jsonl
+	$(FPR_PYTHON) cargo_audit -i tests/fixtures/mozilla_services_channelserver_commit.jsonl
 
 run-cargo-audit-and-save:
-	$(FPR_PYTHON) fpr/run_pipeline.py cargo_audit -i tests/fixtures/mozilla_services_channelserver_branch.jsonl -o output.jsonl
+	$(FPR_PYTHON) cargo_audit -i tests/fixtures/mozilla_services_channelserver_branch.jsonl -o output.jsonl
 
 run-cargo-metadata:
-	$(FPR_PYTHON) fpr/run_pipeline.py cargo_metadata -i tests/fixtures/mozilla_services_channelserver_branch.jsonl
+	$(FPR_PYTHON) cargo_metadata -i tests/fixtures/mozilla_services_channelserver_branch.jsonl
 
 run-cargo-metadata-and-save:
-	$(FPR_PYTHON) fpr/run_pipeline.py cargo_metadata -i tests/fixtures/mozilla_services_channelserver_branch.jsonl -o output.jsonl
+	$(FPR_PYTHON) cargo_metadata -i tests/fixtures/mozilla_services_channelserver_branch.jsonl -o output.jsonl
+
+run-cargo-metadata-fxa-and-save:
+	$(FPR_PYTHON) cargo_metadata -i tests/fixtures/mozilla_services_fxa_branch.jsonl -o output.jsonl
+
+run-rust-changelog:
+	$(FPR_PYTHON) rust_changelog -i tests/fixtures/mozilla_services_channelserver_tag_comparisions.jsonl
+
+run-rust-changelog-and-save:
+	$(FPR_PYTHON) rust_changelog -i  -o output.jsonl
+
+run-repo-analysis:
+	$(FPR_PYTHON) find_git_refs -i tests/fixtures/mozilla_services_channelserver_repo_url.jsonl -o mozilla_services_channelserver_tags.jsonl
+	$(FPR_PYTHON) cargo_metadata -i mozilla_services_channelserver_tags.jsonl -o mozilla_services_channelserver_tags_metadata.jsonl
+	$(FPR_PYTHON) rust_changelog -i mozilla_services_channelserver_tags_metadata.jsonl
 
 integration-test: run-cargo-audit run-cargo-metadata run-crate-graph-and-save
 

@@ -1,0 +1,60 @@
+{
+  "authors": {
+    "new": [
+      "Dirkjan Ochtman <dirkjan@ochtman.nl>",
+      "The Rand Project Developers"
+    ],
+    "new_total": 97,
+    "removed": [
+      "Viktor Dahl <pazaconyoman@gmail.com>"
+    ]
+  },
+  "deps": {
+    "new": [
+      "actix-net 0.2.2",
+      "actix-web 0.7.14",
+      "askama_escape 0.1.0",
+      "channelserver 0.9.0",
+      "encoding_rs 0.8.11",
+      "proc-macro2 0.4.24",
+      "rand 0.6.0",
+      "rand_chacha 0.1.0",
+      "rand_hc 0.1.0",
+      "rand_isaac 0.1.0",
+      "rand_pcg 0.1.1",
+      "rand_xorshift 0.1.0",
+      "reqwest 0.9.5",
+      "ring 0.13.5",
+      "smallvec 0.6.6",
+      "syn 0.15.21",
+      "ucd-util 0.1.3"
+    ],
+    "new_total": 238,
+    "removed": [
+      "actix-net 0.1.1",
+      "actix-web 0.7.13",
+      "channelserver 0.8.0",
+      "encoding_rs 0.8.10",
+      "htmlescape 0.3.1",
+      "proc-macro2 0.4.23",
+      "reqwest 0.9.4",
+      "ring 0.13.3",
+      "smallvec 0.6.5",
+      "syn 0.15.20",
+      "ucd-util 0.1.2"
+    ]
+  },
+  "manifest_path": "Cargo.toml",
+  "new_ref": "0.9.0",
+  "old_ref": "0.8.0",
+  "repositories": {
+    "new": [
+      "https://github.com/djc/askama",
+      "https://github.com/rust-random/small-rngs"
+    ],
+    "new_total": 168,
+    "removed": [
+      "https://github.com/veddan/rust-htmlescape"
+    ]
+  }
+}
