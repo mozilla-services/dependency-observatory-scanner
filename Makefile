@@ -6,7 +6,7 @@ build-image:
 	docker build -t fpr:build .
 
 run-image:
-	docker run --rm -v $$(pwd)/tests/fixtures/mozilla_services_channelserver_repo_url.jsonl:/opt/input.jsonl  -v /var/run/docker.sock:/var/run/docker.sock --name fpr-test fpr:build python fpr/run_pipeline.py -v find_git_refs -i /opt/input.jsonl
+	docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock --name fpr-test fpr:build python fpr/run_pipeline.py -v find_git_refs < tests/fixtures/mozilla_services_channelserver_repo_url.jsonl
 
 publish-latest:
 	docker tag fpr:build gguthemoz/fpr:latest
