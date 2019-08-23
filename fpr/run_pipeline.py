@@ -29,14 +29,18 @@ ch.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 fh.setFormatter(formatter)
 ch.setFormatter(formatter)
-# add the handlers to the logger
-log.addHandler(fh)
-log.addHandler(ch)
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Runs a single pipeline", usage=__doc__
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Enable debug logging to the console",
     )
     parser.add_argument(
         "-q",
@@ -74,9 +78,17 @@ def on_completed(loop):
 
 def main():
     args = parse_args()
-    log.debug("args: {}".format(args))
+    if args.verbose:
+        ch.setLevel(logging.DEBUG)
+
+    # add the handlers to the logger
+    log.addHandler(fh)
+    log.addHandler(ch)
+
     if args.quiet:
         log.removeHandler(ch)
+
+    log.debug("args: {}".format(args))
 
     loop = asyncio.get_event_loop()
     asyncio.set_event_loop(loop)
