@@ -92,14 +92,18 @@ def main():
     pipeline.runner(source, args).pipe(
         op.do_action(
             functools.partial(
-                save_to_tmpfile, "{}_unserialized_".format(args.pipeline_name)
+                save_to_tmpfile,
+                "{}_unserialized_".format(args.pipeline_name),
+                file_ext=".pickle",
             )
         ),
         op.map(functools.partial(pipeline.serializer, args)),
         op.catch(functools.partial(on_serialize_error, args.pipeline_name)),
         op.do_action(
             functools.partial(
-                save_to_tmpfile, "{}_serialized_".format(args.pipeline_name)
+                save_to_tmpfile,
+                "{}_serialized_".format(args.pipeline_name),
+                file_ext=".json",
             )
         ),
     ).subscribe(
