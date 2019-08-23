@@ -8,6 +8,10 @@ build-image:
 run-image:
 	docker run --rm -v $$(pwd)/tests/fixtures/mozilla_services_channelserver_repo_url.jsonl:/opt/input.jsonl  -v /var/run/docker.sock:/var/run/docker.sock --name fpr-test fpr:build python fpr/run_pipeline.py -v find_git_refs -i /opt/input.jsonl
 
+publish-latest:
+	docker tag fpr:build gguthemoz/fpr:latest
+	docker push gguthemoz/fpr:latest
+
 install:
 	pip install -r requirements.txt
 
@@ -103,4 +107,4 @@ update-requirements:
 	pipenv lock -r > requirements.txt
 	pipenv lock -r --dev > dev-requirements.txt
 
-.PHONY: build-image run-image coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save update-pipenv update-requirements show-dot integration-test run-find-git-refs run-find-git-refs-and-save
+.PHONY: build-image run-image coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save update-pipenv update-requirements show-dot integration-test run-find-git-refs run-find-git-refs-and-save publish-latest
