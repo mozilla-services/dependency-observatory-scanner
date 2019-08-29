@@ -92,8 +92,8 @@ async def run_find_git_refs(org_repo: OrgRepo):
     async with containers.run(
         "dep-obs/find-git-refs:latest", name=name, cmd="/bin/bash"
     ) as c:
-        await containers.ensure_repo(c, org_repo.github_clone_url)
-        tags = await containers.get_tags(c)
+        await containers.ensure_repo(c, org_repo.github_clone_url, working_dir="/")
+        tags = await containers.get_tags(c, working_dir="/repo")
 
         log.debug("{} stdout: {}".format(name, await c.log(stdout=True)))
         log.debug("{} stderr: {}".format(name, await c.log(stderr=True)))
