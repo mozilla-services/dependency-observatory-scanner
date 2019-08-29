@@ -283,13 +283,13 @@ async def build(dockerfile: str, tag: str, pull: bool = False):
     return tag
 
 
-async def ensure_repo(container, repo_url, working_dir="/repo"):
+async def ensure_repo(container, repo_url, working_dir="/"):
     cmds = [
         "rm -rf repo",
         "git clone --depth=1 {repo_url} repo".format(repo_url=repo_url),
     ]
     for cmd in cmds:
-        await container.run(cmd, wait=True, check=True, working_dir="/")
+        await container.run(cmd, wait=True, check=True, working_dir=working_dir)
 
 
 async def fetch_tags(container, working_dir="/repo"):
