@@ -42,6 +42,32 @@ jobs:
           name: build image run repo analysis image and check results
           command: |
             make build-image run-repo-analysis-in-image check-channelserver-repo-analysis
+  deploy:
+    docker:
+      - image: docker:18.02.0-ce
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 18.02.0-ce
+      - run:
+          name: Build Docker image fpr:build
+          command: make build-image
+      - run:
+          name: Deploy to Dockerhub
+          command: |
+            # deploy master
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              docker login -u $DOCKER_USER -p $DOCKER_PASS
+              docker tag fpr:build ${DOCKERHUB_REPO}:latest
+              docker push ${DOCKERHUB_REPO}:latest
+            elif  [ ! -z "${CIRCLE_TAG}" ]; then
+            # deploy a release tag...
+              docker login -u $DOCKER_USER -p $DOCKER_PASS
+              echo "${DOCKERHUB_REPO}:${CIRCLE_TAG}"
+              docker tag fpr:build "${DOCKERHUB_REPO}:${CIRCLE_TAG}"
+              docker images
+              docker push "${DOCKERHUB_REPO}:${CIRCLE_TAG}"
+            fi
 
 workflows:
   version: 2
@@ -55,3 +81,13 @@ workflows:
           filters:
             tags:
               only: /.*/
+      - deploy:
+          requires:
+            - unit-test
+            - integration-test
+          filters:
+            tags:
+              # only upload the docker container on semver tags
+              only: /[0-9]\.[0-9]\.[0-9]/
+            branches:
+              only: master

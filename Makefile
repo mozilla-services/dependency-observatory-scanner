@@ -29,10 +29,6 @@ check-channelserver-repo-analysis:
 	test -f channelserver_changelog.jsonl
 	# TODO: check for equivalent JSON output (changelog output needs work though)
 
-publish-latest:
-	docker tag fpr:build gguthemoz/fpr:latest
-	docker push gguthemoz/fpr:latest
-
 install:
 	pip install -r requirements.txt
 
