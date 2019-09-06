@@ -17,6 +17,11 @@ run-repo-analysis-in-image:
 		docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock --name fpr-rust_changelog fpr:build python fpr/run_pipeline.py rust_changelog -m Cargo.toml | \
 		tee channelserver_changelog.jsonl
 
+run-diff-repo-analysis-in-image:
+	CIRCLE_SHA1=5a3e3967e90d65ca0d7a17b0466a3385898c3b6b printf "{\"org\": \"mozilla-services\", \"repo\": \"syncstorage-rs\", \"ref\": {\"value\": \"master\", \"kind\": \"branch\"}, \"repo_url\": \"https://github.com/mozilla-services/syncstorage-rs.git\"}\n{\"org\": \"mozilla-services\", \"repo\": \"syncstorage-rs\", \"ref\": {\"value\": \"5a3e3967e90d65ca0d7a17b0466a3385898c3b6b\", \"kind\": \"commit\"}, \"repo_url\": \"https://github.com/mozilla-services/syncstorage-rs.git\"}\n"  | \
+	    docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock --name fpr-cargo_metadata fpr:build python fpr/run_pipeline.py cargo_metadata | \
+	    docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock --name fpr-rust_changelog fpr:build python fpr/run_pipeline.py rust_changelog -m Cargo.toml
+
 check-channelserver-repo-analysis:
 	test -f channelserver_tags.jsonl
 	diff channelserver_tags.jsonl tests/fixtures/channelserver_tags.jsonl
@@ -123,4 +128,4 @@ update-requirements:
 	pipenv lock -r > requirements.txt
 	pipenv lock -r --dev > dev-requirements.txt
 
-.PHONY: build-image run-image coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save update-pipenv update-requirements show-dot integration-test run-find-git-refs run-find-git-refs-and-save publish-latest run-repo-analysis-in-image check-channelserver-repo-analysis
+.PHONY: build-image run-image coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save update-pipenv update-requirements show-dot integration-test run-find-git-refs run-find-git-refs-and-save publish-latest run-repo-analysis-in-image check-channelserver-repo-analysis run-diff-repo-analysis-in-image

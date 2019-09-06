@@ -14,7 +14,7 @@ import aiodocker
 import traceback
 
 import fpr.docker_log_reader as dlog
-from fpr.models import GitRef
+from fpr.models import GitRef, GitRefKind
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.containers")
@@ -292,6 +292,21 @@ async def ensure_repo(container, repo_url, working_dir="/"):
         await container.run(cmd, wait=True, check=True, working_dir=working_dir)
 
 
+async def fetch_branch(
+    container, branch: str, remote: str = "origin", working_dir: str = "/repo"
+):
+    cmd = "git fetch {remote} {branch}".format(branch=branch, remote=remote)
+    await container.run(cmd, wait=True, check=True, working_dir=working_dir)
+
+
+async def fetch_commit(
+    container, commit: str, remote: str = "origin", working_dir: str = "/repo"
+):
+    # per https://stackoverflow.com/a/30701724
+    cmd = "git fetch {remote} {commit}".format(commit=commit, remote=remote)
+    await container.run(cmd, wait=True, check=True, working_dir=working_dir)
+
+
 async def fetch_tags(container, working_dir="/repo"):
     await container.run(
         "git fetch --tags origin", working_dir=working_dir, wait=True, check=True
@@ -299,7 +314,13 @@ async def fetch_tags(container, working_dir="/repo"):
 
 
 async def ensure_ref(container, ref: GitRef, working_dir="/repo"):
-    await fetch_tags(container, working_dir=working_dir)
+    if ref.kind == GitRefKind.TAG:
+        await fetch_tags(container, working_dir=working_dir)
+    elif ref.kind == GitRefKind.BRANCH:
+        await fetch_branch(container, branch=ref.value, working_dir=working_dir)
+    elif ref.kind == GitRefKind.COMMIT:
+        await fetch_commit(container, commit=ref.value, working_dir=working_dir)
+
     await container.run(
         "git checkout {ref}".format(ref=ref.value),
         working_dir=working_dir,
