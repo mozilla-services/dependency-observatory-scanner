@@ -46,6 +46,7 @@ jobs:
           name: save the built docker container to CircleCI cache
           no_output_timeout: 30m
           command: |
+            mkdir -p /tmp/cache/
             docker save "fpr:build" | gzip -c > /tmp/cache/docker.tgz
       - save_cache:
           key: v1-{{ .Branch }}-{{ epoch }}
