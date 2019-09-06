@@ -9,8 +9,8 @@ repository and tests and flags suspicious open source packages (like
 ### Example Usage
 
 ```console
-$ docker pull gguthemoz/fpr
-$ echo '{"repo_url": "https://github.com/mozilla-services/channelserver"}' | docker run -i --rm -v /var/run/docker.sock:/var/run/docker.sock --name fpr-test gguthemoz/fpr python fpr/run_pipeline.py -v find_git_refs
+$ docker pull mozilla/dependencyscan
+$ echo '{"repo_url": "https://github.com/mozilla-services/channelserver"}' | docker run -i --rm -v /var/run/docker.sock:/var/run/docker.sock --name fpr-test mozilla/dependencyscan python fpr/run_pipeline.py -v find_git_refs
 ```
 
 ### Local Development
