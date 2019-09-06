@@ -20,7 +20,7 @@ jobs:
             make format && test "$(git diff | wc -l)" = "0"
             make style-check
             make test
-  integration-test:
+  build-image-and-integration-test:
     docker:
       - image: python:3.7-buster
       - image: docker:18.02.0-ce
@@ -42,16 +42,24 @@ jobs:
           name: build image run repo analysis image and check results
           command: |
             make build-image run-repo-analysis-in-image check-channelserver-repo-analysis
+      - run:
+          name: save the built docker container to CircleCI cache
+          no_output_timeout: 30m
+          command: |
+            docker save "fpr:build" | gzip -c > /tmp/cache/docker.tgz
+      - save_cache:
+          key: v1-{{ .Branch }}-{{ epoch }}
+          paths:
+            - /tmp/cache/docker.tgz
+
   deploy:
     docker:
       - image: docker:18.02.0-ce
     steps:
-      - checkout
+      - restore_cache:
+          key: v1-{{.Branch}}
       - setup_remote_docker:
           version: 18.02.0-ce
-      - run:
-          name: Build Docker image fpr:build
-          command: make build-image
       - run:
           name: Deploy to Dockerhub
           command: |
@@ -77,14 +85,14 @@ workflows:
           filters:
             tags:
               only: /.*/
-      - integration-test:
+      - build-image-and-integration-test:
           filters:
             tags:
               only: /.*/
       - deploy:
           requires:
             - unit-test
-            - integration-test
+            - build-image-and-integration-test
           filters:
             tags:
               # only upload the docker container on semver tags
