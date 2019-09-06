@@ -59,6 +59,9 @@ jobs:
     steps:
       - restore_cache:
           key: v1-{{.Branch}}
+      - run:
+          name: Restore Docker image cache
+          command: gunzip -c /tmp/cache/docker.tgz | docker load
       - setup_remote_docker:
           version: 18.02.0-ce
       - run:
