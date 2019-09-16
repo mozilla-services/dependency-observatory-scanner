@@ -9,7 +9,7 @@ import pathlib
 from io import BytesIO
 import tarfile
 import tempfile
-from typing import BinaryIO, IO, Sequence
+from typing import BinaryIO, IO, Sequence, List, Generator, Union, Dict
 import aiodocker
 import traceback
 
@@ -18,6 +18,32 @@ from fpr.models import GitRef, GitRefKind
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.containers")
+
+
+# https://docs.docker.com/engine/api/v1.37/#operation/ExecInspect
+# {
+#   "CanRemove": false,
+#   "ContainerID": "b53ee82b53a40c7dca428523e34f741f3abc51d9f297a14ff874bf761b995126",
+#   "DetachKeys": "",
+#   "ExitCode": 2,
+#   "ID": "f33bbfb39f5b142420f4759b2348913bd4a8d1a6d7fd56499cb41a1bb91d7b3b",
+#   "OpenStderr": true,
+#   "OpenStdin": true,
+#   "OpenStdout": true,
+#   "ProcessConfig": {
+#     "arguments": [
+#       "-c",
+#       "exit 2"
+#     ],
+#     "entrypoint": "sh",
+#     "privileged": false,
+#     "tty": true,
+#     "user": "1000"
+#   },
+#   "Running": false,
+#   "Pid": 42000
+# }
+DockerExecInspectResult = Dict[str, Union[int, str, List[str], bool]]
 
 
 class DockerRunException(Exception):
@@ -30,8 +56,7 @@ class Exec:
     def __init__(self, exec_id, container):
         self.exec_id = exec_id
         self.container = container
-        self.start_result = None
-        self.last_inspect = None
+        self.start_result: Optional[Dict] = None
 
     @classmethod
     async def create(cls, container, **kwargs) -> "Exec":
@@ -98,11 +123,10 @@ class Exec:
             params=kwargs,
         )
 
-    async def inspect(self):
+    async def inspect(self) -> DockerExecInspectResult:
         data = await self.container.docker._query_json(
             "exec/{exec_id}/json".format(exec_id=self.exec_id), method="GET"
         )
-        self.last_inspect = data
         return data
 
     async def wait(self):
@@ -115,7 +139,7 @@ class Exec:
                 await asyncio.sleep(0.1)
 
     @property
-    def decoded_start_result_stdout(self: "Exec") -> [str]:
+    def decoded_start_result_stdout(self: "Exec") -> List[str]:
         return list(
             dlog.iter_lines(
                 dlog.iter_messages(self.start_result),
@@ -130,7 +154,7 @@ async def _exec_create(self, **kwargs) -> Exec:
     return await Exec.create(self, **kwargs)
 
 
-aiodocker.containers.DockerContainer.exec_create = _exec_create
+aiodocker.containers.DockerContainer.exec_create = _exec_create  # type: ignore
 
 
 async def _run(
@@ -176,18 +200,17 @@ async def _run(
     if wait:
         await exec_.wait()
     if check:
-        if exec_.last_inspect is None:
-            await exec_.inspect()
-        if exec_.last_inspect["ExitCode"] != 0:
+        last_inspect = await exec_.inspect()
+        if last_inspect["ExitCode"] != 0:
             raise DockerRunException(
                 "{} command {} failed with non-zero exit code {}".format(
-                    self._id, cmd, exec_.last_inspect["ExitCode"]
+                    self._id, cmd, last_inspect["ExitCode"]
                 )
             )
     return exec_
 
 
-aiodocker.containers.DockerContainer.run = _run
+aiodocker.containers.DockerContainer.run = _run  # type: ignore
 
 
 @contextlib.asynccontextmanager
@@ -228,7 +251,7 @@ async def run(repository_tag, name, cmd=None, entrypoint=None, working_dir=None)
 
 
 @contextlib.contextmanager
-def temp_dockerfile_tgz(fileobject: BinaryIO) -> IO:
+def temp_dockerfile_tgz(fileobject: BinaryIO) -> Generator[IO, None, None]:
     """
     Create a zipped tar archive from a Dockerfile
     **Remember to close the file object**
@@ -267,7 +290,7 @@ async def aiodocker_client():
         await client.close()
 
 
-async def build(dockerfile: str, tag: str, pull: bool = False):
+async def build(dockerfile: bytes, tag: str, pull: bool = False):
     client = aiodocker.Docker()
     log.info("building image {}".format(tag))
     log.debug("building image {} with dockerfile:\n{}".format(tag, dockerfile))
@@ -418,5 +441,7 @@ find_cargo_lockfiles.__doc__ = """Find the relative paths to Cargo.lock files in
     """
 
 
-def path_relative_to_working_dir(working_dir: "Path", file_path: "Path") -> "Path":
+def path_relative_to_working_dir(
+    working_dir: Union[str, pathlib.Path], file_path: Union[str, pathlib.Path]
+) -> pathlib.Path:
     return pathlib.Path(working_dir) / pathlib.Path(file_path).parent

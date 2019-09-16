@@ -1,28 +1,10 @@
 -i https://pypi.org/simple
-appdirs==1.4.3
-atomicwrites==1.3.0
-attrs==19.1.0
-black==19.3b0
-click==7.0
-coverage==4.5.4
-hashin==0.14.5
-importlib-metadata==0.22 ; python_version < '3.8'
-more-itertools==7.2.0
-mypy-extensions==0.4.1
-mypy==0.720
-packaging==19.1
-pip-api==0.0.12
-pluggy==0.13.0
-py==1.8.0
-pycodestyle==2.5.0
-pyparsing==2.4.2
-pytest-asyncio==0.10.0
-pytest-codestyle==1.4.0
-pytest-cov==2.7.1
-pytest==5.0.1
-six==1.12.0
-toml==0.10.0
-typed-ast==1.4.0
-typing-extensions==3.7.4
-wcwidth==0.1.7
-zipp==0.6.0
+black
+coverage
+hashin
+mypy-extensions
+mypy
+pytest-asyncio
+pytest-codestyle
+pytest-cov
+pytest

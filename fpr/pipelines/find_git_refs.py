@@ -44,11 +44,11 @@ CMD ["bash", "-c"]
         return "{0.base_image_name}:{0.base_image_tag}".format(self)
 
     @property
-    def dockerfile(self) -> str:
+    def dockerfile(self) -> bytes:
         return FindGitRefsBuildArgs._DOCKERFILE.format(self).encode("utf-8")
 
 
-async def build_container(args: FindGitRefsBuildArgs = None) -> "Future[None]":
+async def build_container(args: FindGitRefsBuildArgs = None) -> str:
     # NB: can shell out to docker build if this doesn't work
     if args is None:
         args = FindGitRefsBuildArgs()

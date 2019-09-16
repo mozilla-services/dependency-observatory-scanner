@@ -18,10 +18,10 @@ $ echo '{"repo_url": "https://github.com/mozilla-services/channelserver"}' | doc
 ```console
 $ git clone https://github.com/mozilla-services/find-package-rugaru.git
 $ cd find-package-rugaru
-$ pipenv install --python 3.7.4
+$ make install # or install-dev to install dev deps requires python 3.7.4 and pip
 $ cat tests/fixtures/mozilla_services_channelserver_branch.jsonl
 {"repo_url": "https://github.com/mozilla-services/channelserver", "ref": {"value": "master", "kind": "branch"}}
-$ PYTHONPATH=$PYTHONPATH:fpr/ pipenv run python fpr/run_pipeline.py cargo_metadata -i tests/fixtures/mozilla_services_channelserver.csv --outfile=output.jsonl
+$ PYTHONPATH=$PYTHONPATH:fpr/ ./bin/in_venv.sh python fpr/run_pipeline.py cargo_metadata -i tests/fixtures/mozilla_services_channelserver.csv --outfile=output.jsonl
 2019-08-06 16:23:20,159 - fpr - INFO - running pipeline cargo_metadata on tests/fixtures/mozilla_services_channelserver.csv writing to output.jsonl
 2019-08-06 16:23:20,162 - fpr.pipelines.cargo_metadata - INFO - pipeline started
 2019-08-06 16:23:20,163 - fpr.containers - INFO - building image dep-obs/cargo-metadata

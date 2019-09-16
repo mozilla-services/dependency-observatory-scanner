@@ -9,7 +9,8 @@ import pytest
 
 import context
 
-from fpr.pipelines import __all__ as pipelines
+import fpr.pipelines
+from fpr.pipelines import pipelines
 
 
 def load_test_fixture(filename: str, load_fn: Callable) -> Any:

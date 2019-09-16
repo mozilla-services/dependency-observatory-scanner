@@ -5,7 +5,7 @@ import itertools
 import logging
 import json
 import random
-from typing import Dict, Tuple, Sequence, List
+from typing import Dict, Tuple, Sequence, Iterable
 
 import networkx as nx
 from networkx.drawing.nx_pydot import to_pydot
@@ -66,14 +66,14 @@ def get_graph_groups(
 ) -> Dict[str, Dict[str, nx.DiGraph]]:
     "returns a next dict of grouper attr to group key to a list of node ids in that group"
     if not group_attrs:
-        return g
+        return {}
 
     log.info("getting node groups by: {}".format(group_attrs))
 
-    grouped_groups = {}
+    grouped_groups: Dict[str, Dict[str, nx.DiGraph]] = {}
     for g_attr in group_attrs:
         grouper = GROUP_ATTRS[g_attr]
-        groups = {}
+        groups: Dict[str, nx.DiGraph] = {}
         sorted_nodes = sorted(g.nodes.items(), key=grouper)
         for key, group in itertools.groupby(sorted_nodes, key=grouper):
             subgraph_node_ids = list(n[0] for n in group)
@@ -124,7 +124,9 @@ def strip_crate_and_package_attrs(pdot: pydot.Graph):
         del node.obj_dict["attributes"]["crate_package"]
 
 
-def group_graph_nodes(group_attrs: Sequence[str], g: nx.DiGraph, pdot: pydot.Graph):
+def group_graph_nodes(
+    group_attrs: Sequence[str], g: nx.DiGraph, pdot: pydot.Graph
+) -> None:
     """Groups nodes with matching attrs into single subgraph nodes
     """
     # TODO(#53): remove duplicate edges and nodes between subgraph and graph
@@ -144,11 +146,17 @@ def group_graph_nodes(group_attrs: Sequence[str], g: nx.DiGraph, pdot: pydot.Gra
             )
             pdot.add_subgraph(to_pydot_subgraph(subgraph, 0))
 
-    colors = ["blue", "red", "#db8625", "green", "gray", "cyan", "#ed125b"]
-    for i, subgraph in enumerate(pdot.get_subgraphs()):
+    for i, pdot_subgraph in enumerate(pdot.get_subgraphs()):
         # relabel subgraphs so they show up
-        subgraph.set_name("cluster{}".format(i))
-        subgraph.set_bgcolor(random.choice(colors))
+        relabel_subgraph(pdot_subgraph, i)
+
+
+def relabel_subgraph(subgraph: pydot.Subgraph, new_label_id: int) -> None:
+    colors = ["blue", "red", "#db8625", "green", "gray", "cyan", "#ed125b"]
+    subgraph.set_name("cluster{}".format(new_label_id))
+    subgraph.set(
+        "bgcolor", random.choice(colors)
+    )  # workaround mypy failing to resolve pydot.Common dynamic setter for set_bgcolor
 
 
 @dataclass
@@ -159,7 +167,7 @@ class GraphStyle:
     dot_attr_value: str
 
 
-def style_graph_nodes(styles: Sequence[Dict[str, str]], g: nx.DiGraph) -> nx.DiGraph:
+def style_graph_nodes(styles: Iterable[str], g: nx.DiGraph) -> nx.DiGraph:
     """Styles nodes with labels matching the style
 
     string. Rightmost / last style arg wins.
@@ -167,11 +175,11 @@ def style_graph_nodes(styles: Sequence[Dict[str, str]], g: nx.DiGraph) -> nx.DiG
     if not styles:
         return g
 
-    styles = [GraphStyle(*s.split(":", 2)) for s in styles]
-    log.debug("applying styles: {}".format(styles))
+    parsed_styles = [GraphStyle(*s.split(":", 2)) for s in styles]
+    log.debug("applying styles: {}".format(parsed_styles))
 
     for (nid, attrs) in g.nodes.items():
-        for s in styles:
+        for s in parsed_styles:
             if s.label_substr in attrs["label"]:
                 g.nodes[nid][s.dot_attr_name] = s.dot_attr_value
     return g
@@ -190,7 +198,7 @@ def run_pipeline(source: rx.Observable, args: argparse.Namespace):
 def serialize(args: argparse.Namespace, g: nx.DiGraph):
     # https://github.com/pydot/pydot/issues/169#issuecomment-378000510
     g = style_graph_nodes(args.style, g)
-    pdot = to_pydot(g)
+    pdot: pydot.Graph = to_pydot(g)
     group_graph_nodes(args.groupby, g, pdot)
     strip_crate_and_package_attrs(pdot)
     pdot.set("rankdir", "LR")

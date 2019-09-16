@@ -3,7 +3,7 @@ import logging
 import struct
 import sys
 from io import BytesIO
-from typing import BinaryIO, IO, Sequence
+from typing import BinaryIO, IO, Sequence, Tuple, Generator, Union
 
 
 log = logging.getLogger("fpr.docker_log_reader")
@@ -20,6 +20,9 @@ class DockerLogReadError(Exception):
 class DockerLogStream(enum.Enum):
     STDOUT = 1
     STDERR = 2
+
+
+DockerLogMessage = bytes
 
 
 # byte lengths from https://github.com/moby/moby/blob/master/pkg/stdcopy/stdcopy.go
@@ -47,7 +50,7 @@ def stream_no_to_DockerLogStream(stream_no: int) -> DockerLogStream:
         )
 
 
-def read_message(msg_bytes: BytesIO) -> BytesIO:
+def read_message(msg_bytes: bytes) -> Tuple[DockerLogStream, bytes, bytes]:
     log.debug("reading {} byte message {}".format(len(msg_bytes), msg_bytes))
     if len(msg_bytes) < HEADER_LENGTH:
         raise DockerLogReadError(
@@ -69,7 +72,9 @@ def read_message(msg_bytes: BytesIO) -> BytesIO:
     )
 
 
-def iter_messages(msg_bytes: BytesIO) -> BytesIO:
+def iter_messages(
+    msg_bytes: bytes
+) -> Generator[Tuple[DockerLogStream, DockerLogMessage], None, None]:
     msg_bytes_remaining = msg_bytes
     log.debug("itering through {} msg bytes".format(len(msg_bytes)))
     while True:
@@ -89,9 +94,12 @@ def iter_messages(msg_bytes: BytesIO) -> BytesIO:
 
 
 def iter_lines(
-    msgs_iter: Sequence[BytesIO],
+    msgs_iter: Union[
+        Sequence[Tuple[DockerLogStream, DockerLogMessage]],
+        Generator[Tuple[DockerLogStream, DockerLogMessage], None, None],
+    ],
     output_stream: DockerLogStream = DockerLogStream.STDOUT,
-) -> Sequence[str]:
+) -> Generator[str, None, None]:
     buf = bytes()
     for stream, msg in msgs_iter:
         if stream != output_stream:
@@ -114,5 +122,6 @@ def iter_lines(
 
 
 if __name__ == "__main__":
-    for line in iter_lines(iter_messages(sys.stdin.buffer.read())):
+    msgs_iter = iter_messages(sys.stdin.buffer.read())
+    for line in iter_lines(msgs_iter):
         print(line, file=sys.stdout)

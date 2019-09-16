@@ -15,11 +15,12 @@ jobs:
       - run:
           name: run code checks and unit tests
           command: |
-            pip install pipenv
-            pipenv install --dev
+            pip config --global set global.progress_bar off
+            make install-dev
             make format && test "$(git diff | wc -l)" = "0"
             make style-check
             make test
+            make type-check
   build-image-and-integration-test:
     docker:
       - image: python:3.7-buster

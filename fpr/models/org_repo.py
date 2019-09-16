@@ -1,14 +1,14 @@
 from dataclasses import dataclass, field
-from typing import Dict, Tuple, Sequence
+from typing import Any, Dict, Tuple, Sequence, Generator, Optional, List
 
 
 @dataclass
 class OrgRepo:
     org: str
     repo: str
-    languages: list = field(default_factory=list)
-    dep_files: list = field(default_factory=list)
-    dep_file_deps: dict = field(default_factory=dict)
+    languages: List = field(default_factory=list)
+    dep_files: List = field(default_factory=list)
+    dep_file_deps: Dict = field(default_factory=dict)
 
     # map of manifest/dep_file_id to the query params (end cursor and page
     # size) to fetch it (since GH's GQL API doesn't let us query by node id
@@ -18,19 +18,6 @@ class OrgRepo:
     @property
     def github_clone_url(self) -> str:
         return "https://github.com/{0.org}/{0.repo}.git".format(self)
-
-    def iter_dep_files(self) -> Dict:
-        for df in self.dep_files:
-            if df and df.node:
-                yield self, df.node
-
-    def iter_dep_file_deps(self) -> Tuple[Dict, Dict]:
-        for _, df in self.iter_dep_files():
-            if df.id not in self.dep_file_deps:
-                continue
-
-            for dep in self.dep_file_deps[df.id]:
-                yield self, df, dep
 
     @staticmethod
     def from_org_repo(org_repo):

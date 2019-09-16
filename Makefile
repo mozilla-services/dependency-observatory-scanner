@@ -1,6 +1,6 @@
 
-IN_PIPENV := pipenv run
-FPR_PYTHON := PYTHONPATH=$$PYTHONPATH:fpr/ pipenv run python fpr/run_pipeline.py
+IN_VENV := bash bin/in_venv.sh
+FPR_PYTHON := $(IN_VENV) PYTHONPATH=$$PYTHONPATH:fpr/ python fpr/run_pipeline.py
 
 build-image:
 	docker build -t fpr:build .
@@ -29,30 +29,31 @@ check-channelserver-repo-analysis:
 	test -f channelserver_changelog.jsonl
 	# TODO: check for equivalent JSON output (changelog output needs work though)
 
-install:
-	pip install -r requirements.txt
 
-install-dev-tools:
-	pip install -r dev-requirements.txt
+install:
+	bash ./bin/install.sh
+
+install-dev:
+	DEV=1 bash ./bin/install.sh
 
 format:
-	$(IN_PIPENV) black fpr/*.py fpr/**/*.py tests/**/*.py
+	$(IN_VENV) black fpr/*.py fpr/**/*.py tests/**/*.py
 
 type-check:
-	$(IN_PIPENV) mypy fpr/
+	MYPYPATH=$(shell pwd)/venv/lib/python3.7/site-packages/ $(IN_VENV) mypy fpr/
 
 style-check:
-	$(IN_PIPENV) pytest -v -o codestyle_max_line_length=120 --codestyle fpr/ tests/
+	$(IN_VENV) pytest -v -o codestyle_max_line_length=120 --codestyle fpr/ tests/
 
 test:
-	$(IN_PIPENV) pytest -vv --cov=fpr/ fpr/ tests/
+	$(IN_VENV) pytest -vv --cov=fpr/ fpr/ tests/
 
 test-clear-cache:
-	$(IN_PIPENV)  pytest --cache-clear -vv --cov=fpr/ fpr/ tests/
+	$(IN_VENV)  pytest --cache-clear -vv --cov=fpr/ fpr/ tests/
 
 coverage: test
-	$(IN_PIPENV) coverage html
-	$(IN_PIPENV) python -m webbrowser htmlcov/index.html
+	$(IN_VENV) coverage html
+	$(IN_VENV) python -m webbrowser htmlcov/index.html
 
 clean:
 	rm -rf htmlcov/ fpr-debug.log fpr-graph.png fpr-graph.svg output.dot
@@ -67,7 +68,7 @@ run-find-git-refs-and-save:
 
 run-crate-graph:
 	$(FPR_PYTHON) -q crate_graph -i tests/fixtures/cargo_metadata_serialized.json | dot -Tsvg > fpr-graph.svg
-	$(IN_PIPENV) python -m webbrowser fpr-graph.svg
+	$(IN_VENV) python -m webbrowser fpr-graph.svg
 
 run-crate-graph-and-save:
 	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -o default.dot
@@ -117,11 +118,14 @@ run-repo-analysis:
 
 integration-test: run-cargo-audit run-cargo-metadata run-crate-graph-and-save
 
-update-pipenv:
-	pipenv update
-
 update-requirements:
-	pipenv lock -r > requirements.txt
-	pipenv lock -r --dev > dev-requirements.txt
+	rm -rf venv
+	python -m venv venv
+	$(IN_VENV) pip install -r requirements.txt
+	$(IN_VENV) pip freeze > requirements.txt.lock
+	rm -rf venv
+	python -m venv venv
+	$(IN_VENV) pip install -r dev-requirements.txt
+	$(IN_VENV) pip freeze > dev-requirements.txt.lock
 
-.PHONY: build-image run-image coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save update-pipenv update-requirements show-dot integration-test run-find-git-refs run-find-git-refs-and-save publish-latest run-repo-analysis-in-image check-channelserver-repo-analysis run-diff-repo-analysis-in-image
+.PHONY: build-image run-image coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save update-requirements show-dot integration-test run-find-git-refs run-find-git-refs-and-save publish-latest run-repo-analysis-in-image check-channelserver-repo-analysis run-diff-repo-analysis-in-image

@@ -8,6 +8,9 @@ from fpr.serialize_util import extract_fields, get_in
 log = logging.getLogger("fpr.models.rust")
 
 
+SerializedCargoMetadata = Dict
+
+
 @dataclass
 class RustPackageID:
     """RustPackageID represents a Crate name, version, and url
@@ -27,7 +30,7 @@ class RustPackageID:
     source: Optional[str]
 
     @staticmethod
-    def parse(spec: str) -> "RustPackageIDSpec":
+    def parse(spec: str) -> "RustPackageID":
         name, version, source = spec.split(" ", 3)
         source = source.strip("()")
         return RustPackageID(name, version, source)
@@ -41,11 +44,33 @@ class RustCrate:
     deps is the list of its resolved dependencies.
     """
 
-    #
+    # The Package ID of this node.
+    # e.g. "my-package 0.1.0 (path+file:///path/to/my-package)'
     id: str
+
+    # The dependencies of this package, an array of Package IDs.
+    # e.g. "bitflags 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)"
+    # dependencies: List[str]
+
+    # The dependencies of this package. This is an alternative to
+    # "dependencies" which contains additional information. In
+    # particular, this handles renamed dependencies.
+    #
+    # e.g.
+    # {
+    #      /* The name of the dependency's library target.
+    #      If this is a renamed dependency, this is the new
+    #      name.
+    #      */
+    #      "name": "bitflags",
+    #      /* The Package ID of the dependency. */
+    #      "pkg": "bitflags 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)"
+    # }
+    deps: List[Dict[str, str]] = field(default_factory=list)
+
     # Array of features enabled on this package. Affects the resolved deps.
+    # e.g. ["default"]
     features: List[str] = field(default_factory=list)
-    deps: List["RustCrate"] = field(default_factory=list)
 
     @property
     def package_id(self):
@@ -171,7 +196,7 @@ class RustPackage:
     categories: Sequence[str] = field(default_factory=list)
 
     # The default edition of the package. Note that individual targets may have different editions. e.g. "2018"
-    edition: str = field(default=None)
+    edition: Optional[str] = field(default=None)
 
     # Array of keywords from the manifest.
     #     "keywords": [
@@ -180,7 +205,7 @@ class RustPackage:
     keywords: Sequence[str] = field(default_factory=list)
 
     # Optional string that is the name of a native library the package is linking to. e.g. "links": null
-    links: Optional[str] = field(default_factory=list)
+    links: Optional[str] = field(default=None)
 
     # Package metadata. This is null if no metadata is specified.
     #     "metadata": {
@@ -213,13 +238,13 @@ def cargo_metadata_to_rust_crate_and_packages(
 
     # build hashmap by pkg_id so we can lookup additional package info from
     # resolved crate as packages[crate.id]
-    crates = {}
+    crates: Dict[str, RustCrate] = {}
     for n in get_in(cargo_meta_out, ["metadata", "nodes"]):
         crate = RustCrate(**extract_fields(n, {"id", "features", "deps"}))
         assert crate.id not in crates
         crates[crate.id] = crate
 
-    packages = {}
+    packages: Dict[str, RustPackage] = {}
     for p in get_in(cargo_meta_out, ["metadata", "packages"]):
         pkg = RustPackage(**p)
         assert pkg.id not in packages
