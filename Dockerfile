@@ -9,11 +9,8 @@ FROM python:3.7-slim-buster
 RUN mkdir -p /app
 WORKDIR /app
 
-RUN pip install pipenv
-
-COPY Pipfile /app/
-COPY Pipfile.lock /app/
-RUN pipenv install --system
+COPY requirements.txt /app/
+RUN pip install -r requirements.txt
 
 COPY . .
 

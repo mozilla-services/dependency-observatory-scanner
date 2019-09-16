@@ -2,5 +2,5 @@
 
 for SVG in $(ls -1 *.svg)
 do
-    pipenv run python -m webbrowser -t $SVG
+    ./in_venv.sh python -m webbrowser -t $SVG
 done
