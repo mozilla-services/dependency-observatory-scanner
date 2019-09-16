@@ -20,6 +20,7 @@ jobs:
             make format && test "$(git diff | wc -l)" = "0"
             make style-check
             make test
+            make type-check
   build-image-and-integration-test:
     docker:
       - image: python:3.7-buster
