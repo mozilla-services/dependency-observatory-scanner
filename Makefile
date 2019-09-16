@@ -39,7 +39,7 @@ format:
 	$(IN_PIPENV) black fpr/*.py fpr/**/*.py tests/**/*.py
 
 type-check:
-	$(IN_PIPENV) pyre --source-directory fpr/ --no-saved-state --show-error-traces --search-path venv/lib/python3.7/ check
+	$(IN_PIPENV) mypy fpr/
 
 style-check:
 	$(IN_PIPENV) pytest -v -o codestyle_max_line_length=120 --codestyle fpr/ tests/
