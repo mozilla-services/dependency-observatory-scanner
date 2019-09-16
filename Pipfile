@@ -5,7 +5,6 @@ verify_ssl = true
 
 [dev-packages]
 black = "==19.3b0"
-pyre-check = "==0.0.29"
 pytest = "==5.0.1"
 pytest-codestyle = "==1.4.0"
 pytest-asyncio = "==0.10.0"
