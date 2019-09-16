@@ -5,7 +5,7 @@ import sys
 import time
 import json
 from dataclasses import dataclass
-from typing import Dict, Tuple, List, Set, Any
+from typing import AbstractSet, Dict, Tuple, List, Set, Any, Union
 
 import rx
 import rx.operators as op
@@ -19,7 +19,7 @@ from fpr.serialize_util import (
     RUST_FIELDS,
 )
 import fpr.containers as containers
-from fpr.models import GitRef, OrgRepo, Pipeline
+from fpr.models import GitRef, OrgRepo, Pipeline, SerializedCargoMetadata
 from fpr.models.rust import cargo_metadata_to_rust_crate_and_packages
 from fpr.graph_util import (
     rust_crates_and_packages_to_networkx_digraph,
@@ -62,7 +62,10 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     return parser
 
 
-def run_compare_rust_commits(args: argparse.Namespace, item: List[Dict[str, str]]):
+def run_compare_rust_commits(
+    args: argparse.Namespace,
+    item: Tuple[SerializedCargoMetadata, SerializedCargoMetadata],
+) -> Dict[str, Any]:
     if len(item) != 2:  # the last buffered value will be the last value so ignore it
         return {}
     lmeta, rmeta = item
@@ -123,7 +126,9 @@ def run_pipeline(source: rx.Observable, args: argparse.Namespace) -> rx.Observab
 
 
 # TODO: rename to output fields
-FIELDS = {}  # RUST_FIELDS | REPO_FIELDS | {"cargo_tomlfile_path", "ripgrep_version"}
+FIELDS: AbstractSet[
+    str
+] = set()  # RUST_FIELDS | REPO_FIELDS | {"cargo_tomlfile_path", "ripgrep_version"}
 
 
 def serialize(_: argparse.Namespace, result: Dict):

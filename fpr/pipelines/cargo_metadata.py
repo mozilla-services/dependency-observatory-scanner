@@ -6,7 +6,7 @@ import json
 import functools
 from dataclasses import dataclass
 from random import randrange
-from typing import Dict, Tuple
+from typing import AnyStr, Dict, Tuple
 
 
 import rx
@@ -21,7 +21,7 @@ from fpr.serialize_util import (
     RUST_FIELDS,
 )
 import fpr.containers as containers
-from fpr.models import GitRef, OrgRepo, Pipeline
+from fpr.models import GitRef, OrgRepo, Pipeline, SerializedCargoMetadata
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.cargo_metadata")
@@ -52,11 +52,11 @@ CMD ["cargo", "metadata"]
         return "{0.base_image_name}:{0.base_image_tag}".format(self)
 
     @property
-    def dockerfile(self) -> str:
+    def dockerfile(self) -> bytes:
         return CargoMetadataBuildArgs._DOCKERFILE.format(self).encode("utf-8")
 
 
-async def build_container(args: CargoMetadataBuildArgs = None) -> "Future[None]":
+async def build_container(args: CargoMetadataBuildArgs = None) -> str:
     # NB: can shell out to docker build if this doesn't work
     if args is None:
         args = CargoMetadataBuildArgs()
@@ -179,8 +179,8 @@ def run_pipeline(source: rx.Observable, _: argparse.Namespace):
     return pipeline
 
 
-def serialize_cargo_metadata_output(metadata_output):
-    metadata_output = json.loads(metadata_output)
+def serialize_cargo_metadata_output(metadata_output: AnyStr) -> SerializedCargoMetadata:
+    metadata_json = json.loads(metadata_output)
     result = {}
 
     for read_key_path, output_key in [
@@ -188,11 +188,11 @@ def serialize_cargo_metadata_output(metadata_output):
         [["resolve", "root"], "root"],  # can be null str of pkg id
         [["packages"], "packages"],  # additional data parsed from the Cargo.toml file
     ]:
-        result[output_key] = get_in(metadata_output, read_key_path)
+        result[output_key] = get_in(metadata_json, read_key_path)
 
     result["nodes"] = [
         extract_fields(node, NODE_FIELDS)
-        for node in get_in(metadata_output, ["resolve", "nodes"])
+        for node in get_in(metadata_json, ["resolve", "nodes"])
     ]
     return result
 

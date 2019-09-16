@@ -16,7 +16,7 @@ import rx
 import rx.operators as op
 from rx.scheduler.eventloop import AsyncIOScheduler
 
-from fpr.pipelines import __all__ as pipelines
+from fpr.pipelines import pipelines
 from fpr.pipelines.util import exc_to_str
 from fpr.rx_util import save_to_tmpfile
 

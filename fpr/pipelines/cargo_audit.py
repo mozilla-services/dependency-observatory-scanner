@@ -58,11 +58,11 @@ CMD ["cargo", "audit", "--json"]
             return "cargo-audit"
 
     @property
-    def dockerfile(self) -> str:
+    def dockerfile(self) -> bytes:
         return CargoAuditBuildArgs._DOCKERFILE.format(self).encode("utf-8")
 
 
-async def build_container(args: CargoAuditBuildArgs = None) -> "Future[None]":
+async def build_container(args: CargoAuditBuildArgs = None) -> str:
     # NB: can shell out to docker build if this doesn't work
     if args is None:
         args = CargoAuditBuildArgs()
