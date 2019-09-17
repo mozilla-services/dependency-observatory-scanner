@@ -7,3 +7,4 @@ tests/*
 venv/
 *.org
 bin/*
+venv/
