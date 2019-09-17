@@ -118,14 +118,8 @@ run-repo-analysis:
 
 integration-test: run-cargo-audit run-cargo-metadata run-crate-graph-and-save
 
+# NB: assuming package names don't include spaces
 update-requirements:
-	rm -rf venv
-	python -m venv venv
-	$(IN_VENV) pip install -r requirements.txt
-	$(IN_VENV) pip freeze > requirements.txt.lock
-	rm -rf venv
-	python -m venv venv
-	$(IN_VENV) pip install -r dev-requirements.txt
-	$(IN_VENV) pip freeze > dev-requirements.txt.lock
+	bash ./bin/update_requirements.sh
 
 .PHONY: build-image run-image coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save update-requirements show-dot integration-test run-find-git-refs run-find-git-refs-and-save publish-latest run-repo-analysis-in-image check-channelserver-repo-analysis run-diff-repo-analysis-in-image
