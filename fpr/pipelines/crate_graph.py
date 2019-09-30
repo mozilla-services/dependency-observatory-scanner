@@ -5,13 +5,11 @@ import itertools
 import logging
 import json
 import random
-from typing import Dict, Tuple, Sequence, Iterable
+from typing import Dict, Tuple, Sequence, Iterable, Generator, AsyncGenerator
 
 import networkx as nx
 from networkx.drawing.nx_pydot import to_pydot
 from networkx.utils import make_str
-import rx
-import rx.operators as op
 import pydot
 
 from fpr.rx_util import on_next_save_to_file
@@ -185,14 +183,20 @@ def style_graph_nodes(styles: Iterable[str], g: nx.DiGraph) -> nx.DiGraph:
     return g
 
 
-def run_pipeline(source: rx.Observable, args: argparse.Namespace):
-    pipeline = source.pipe(
-        op.do_action(lambda x: log.debug("processing {!r}".format(x))),
-        op.map(cargo_metadata_to_rust_crate_and_packages),
-        op.map(functools.partial(rust_crates_and_packages_to_networkx_digraph, args)),
-        op.map(functools.partial(filter_graph_nodes, args.filter)),
-    )
-    return pipeline
+async def run_pipeline(
+    source: Generator[Dict, None, None], args: argparse.Namespace
+) -> AsyncGenerator[nx.DiGraph, None]:
+    log.info("pipeline started")
+    for item in source:
+        log.debug("processing {!r}".format(item))
+        rust_crate_and_packages: Tuple[
+            Dict[str, RustCrate], Dict[str, RustPackage]
+        ] = cargo_metadata_to_rust_crate_and_packages(item)
+        nx_graph: nx.DiGraph = rust_crates_and_packages_to_networkx_digraph(
+            args, rust_crate_and_packages
+        )
+        filtered_graph: nx.DiGraph = filter_graph_nodes(args.filter, nx_graph)
+        yield filtered_graph
 
 
 def serialize(args: argparse.Namespace, g: nx.DiGraph):

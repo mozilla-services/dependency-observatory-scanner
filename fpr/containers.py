@@ -81,7 +81,7 @@ class Exec:
         # Don't use docker._query_json
         # content-type of response will be "vnd.docker.raw-stream",
         # so it will cause error.
-        response = await self.container.docker._query(
+        response_cm = self.container.docker._query(
             "exec/{exec_id}/start".format(exec_id=self.exec_id),
             method="POST",
             headers={"content-type": "application/json"},
@@ -91,10 +91,10 @@ class Exec:
         )
 
         if stream:
-            conn = response.connection
+            conn = response_cm.connection
             transport = conn.transport
             protocol = conn.protocol
-            loop = response._loop
+            loop = list(response_cm)._loop
 
             reader = FlowControlDataQueue(protocol, limit=2 ** 16, loop=loop)
             writer = ExecWriter(transport)
@@ -103,7 +103,7 @@ class Exec:
                 reader,
                 writer,
                 None,  # protocol
-                response,
+                response_cm,
                 timeout,
                 True,  # autoclose
                 False,  # autoping
@@ -112,9 +112,10 @@ class Exec:
             )
 
         else:
-            result = await response.read()
-            await response.release()
-            return result
+            async with response_cm as response:
+                result = await response.read()
+                response.release()
+                return result
 
     async def resize(self, **kwargs):
         await self.container.docker._query(
@@ -295,7 +296,7 @@ async def build(dockerfile: bytes, tag: str, pull: bool = False):
     log.info("building image {}".format(tag))
     log.debug("building image {} with dockerfile:\n{}".format(tag, dockerfile))
     with temp_dockerfile_tgz(BytesIO(dockerfile)) as tar_obj:
-        async for build_log_line in await client.images.build(
+        async for build_log_line in client.images.build(
             fileobj=tar_obj, encoding="utf-8", rm=True, tag=tag, pull=pull, stream=True
         ):
             log.debug("building image {}: {}".format(tag, build_log_line))

@@ -12,10 +12,6 @@ import os
 import sys
 import json
 
-import rx
-import rx.operators as op
-from rx.scheduler.eventloop import AsyncIOScheduler
-
 from fpr.pipelines import pipelines
 from fpr.pipelines.util import exc_to_str
 from fpr.rx_util import save_to_tmpfile
@@ -57,25 +53,6 @@ def parse_args():
     return parser.parse_args()
 
 
-def on_serialize_error(pipeline_name, e, *args):
-    log.error(
-        "error serializing result for {} pipeline:\n{}".format(
-            pipeline_name, exc_to_str()
-        )
-    )
-    return rx.empty()
-
-
-def on_error(pipeline_name, e, *args):
-    log.error("error running {} pipeline:\n{}".format(pipeline_name, exc_to_str()))
-
-
-def on_completed(loop):
-    log.info("pipeline finished")
-    loop.stop()
-    log.debug("on_completed done!")
-
-
 def main():
     args = parse_args()
     if args.verbose:
@@ -92,7 +69,6 @@ def main():
 
     loop = asyncio.get_event_loop()
     asyncio.set_event_loop(loop)
-    aio_scheduler = AsyncIOScheduler(loop=loop)  # NB: not thread safe
 
     pipeline = next(p for p in pipelines if p.name == args.pipeline_name)
     log.info(
@@ -100,31 +76,37 @@ def main():
             args
         )
     )
-    source = rx.from_iterable(pipeline.reader(args.infile))
-    pipeline.runner(source, args).pipe(
-        op.do_action(
-            functools.partial(
-                save_to_tmpfile,
+
+    async def main():
+        async for row in pipeline.runner(pipeline.reader(args.infile), args):
+            save_to_tmpfile(
                 "{}_unserialized_".format(args.pipeline_name),
                 file_ext=".pickle",
+                item=row,
             )
-        ),
-        op.map(functools.partial(pipeline.serializer, args)),
-        op.catch(functools.partial(on_serialize_error, args.pipeline_name)),
-        op.do_action(
-            functools.partial(
-                save_to_tmpfile,
+            try:
+                serialized = pipeline.serializer(args, row)
+            except Exception as e:
+                log.error(
+                    "error serializing result for {} pipeline:\n{}".format(
+                        args.pipeline_name, exc_to_str()
+                    )
+                )
+            save_to_tmpfile(
                 "{}_serialized_".format(args.pipeline_name),
                 file_ext=".json",
+                item=serialized,
             )
-        ),
-    ).subscribe(
-        on_next=functools.partial(getattr(pipeline, "writer"), args.outfile),
-        on_error=functools.partial(on_error, args.pipeline_name),
-        on_completed=functools.partial(on_completed, loop=loop),
-        scheduler=aio_scheduler,
-    )
-    loop.run_forever()
+            getattr(pipeline, "writer")(args.outfile, serialized)
+
+    try:
+        asyncio.run(main(), debug=False)
+    except Exception as e:
+        log.error(
+            "error running {} pipeline:\n{}".format(args.pipeline_name, exc_to_str())
+        )
+
+    log.info("pipeline finished")
     log.debug("main finished!")
 
 

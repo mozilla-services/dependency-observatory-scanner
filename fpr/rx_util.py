@@ -6,23 +6,8 @@ import pickle
 import tempfile
 from typing import Dict, IO, Tuple, Any
 
-import rx
-import rx.operators as op
-
 
 log = logging.getLogger("fpr.rx_util")
-
-
-def do_async(func, *args, **kwds):
-    @functools.wraps(func)
-    def wrapper(*fargs, **fkwds):
-        return rx.from_future(asyncio.create_task(func(*fargs, **fkwds)))
-
-    return wrapper
-
-
-def map_async(func, *args, **kwds):
-    return op.flat_map(do_async(func, *args, **kwds))
 
 
 async def sleep_by_index(sleep_per_index: float, item: Tuple[int, Any]):

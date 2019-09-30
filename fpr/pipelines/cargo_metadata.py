@@ -6,13 +6,10 @@ import json
 import functools
 from dataclasses import dataclass
 from random import randrange
-from typing import AnyStr, Dict, Tuple
+from typing import Any, AnyStr, Dict, Tuple, AsyncGenerator, Generator, Union
 
 
-import rx
-import rx.operators as op
-
-from fpr.rx_util import map_async, sleep_by_index, on_next_save_to_jsonl
+from fpr.rx_util import sleep_by_index, on_next_save_to_jsonl
 from fpr.serialize_util import (
     get_in,
     extract_fields,
@@ -61,6 +58,7 @@ async def build_container(args: CargoMetadataBuildArgs = None) -> str:
     if args is None:
         args = CargoMetadataBuildArgs()
     await containers.build(args.dockerfile, args.repo_tag, pull=True)
+    log.info("successfully built and tagged image {}".format(args.repo_tag))
     return args.repo_tag
 
 
@@ -130,53 +128,31 @@ async def run_cargo_metadata(item: Tuple[OrgRepo, GitRef]):
     return results
 
 
-def on_build_next(tag):
-    log.info("tagged image {}".format(tag))
-
-
-def on_build_error(e):
-    log.error("error occurred building the cargo metadata image: {0}".format(e))
-    raise e
-
-
-def on_build_complete():
-    log.info("image built successfully")
-
-
-def run_pipeline(source: rx.Observable, _: argparse.Namespace):
-    # workaround for 'RuntimeError: no running event loop'
-    build_pipeline = rx.of(["start_build"]).pipe(
-        op.do_action(lambda x: log.info("pipeline started")),
-        map_async(lambda x: build_container()),
-        op.do_action(
-            on_next=on_build_next,
-            on_error=on_build_error,
-            on_completed=on_build_complete,
-        ),
-    )
-
-    def on_run_cargo_metadata_error(e, _, *args):
-        log.error("error running run_cargo_metadata:\n{}".format(exc_to_str()))
-        return rx.from_iterable([])
-
-    pipeline = rx.concat(build_pipeline, source).pipe(
-        op.skip(1),  # skip the build_pipeline sentinal
-        op.map(
-            lambda x: (
-                OrgRepo.from_github_repo_url(x["repo_url"]),
-                GitRef.from_dict(x["ref"]),
+async def run_pipeline(
+    source: Generator[Dict[str, Any], None, None], _: argparse.Namespace
+) -> AsyncGenerator[Dict, None]:
+    log.info("pipeline started")
+    try:
+        await build_container()
+    except Exception as e:
+        log.error(
+            "error occurred building the cargo metadata image: {0}\n{1}".format(
+                e, exc_to_str()
             )
-        ),
-        op.map_indexed(lambda x, i: (i, x)),
-        map_async(functools.partial(sleep_by_index, 5.0)),
-        op.do_action(lambda x: log.debug("processing {!r}".format(x))),
-        map_async(run_cargo_metadata),
-        op.catch(on_run_cargo_metadata_error),
-        op.map(lambda x: rx.from_iterable(x)),
-        op.merge_all(),
-    )
+        )
 
-    return pipeline
+    for i, item in enumerate(source):
+        log.debug("processing {!r}".format(item))
+        org_repo, git_ref = (
+            OrgRepo.from_github_repo_url(item["repo_url"]),
+            GitRef.from_dict(item["ref"]),
+        )
+        await sleep_by_index(sleep_per_index=5.0, item=(i, item))
+        try:
+            for result in await run_cargo_metadata((org_repo, git_ref)):
+                yield result
+        except Exception as e:
+            log.error("error running cargo metadata:\n{}".format(exc_to_str()))
 
 
 def serialize_cargo_metadata_output(metadata_output: AnyStr) -> SerializedCargoMetadata:

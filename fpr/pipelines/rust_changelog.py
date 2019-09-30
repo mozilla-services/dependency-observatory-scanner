@@ -5,12 +5,19 @@ import sys
 import time
 import json
 from dataclasses import dataclass
-from typing import AbstractSet, Dict, Tuple, List, Set, Any, Union
+from typing import (
+    AbstractSet,
+    Dict,
+    Tuple,
+    List,
+    Set,
+    Any,
+    Union,
+    Generator,
+    AsyncGenerator,
+)
 
-import rx
-import rx.operators as op
-
-from fpr.rx_util import map_async, on_next_save_to_jsonl
+from fpr.rx_util import on_next_save_to_jsonl
 from fpr.serialize_util import (
     get_in,
     extract_fields,
@@ -64,11 +71,9 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
 
 def run_compare_rust_commits(
     args: argparse.Namespace,
-    item: Tuple[SerializedCargoMetadata, SerializedCargoMetadata],
+    lmeta: SerializedCargoMetadata,
+    rmeta: SerializedCargoMetadata,
 ) -> Dict[str, Any]:
-    if len(item) != 2:  # the last buffered value will be the last value so ignore it
-        return {}
-    lmeta, rmeta = item
     log.debug(
         "processing {} {[ref][value]} -> {[ref][value]}".format(
             args.manifest_path, lmeta, rmeta
@@ -78,7 +83,7 @@ def run_compare_rust_commits(
         rust_crates_and_packages_to_networkx_digraph(
             args, cargo_metadata_to_rust_crate_and_packages(meta)
         )
-        for meta in item
+        for meta in [lmeta, rmeta]
     ]
     lauthors, rauthors = get_authors(lgraph), get_authors(rgraph)
     new_authors, removed_authors, new_total_authors = get_new_removed_and_new_total(
@@ -111,18 +116,26 @@ def run_compare_rust_commits(
     }
 
 
-def run_pipeline(source: rx.Observable, args: argparse.Namespace) -> rx.Observable:
-    def on_run_compare_rust_commits_error(e, _, *args):
-        log.error("error running run_compare_rust_commits:\n{}".format(exc_to_str()))
-        return rx.empty([])
-
-    pipeline = source.pipe(
-        op.filter(lambda x: x["cargo_tomlfile_path"] == args.manifest_path),
-        op.buffer_with_count(2, 1),
-        op.map(functools.partial(run_compare_rust_commits, args)),
-        op.catch(on_run_compare_rust_commits_error),
+async def run_pipeline(
+    source: Generator[Dict, None, None], args: argparse.Namespace
+) -> AsyncGenerator[None, None]:
+    # TODO: combine meta outputs for each commit (i.e. {path1: meta1, path2: meta2}, etc.)
+    matching_cargo_meta = (
+        meta for meta in source if meta["cargo_tomlfile_path"] == args.manifest_path
     )
-    return pipeline
+
+    last = None
+    for i, mcm in enumerate(matching_cargo_meta):
+        if last is not None:
+            try:
+                diff = run_compare_rust_commits(args, last, mcm)
+                yield diff
+            except Exception as e:
+                log.error(
+                    "error running run_compare_rust_commits:\n{}".format(exc_to_str())
+                )
+        if i > 0:
+            last = mcm
 
 
 # TODO: rename to output fields
