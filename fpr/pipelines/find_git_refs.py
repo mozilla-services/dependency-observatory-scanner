@@ -3,12 +3,9 @@ from dataclasses import dataclass
 import functools
 import logging
 from random import randrange
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Generator, AsyncGenerator
 
-import rx
-import rx.operators as op
-
-from fpr.rx_util import map_async, sleep_by_index, on_next_save_to_jsonl
+from fpr.rx_util import sleep_by_index, on_next_save_to_jsonl
 from fpr.serialize_util import get_in, extract_fields, iter_jsonlines
 import fpr.containers as containers
 from fpr.models import GitRef, OrgRepo, Pipeline
@@ -52,21 +49,10 @@ async def build_container(args: FindGitRefsBuildArgs = None) -> str:
     # NB: can shell out to docker build if this doesn't work
     if args is None:
         args = FindGitRefsBuildArgs()
+
     await containers.build(args.dockerfile, args.repo_tag, pull=True)
+    log.info("image built and successfully tagged {}".format(args.repo_tag))
     return args.repo_tag
-
-
-def on_build_next(tag):
-    log.info("tagged image {}".format(tag))
-
-
-def on_build_error(e):
-    log.error("error occurred building the cargo metadata image: {0}".format(e))
-    raise e
-
-
-def on_build_complete():
-    log.info("image built successfully")
 
 
 def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -110,34 +96,28 @@ async def run_find_git_refs(org_repo: OrgRepo):
     return results
 
 
-def run_pipeline(source: rx.Observable, _: argparse.Namespace):
-    # workaround for 'RuntimeError: no running event loop'
-    build_pipeline = rx.of(["start_build"]).pipe(
-        op.do_action(lambda x: log.info("pipeline started")),
-        map_async(lambda x: build_container()),
-        op.do_action(
-            on_next=on_build_next,
-            on_error=on_build_error,
-            on_completed=on_build_complete,
-        ),
-    )
+async def run_pipeline(
+    source: Generator[Dict[str, str], None, None], _: argparse.Namespace
+) -> AsyncGenerator[OrgRepo, None]:
+    log.info("pipeline started")
+    try:
+        await build_container()
+    except Exception as e:
+        log.error(
+            "error occurred building the find git refs image: {0}\n{1}".format(
+                e, exc_to_str()
+            )
+        )
 
-    def on_run_error(e, _, *args):
-        log.error("error running :\n{}".format(exc_to_str()))
-        return rx.from_iterable([])
-
-    pipeline = rx.concat(build_pipeline, source).pipe(
-        op.skip(1),  # skip the build_pipeline sentinal
-        op.map_indexed(lambda x, i: (i, OrgRepo.from_github_repo_url(x["repo_url"]))),
-        map_async(functools.partial(sleep_by_index, 3.0)),
-        op.do_action(lambda x: log.debug("processing {!r}".format(x))),
-        map_async(run_find_git_refs),
-        op.catch(on_run_error),
-        op.map(lambda x: rx.from_iterable(x)),
-        op.merge_all(),
-    )
-
-    return pipeline
+    for i, item in enumerate(source):
+        row = (i, OrgRepo.from_github_repo_url(item["repo_url"]))
+        await sleep_by_index(sleep_per_index=3.0, item=row)
+        log.debug("processing {!r}".format(row[1]))
+        try:
+            for ref in await run_find_git_refs(row[1]):
+                yield ref
+        except Exception as e:
+            log.error("error running find_git_refs:\n{}".format(exc_to_str()))
 
 
 def serialize(_: argparse.Namespace, result: Dict):
