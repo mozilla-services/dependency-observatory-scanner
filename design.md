@@ -38,8 +38,7 @@ analysis step or a final result aggregator.
 
 Workload is IO heavy and (for now) small data so Beam, Spark, etc. and
 other Big Data tools not directly applicable, but might make sense
-later. So we're trying RxPy since it gives access to combinators with
-async support (without relying on a pure generator pipeline).
+later. So we're trying an async generator pipeline.
 
 Features from proper datapipeline tools we do want include:
 
