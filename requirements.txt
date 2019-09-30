@@ -3,4 +3,3 @@ aiodocker
 aiohttp
 networkx
 pydot
-rx
