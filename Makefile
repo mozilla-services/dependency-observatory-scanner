@@ -109,7 +109,7 @@ run-rust-changelog:
 	$(FPR_PYTHON) rust_changelog -i tests/fixtures/channelserver_tags_metadata.jsonl
 
 run-rust-changelog-and-save:
-	$(FPR_PYTHON) rust_changelog -i  -o output.jsonl
+	$(FPR_PYTHON) rust_changelog -i tests/fixtures/channelserver_tags_metadata.jsonl -o output.jsonl
 
 run-repo-analysis:
 	$(FPR_PYTHON) find_git_refs -i tests/fixtures/mozilla_services_channelserver_repo_url.jsonl -o mozilla_services_channelserver_tags.jsonl
