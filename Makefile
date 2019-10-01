@@ -48,6 +48,8 @@ style-check:
 test:
 	$(IN_VENV) pytest -vv --cov=fpr/ fpr/ tests/
 
+unit-test: format style-check test type-check
+
 test-clear-cache:
 	$(IN_VENV)  pytest --cache-clear -vv --cov=fpr/ fpr/ tests/
 
@@ -125,4 +127,4 @@ integration-test: run-cargo-audit run-cargo-metadata run-crate-graph-and-save
 update-requirements:
 	bash ./bin/update_requirements.sh
 
-.PHONY: build-image run-image coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save update-requirements show-dot integration-test run-find-git-refs run-find-git-refs-and-save publish-latest run-repo-analysis-in-image check-channelserver-repo-analysis run-diff-repo-analysis-in-image
+.PHONY: build-image run-image coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save update-requirements show-dot integration-test run-find-git-refs run-find-git-refs-and-save publish-latest run-repo-analysis-in-image check-channelserver-repo-analysis run-diff-repo-analysis-in-image unit-test
