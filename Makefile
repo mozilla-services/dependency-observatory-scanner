@@ -102,6 +102,9 @@ run-cargo-metadata:
 run-cargo-metadata-and-save:
 	$(FPR_PYTHON) cargo_metadata -i tests/fixtures/mozilla_services_channelserver_branch.jsonl -o output.jsonl
 
+run-crates-io-metadata-and-save:
+	$(FPR_PYTHON) crates_io_metadata -i tests/fixtures/channelserver_tags_metadata.jsonl -o output.jsonl
+
 run-cargo-metadata-fxa-and-save:
 	$(FPR_PYTHON) cargo_metadata -i tests/fixtures/mozilla_services_fxa_branch.jsonl -o output.jsonl
 
