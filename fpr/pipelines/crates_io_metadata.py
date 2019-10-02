@@ -57,6 +57,7 @@ async def run_pipeline(
         async with aiohttp.ClientSession(
             headers={"User-Agent": args.user_agent},
             timeout=aiohttp.ClientTimeout(total=args.total_timeout),
+            connector=aiohttp.TCPConnector(limit=args.max_connections),
             raise_for_status=True,
         ) as session:
             for rust_crate_dict in rust_crate_dicts:

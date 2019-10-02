@@ -54,6 +54,12 @@ def add_aiohttp_args(
         help="aiohttp total timeout in seconds (defaults to 240)",
     )
     pipeline_parser.add_argument(
+        "--max-connections",
+        type=int,
+        default=100,
+        help="number of simultaneous connections (defaults to 100)",
+    )
+    pipeline_parser.add_argument(
         "--delay",
         type=float,
         default=0.5,
