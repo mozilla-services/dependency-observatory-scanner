@@ -19,10 +19,6 @@ async def sleep_by_index(sleep_per_index: float, item: Tuple[int, Any]):
 
 def save_to_tmpfile(prefix: str, item: Dict, file_ext=".json"):
     "Serializes item to JSON and saves it to a named temp file with the given prefix"
-    if not isinstance(item, Dict):
-        log.debug("skipped saving non-dict {} item to temp file".format(type(item)))
-        return
-
     if file_ext == ".json":
         with tempfile.NamedTemporaryFile(
             mode="w+", encoding="utf-8", prefix=prefix, suffix=file_ext, delete=False
