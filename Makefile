@@ -73,23 +73,16 @@ run-crate-graph:
 	$(IN_VENV) python -m webbrowser fpr-graph.svg
 
 run-crate-graph-and-save:
-	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -o crate-graph.jsonl
-	# serde_authors_filtered
-	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate-graph.jsonl -o /dev/null --node-key name --node-label name_authors --filter dpc --filter serde
-	# graph-with-style-args
-	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate-graph.jsonl -o /dev/null --node-key name --node-label name_authors --style 'dpc:color:red' --style 'serde:shape:box'
-	# groupby-repo
-	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate-graph.jsonl -o /dev/null --node-key name_version --node-label name_version_repository -g 'repository'
-	# groupby-author
-	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate-graph.jsonl -o /dev/null --node-key name_version --node-label name_authors -g 'author'
-	# readme-node-label
-	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate-graph.jsonl -o /dev/null --node-key name_version --node-label name_readme
-	# repo-node-label
-	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate-graph.jsonl -o /dev/null --node-key name_version --node-label name_repository
-	# source-node-label
-	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate-graph.jsonl -o /dev/null --node-key name_version --node-label name_package_source
-	# metadata-node-label
-	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate-graph.jsonl -o /dev/null --node-key name_version --node-label name_metadata
+	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -o crate_graph.jsonl --dot-filename default.dot
+	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate_graph.jsonl -o /dev/null --node-key name --node-label name_authors --filter dpc --filter serde --dot-filename serde_authors_filtered.dot
+	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate_graph.jsonl -o /dev/null --node-key name --node-label name_authors --style 'dpc:color:red' --style 'serde:shape:box' --dot-filename graph-with-style-args.dot
+	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate_graph.jsonl -o /dev/null --node-key name_version --node-label name_version_repository -g 'repository' --dot-filename groupby-repo.dot
+	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate_graph.jsonl -o /dev/null --node-key name_version --node-label name_authors -g 'author' --dot-filename groupby-author.dot
+	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate_graph.jsonl -o /dev/null --node-key name_version --node-label name_readme --dot-filename readme-node-label.dot
+	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate_graph.jsonl -o /dev/null --node-key name_version --node-label name_repository --dot-filename repo-node-label.dot
+	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate_graph.jsonl -o /dev/null --node-key name_version --node-label name_package_source --dot-filename source-node-label.dot
+	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate_graph.jsonl -o /dev/null --node-key name_version --node-label name_metadata --dot-filename metadata-node-label.dot
+	./bin/write_dotfiles.sh < crate_graph.jsonl
 
 show-dot:
 	dot -O -Tsvg *.dot
