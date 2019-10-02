@@ -25,15 +25,9 @@ def test_serialize_returns_audit_result(pipeline):
     if pipeline.name == "crate_graph":
         return pytest.xfail()
 
-    # TODO: convert other unserialized fixtures to .pickle
-    if pipeline.name in {"rust_changelog", "crates_io_metadata"}:
-        unserialized = load_test_fixture(
-            "{}_unserialized.pickle".format(pipeline.name), pickle.load
-        )
-    else:
-        unserialized = load_test_fixture(
-            "{}_unserialized.json".format(pipeline.name), json.load
-        )
+    unserialized = load_test_fixture(
+        "{}_unserialized.pickle".format(pipeline.name), pickle.load
+    )
     expected_serialized = load_test_fixture(
         "{}_serialized.json".format(pipeline.name), json.load
     )

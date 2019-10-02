@@ -127,4 +127,7 @@ integration-test: run-cargo-audit run-cargo-metadata run-crate-graph-and-save
 update-requirements:
 	bash ./bin/update_requirements.sh
 
-.PHONY: build-image run-image coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save update-requirements show-dot integration-test run-find-git-refs run-find-git-refs-and-save publish-latest run-repo-analysis-in-image check-channelserver-repo-analysis run-diff-repo-analysis-in-image unit-test
+dump-test-fixture-pickle-files:
+	$(IN_VENV) python -m pickle tests/fixtures/*.pickle
+
+.PHONY: build-image dump-test-fixture-pickle-files run-image coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save update-requirements show-dot integration-test run-find-git-refs run-find-git-refs-and-save publish-latest run-repo-analysis-in-image check-channelserver-repo-analysis run-diff-repo-analysis-in-image unit-test

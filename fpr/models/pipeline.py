@@ -38,6 +38,36 @@ def add_db_arg(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     return pipeline_parser
 
 
+def add_aiohttp_args(
+    pipeline_parser: argparse.ArgumentParser
+) -> argparse.ArgumentParser:
+    pipeline_parser.add_argument(
+        "--user-agent",
+        type=str,
+        default="https://github.com/mozilla-services/find-package-rugaru (foxsec+fpr@mozilla.com)",
+        help="User agent to user to query crates.io",
+    )
+    pipeline_parser.add_argument(
+        "--total-timeout",
+        type=int,
+        default=240,
+        help="aiohttp total timeout in seconds (defaults to 240)",
+    )
+    pipeline_parser.add_argument(
+        "--max-connections",
+        type=int,
+        default=100,
+        help="number of simultaneous connections (defaults to 100)",
+    )
+    pipeline_parser.add_argument(
+        "--delay",
+        type=float,
+        default=0.5,
+        help="time to sleep between requests in seconds (defaults to 0.5)",
+    )
+    return pipeline_parser
+
+
 def add_graphviz_graph_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser.add_argument(
         "-k",
