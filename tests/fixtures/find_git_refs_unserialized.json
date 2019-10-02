@@ -1,9 +1,0 @@
-{
-  "repo_url": "https://github.com/mozilla-services/channelserver",
-  "org": "mozilla-services",
-  "ref": {
-    "kind": "tag",
-    "value": "0.6.0"
-  },
-  "repo": "channelserver"
-}
