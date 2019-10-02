@@ -15,7 +15,7 @@ from fpr.rx_util import on_next_save_to_jsonl
 from fpr.serialize_util import iter_jsonlines
 from fpr.models import RustCrate, Pipeline, SerializedCargoMetadata
 from fpr.models.rust import cargo_metadata_to_rust_crates
-from fpr.models.pipeline import add_infile_and_outfile, add_db_arg
+from fpr.models.pipeline import add_infile_and_outfile, add_db_arg, add_aiohttp_args
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.crates_io_metadata")
@@ -31,24 +31,7 @@ Assumes crates are on crates.io.
 def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser = add_infile_and_outfile(pipeline_parser)
     parser = add_db_arg(parser)
-    parser.add_argument(
-        "--user-agent",
-        type=str,
-        default="https://github.com/mozilla-services/find-package-rugaru (foxsec+fpr@mozilla.com)",
-        help="User agent to user to query crates.io",
-    )
-    parser.add_argument(
-        "--total-timeout",
-        type=int,
-        default=240,
-        help="aiohttp total timeout in seconds (defaults to 240)",
-    )
-    parser.add_argument(
-        "--delay",
-        type=float,
-        default=0.5,
-        help="time to sleep between requests in seconds (defaults to 0.5)",
-    )
+    parser = add_aiohttp_args(parser)
     return parser
 
 
