@@ -25,6 +25,14 @@ def add_infile_and_outfile(
         default=sys.stdout,
         help="pipeline output file (defaults to stdout)",
     )
+    pipeline_parser.add_argument(
+        "-a",
+        "--append-outfile",
+        type=argparse.FileType("a", encoding="UTF-8"),
+        required=False,
+        default=None,
+        help="Output file to append to instead of overwriting like outfile (defaults to None)",
+    )
     return pipeline_parser
 
 
@@ -110,6 +118,12 @@ def add_graphviz_graph_args(parser: argparse.ArgumentParser) -> argparse.Argumen
         choices=GROUP_ATTRS.keys(),
         action="append",
         help="Group nodes by crate attribute",
+    )
+    parser.add_argument(
+        "--dot-filename",
+        type=str,
+        default="output.dot",
+        help="crate graph dotfile output name",
     )
     return parser
 

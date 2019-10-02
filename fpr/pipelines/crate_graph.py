@@ -12,7 +12,7 @@ from networkx.drawing.nx_pydot import to_pydot
 from networkx.utils import make_str
 import pydot
 
-from fpr.rx_util import on_next_save_to_file
+from fpr.rx_util import on_next_save_to_jsonl
 from fpr.graph_util import rust_crates_and_packages_to_networkx_digraph
 from fpr.models import Pipeline, RustCrate, RustPackageID, RustPackage
 from fpr.models.rust import cargo_metadata_to_rust_crate_and_packages
@@ -206,7 +206,7 @@ def serialize(args: argparse.Namespace, g: nx.DiGraph):
     group_graph_nodes(args.groupby, g, pdot)
     strip_crate_and_package_attrs(pdot)
     pdot.set("rankdir", "LR")
-    return str(pdot)
+    return {"crate_graph_pdot": str(pdot), "dot_filename": args.dot_filename}
 
 
 pipeline = Pipeline(
@@ -217,5 +217,5 @@ pipeline = Pipeline(
     reader=lambda infile: [json.load(infile)],
     runner=run_pipeline,
     serializer=serialize,
-    writer=on_next_save_to_file,
+    writer=on_next_save_to_jsonl,
 )

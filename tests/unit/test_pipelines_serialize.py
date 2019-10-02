@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import argparse
 import json
 import pathlib
 import pickle
@@ -21,10 +22,6 @@ def load_test_fixture(filename: str, load_fn: Callable) -> Any:
 
 @pytest.mark.parametrize("pipeline", pipelines, ids=lambda p: p.name)
 def test_serialize_returns_audit_result(pipeline):
-    # TODO: have crate graph output jsonl and extract dot graph from each line
-    if pipeline.name == "crate_graph":
-        return pytest.xfail()
-
     unserialized = load_test_fixture(
         "{}_unserialized.pickle".format(pipeline.name), pickle.load
     )
@@ -32,7 +29,8 @@ def test_serialize_returns_audit_result(pipeline):
         "{}_serialized.json".format(pipeline.name), json.load
     )
 
-    serialized = pipeline.serializer(None, unserialized)
+    default_args = pipeline.argparser(argparse.ArgumentParser()).parse_args(args=[])
+    serialized = pipeline.serializer(default_args, unserialized)
     for field in sorted(pipeline.fields):
         assert field in serialized
         assert field in expected_serialized
