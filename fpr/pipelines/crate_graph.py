@@ -206,7 +206,7 @@ def serialize(args: argparse.Namespace, g: nx.DiGraph):
     group_graph_nodes(args.groupby, g, pdot)
     strip_crate_and_package_attrs(pdot)
     pdot.set("rankdir", "LR")
-    return {"crate_graph_pdot": str(pdot)}
+    return {"crate_graph_pdot": str(pdot), "dot_filename": args.dot_filename}
 
 
 pipeline = Pipeline(

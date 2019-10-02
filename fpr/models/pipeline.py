@@ -119,6 +119,12 @@ def add_graphviz_graph_args(parser: argparse.ArgumentParser) -> argparse.Argumen
         action="append",
         help="Group nodes by crate attribute",
     )
+    parser.add_argument(
+        "--dot-filename",
+        type=str,
+        default="output.dot",
+        help="crate graph dotfile output name",
+    )
     return parser
 
 
