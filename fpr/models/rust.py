@@ -35,6 +35,14 @@ class RustPackageID:
         source = source.strip("()")
         return RustPackageID(name, version, source)
 
+    @property
+    def crates_io_metadata_url(self) -> Optional[str]:
+        # e.g. registry+https://github.com/rust-lang/crates.io-index
+        # or path+file:///repo/channelserver
+        if not (self.source and self.source.startswith("registry+")):
+            return None
+        return "https://crates.io/api/v1/crates/{}".format(self.name)
+
 
 @dataclass
 class RustCrate:
@@ -224,18 +232,12 @@ class RustPackage:
     repository: Optional[str] = field(default=None)
 
 
-def cargo_metadata_to_rust_crate_and_packages(
-    cargo_meta_out: Dict
-) -> Tuple[Dict[str, RustCrate], Dict[str, RustPackage]]:
-    log.debug(
-        "running crate-graph on {0[cargo_tomlfile_path]} in {0[org]}/{0[repo]} at {0[commit]} ".format(
-            cargo_meta_out
-        )
-    )
+def cargo_metadata_to_rust_crates(
+    cargo_meta_out: SerializedCargoMetadata
+) -> Dict[str, RustCrate]:
     assert (
         get_in(cargo_meta_out, ["metadata", "version"]) == 1
     ), "cargo metadata format was not version 1"
-
     # build hashmap by pkg_id so we can lookup additional package info from
     # resolved crate as packages[crate.id]
     crates: Dict[str, RustCrate] = {}
@@ -243,6 +245,18 @@ def cargo_metadata_to_rust_crate_and_packages(
         crate = RustCrate(**extract_fields(n, {"id", "features", "deps"}))
         assert crate.id not in crates
         crates[crate.id] = crate
+    return crates
+
+
+def cargo_metadata_to_rust_crate_and_packages(
+    cargo_meta_out: SerializedCargoMetadata
+) -> Tuple[Dict[str, RustCrate], Dict[str, RustPackage]]:
+    log.debug(
+        "running crate-graph on {0[cargo_tomlfile_path]} in {0[org]}/{0[repo]} at {0[commit]} ".format(
+            cargo_meta_out
+        )
+    )
+    crates = cargo_metadata_to_rust_crates(cargo_meta_out)
 
     packages: Dict[str, RustPackage] = {}
     for p in get_in(cargo_meta_out, ["metadata", "packages"]):

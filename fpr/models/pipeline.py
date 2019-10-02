@@ -28,6 +28,16 @@ def add_infile_and_outfile(
     return pipeline_parser
 
 
+def add_db_arg(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    pipeline_parser.add_argument(
+        "--db",
+        type=str,
+        default=":memory:",
+        help="SQLite3 database name to save crates io metadata to. Defaults to :memory:",
+    )
+    return pipeline_parser
+
+
 def add_graphviz_graph_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser.add_argument(
         "-k",
