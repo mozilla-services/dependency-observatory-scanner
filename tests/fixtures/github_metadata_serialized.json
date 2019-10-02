@@ -1,0 +1,15 @@
+{
+  "repository": {
+    "databaseId": 154339811,
+    "id": "MDEwOlJlcG9zaXRvcnkxNTQzMzk4MTE=",
+    "name": "extension-workshop",
+    "vulnerabilityAlerts": {
+      "edges": [],
+      "pageInfo": {
+        "endCursor": null,
+        "hasNextPage": false
+      },
+      "totalCount": 4
+    }
+  }
+}
