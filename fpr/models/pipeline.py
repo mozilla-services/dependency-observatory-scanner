@@ -25,6 +25,14 @@ def add_infile_and_outfile(
         default=sys.stdout,
         help="pipeline output file (defaults to stdout)",
     )
+    pipeline_parser.add_argument(
+        "-a",
+        "--append-outfile",
+        type=argparse.FileType("a", encoding="UTF-8"),
+        required=False,
+        default=None,
+        help="Output file to append to instead of overwriting like outfile (defaults to None)",
+    )
     return pipeline_parser
 
 

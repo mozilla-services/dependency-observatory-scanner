@@ -71,11 +71,16 @@ def main():
     asyncio.set_event_loop(loop)
 
     pipeline = next(p for p in pipelines if p.name == args.pipeline_name)
-    log.info(
-        "running pipeline {0.pipeline_name} on {0.infile.name} writing to {0.outfile.name}".format(
-            args
+    if args.append_outfile:
+        log.info(
+            "running pipeline {0.pipeline_name} on {0.infile.name} writing to "
+            "{0.outfile.name} and appending to {0.append_outfile.name}".format(args)
         )
-    )
+    else:
+        log.info(
+            "running pipeline {0.pipeline_name} on {0.infile.name} writing to "
+            "{0.outfile.name}".format(args)
+        )
 
     async def main():
         async for row in pipeline.runner(pipeline.reader(args.infile), args):
@@ -97,7 +102,10 @@ def main():
                 file_ext=".json",
                 item=serialized,
             )
-            getattr(pipeline, "writer")(args.outfile, serialized)
+            writer = getattr(pipeline, "writer")
+            writer(args.outfile, serialized)
+            if args.append_outfile:
+                writer(args.append_outfile, serialized)
 
     try:
         asyncio.run(main(), debug=False)
