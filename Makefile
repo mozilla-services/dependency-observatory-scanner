@@ -89,7 +89,7 @@ show-dot:
 	./bin/open_svgs.sh
 
 clean-graph:
-	rm -f *.dot *.svg
+	rm -f *.dot *.svg crate_graph.jsonl
 
 run-cargo-audit:
 	$(FPR_PYTHON) cargo_audit -i tests/fixtures/mozilla_services_channelserver_branch.jsonl
