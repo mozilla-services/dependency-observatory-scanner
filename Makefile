@@ -45,10 +45,13 @@ type-check:
 style-check:
 	$(IN_VENV) pytest -v -o codestyle_max_line_length=120 --codestyle fpr/ tests/
 
+shellcheck:
+	shellcheck -s bash -x bin/*.sh
+
 test:
 	$(IN_VENV) pytest -vv --cov=fpr/ fpr/ tests/
 
-unit-test: format style-check test type-check
+unit-test: format style-check test type-check shellcheck
 
 test-clear-cache:
 	$(IN_VENV)  pytest --cache-clear -vv --cov=fpr/ fpr/ tests/
