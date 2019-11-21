@@ -8,7 +8,7 @@ version: 2
 jobs:
   unit-test:
     docker:
-      - image: python:3.7-buster
+      - image: python:3.8-buster
     working_directory: /usr/src/app
     steps:
       - checkout
@@ -24,7 +24,7 @@ jobs:
             make type-check
   build-image-and-integration-test:
     docker:
-      - image: python:3.7-buster
+      - image: python:3.8-buster
       - image: docker:18.02.0-ce
     steps:
       - setup_remote_docker:
