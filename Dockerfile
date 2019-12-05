@@ -1,4 +1,4 @@
-FROM python:3.7-slim-buster
+FROM python:3.8-slim-buster
 
 # TODO: figure out perms to not run as root
 # RUN addgroup --gid 10001 app \
