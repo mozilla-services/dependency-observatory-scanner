@@ -123,9 +123,9 @@ repo_gql = _.repository(owner=MISSING, name=MISSING)[
     .licenseInfo[
         # NB: more fields available https://developer.github.com/v4/object/license/
         _.key
-    ].primaryLanguage[
-        _.name.id
-    ]  # TODO: get .defaultBranchRef https://developer.github.com/v4/object/repository/#fields (refs #97)
+    ]
+    .primaryLanguage[_.name.id]
+    .defaultBranchRef[_.name.id.prefix.target]
 ]
 # fmt: on
 

@@ -23,5 +23,11 @@
       name
       id
     }
+    defaultBranchRef {
+      name
+      id
+      prefix
+      target
+    }
   }
 }
