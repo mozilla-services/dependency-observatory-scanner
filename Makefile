@@ -109,13 +109,14 @@ run-cargo-metadata-and-save:
 	$(FPR_PYTHON) cargo_metadata -i tests/fixtures/mozilla_services_channelserver_branch.jsonl -o output.jsonl
 
 run-crates-io-metadata-and-save:
-	$(FPR_PYTHON) crates_io_metadata -i tests/fixtures/channelserver_tags_metadata.jsonl -o output.jsonl
+	$(FPR_PYTHON) crates_io_metadata --db crates_io_metadata.db -i tests/fixtures/channelserver_tags_metadata.jsonl -o output.jsonl
 
 run-cargo-metadata-fxa-and-save:
 	$(FPR_PYTHON) cargo_metadata -i tests/fixtures/mozilla_services_fxa_branch.jsonl -o output.jsonl
 
 run-rust-changelog:
-	$(FPR_PYTHON) rust_changelog -i tests/fixtures/channelserver_tags_metadata.jsonl
+	# run run-crates-io-metadata-and-save to have crates.io metadata available
+	$(FPR_PYTHON) rust_changelog --db crates_io_metadata.db -i tests/fixtures/channelserver_tags_metadata.jsonl
 
 run-rust-changelog-and-save:
 	$(FPR_PYTHON) rust_changelog -i tests/fixtures/channelserver_tags_metadata.jsonl -o output.jsonl
