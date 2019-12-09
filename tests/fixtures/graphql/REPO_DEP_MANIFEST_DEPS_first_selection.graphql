@@ -1,0 +1,32 @@
+{
+  repository(owner: "test_org_or_owner_name", name: "test_repo_name") {
+    databaseId
+    id
+    name
+    dependencyGraphManifests(first: 1, after: "test_parent_after_cursor") {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      totalCount
+      edges {
+        node {
+          id
+          dependencies(first: 2) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            totalCount
+            nodes {
+              packageName
+              packageManager
+              hasDependencies
+              requirements
+            }
+          }
+        }
+      }
+    }
+  }
+}

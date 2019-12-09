@@ -1,0 +1,27 @@
+{
+  repository(owner: "test_org_or_owner_name", name: "test_repo_name") {
+    databaseId
+    id
+    name
+    createdAt
+    updatedAt
+    description
+    isArchived
+    isDisabled
+    diskUsage
+    isPrivate
+    isFork
+    isLocked
+    isMirror
+    isTemplate
+    updatedAt
+    pushedAt
+    licenseInfo {
+      key
+    }
+    primaryLanguage {
+      name
+      id
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "repository": {
+    "databaseId": 36831081,
+    "id": "MDEwOlJlcG9zaXRvcnkzNjgzMTA4MQ==",
+    "languages": {
+      "edges": [
+        {
+          "node": {
+            "id": "MDg6TGFuZ3VhZ2UyODc=",
+            "name": "TypeScript"
+          }
+        },
+        {
+          "node": {
+            "id": "MDg6TGFuZ3VhZ2U3MDU=",
+            "name": "TSQL"
+          }
+        }
+      ],
+      "pageInfo": {
+        "endCursor": "Y3Vyc29yOnYyOpHORMtSuQ==",
+        "hasNextPage": false
+      }
+    },
+    "name": "fxa"
+  }
+}

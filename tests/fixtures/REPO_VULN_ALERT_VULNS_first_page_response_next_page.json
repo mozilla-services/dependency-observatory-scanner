@@ -1,0 +1,73 @@
+{
+  "repository": {
+    "databaseId": 154339811,
+    "id": "MDEwOlJlcG9zaXRvcnkxNTQzMzk4MTE=",
+    "name": "extension-workshop",
+    "vulnerabilityAlerts": {
+      "edges": [
+        {
+          "node": {
+            "dismissReason": null,
+            "dismissedAt": null,
+            "dismisser": null,
+            "id": "MDI4OlJlcG9zaXRvcnlWdWxuZXJhYmlsaXR5QWxlcnQxNDk1Nzg3MDE=",
+            "securityAdvisory": {
+              "description": "set-value is vulnerable to Prototype Pollution in versions before 2.0.1 and version 3.0.0. The function mixin-deep could be tricked into adding or modifying properties of Object.prototype using any of the constructor, prototype and _proto_ payloads.",
+              "ghsaId": "GHSA-4g88-fppr-53pp",
+              "id": "MDE2OlNlY3VyaXR5QWR2aXNvcnlHSFNBLTRnODgtZnBwci01M3Bw",
+              "identifiers": [
+                {
+                  "type": "GHSA",
+                  "value": "GHSA-4g88-fppr-53pp"
+                },
+                {
+                  "type": "CVE",
+                  "value": "CVE-2019-10747"
+                }
+              ],
+              "publishedAt": "2019-08-27T17:43:33Z",
+              "severity": "HIGH",
+              "summary": "High severity vulnerability that affects set-value",
+              "updatedAt": "2019-09-16T22:42:52Z",
+              "vulnerabilities": {
+                "nodes": [
+                  {
+                    "package": {
+                      "ecosystem": "NPM",
+                      "name": "set-value"
+                    },
+                    "severity": "HIGH",
+                    "updatedAt": "2019-08-27T17:24:53Z",
+                    "vulnerableVersionRange": "< 2.0.1"
+                  },
+                  {
+                    "package": {
+                      "ecosystem": "NPM",
+                      "name": "set-value"
+                    },
+                    "severity": "HIGH",
+                    "updatedAt": "2019-08-27T17:24:53Z",
+                    "vulnerableVersionRange": "= 3.0.0"
+                  }
+                ],
+                "pageInfo": {
+                  "endCursor": "Mg",
+                  "hasNextPage": true
+                },
+                "totalCount": 2
+              },
+              "withdrawnAt": null
+            },
+            "vulnerableManifestFilename": "yarn.lock",
+            "vulnerableManifestPath": "yarn.lock",
+            "vulnerableRequirements": "= 0.4.3"
+          }
+        }
+      ],
+      "pageInfo": {
+        "endCursor": "Y3Vyc29yOnYyOpHOCOpjzQ==",
+        "hasNextPage": false
+      }
+    }
+  }
+}

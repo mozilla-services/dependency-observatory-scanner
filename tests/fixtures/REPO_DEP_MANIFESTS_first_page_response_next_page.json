@@ -1,0 +1,47 @@
+{
+  "repository": {
+    "databaseId": 154339811,
+    "dependencyGraphManifests": {
+      "edges": [
+        {
+          "node": {
+            "blobPath": "/mozilla/extension-workshop/blob/master/Gemfile",
+            "dependencies": {
+              "nodes": [
+                {
+                  "hasDependencies": true,
+                  "packageManager": "RUBYGEMS",
+                  "packageName": "image_optim",
+                  "requirements": "~> 0.26.3"
+                },
+                {
+                  "hasDependencies": true,
+                  "packageManager": "RUBYGEMS",
+                  "packageName": "image_optim_pack",
+                  "requirements": "~> 0.5.1.20190105"
+                }
+              ],
+              "pageInfo": {
+                "endCursor": "Mg",
+                "hasNextPage": true
+              },
+              "totalCount": 2
+            },
+            "dependenciesCount": 8,
+            "exceedsMaxSize": false,
+            "filename": "Gemfile",
+            "id": "MDIzOkRlcGVuZGVuY3lHcmFwaE1hbmlmZXN0MTU0MzM5ODExOjg4ODY0ODQ0",
+            "parseable": true
+          }
+        }
+      ],
+      "pageInfo": {
+        "endCursor": "MQ",
+        "hasNextPage": true
+      },
+      "totalCount": 1
+    },
+    "id": "MDEwOlJlcG9zaXRvcnkxNTQzMzk4MTE=",
+    "name": "extension-workshop"
+  }
+}
