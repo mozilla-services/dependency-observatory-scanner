@@ -65,7 +65,7 @@ def main():
     if args.quiet:
         log.removeHandler(ch)
 
-    log.debug("args: {}".format(args))
+    log.debug(f"args: {args}")
 
     loop = asyncio.get_event_loop()
     asyncio.set_event_loop(loop)
