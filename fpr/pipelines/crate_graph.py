@@ -199,7 +199,7 @@ async def run_pipeline(
         yield filtered_graph
 
 
-def serialize(args: argparse.Namespace, g: nx.DiGraph):
+def serialize(args: argparse.Namespace, g: nx.DiGraph) -> Dict[str, str]:
     # https://github.com/pydot/pydot/issues/169#issuecomment-378000510
     g = style_graph_nodes(args.style, g)
     pdot: pydot.Graph = to_pydot(g)
