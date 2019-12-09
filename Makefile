@@ -40,7 +40,7 @@ format:
 	$(IN_VENV) black fpr/*.py fpr/**/*.py tests/**/*.py
 
 type-check:
-	MYPYPATH=$(shell pwd)/venv/lib/python3.7/site-packages/ $(IN_VENV) mypy fpr/
+	$(IN_VENV) mypy fpr/
 
 style-check:
 	$(IN_VENV) pytest -v -o codestyle_max_line_length=120 --codestyle fpr/ tests/
