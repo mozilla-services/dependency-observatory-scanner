@@ -70,7 +70,7 @@ async def run_pipeline(
         connector=aiohttp.TCPConnector(limit=args.max_connections),
         raise_for_status=True,
     ) as session:
-        tasks: Dict[str, asyncio.Future] = {}
+        tasks: Dict[str, asyncio.Task] = {}
         for rust_crate_id in rust_crate_ids:
             url = rust_crate_id.crates_io_metadata_url
             if url is None:

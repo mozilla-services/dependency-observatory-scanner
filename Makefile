@@ -40,7 +40,7 @@ format:
 	$(IN_VENV) black fpr/*.py fpr/**/*.py tests/**/*.py
 
 type-check:
-	MYPYPATH=$(shell pwd)/venv/lib/python3.7/site-packages/ $(IN_VENV) mypy fpr/
+	$(IN_VENV) mypy fpr/
 
 style-check:
 	$(IN_VENV) pytest -v -o codestyle_max_line_length=120 --codestyle fpr/ tests/
@@ -49,12 +49,12 @@ shellcheck:
 	shellcheck -s bash -x bin/*.sh
 
 test:
-	$(IN_VENV) pytest -vv --cov=fpr/ fpr/ tests/
+	$(IN_VENV) pytest -vv --cov-branch --cov=fpr/ fpr/ tests/
 
 unit-test: format style-check test type-check shellcheck
 
 test-clear-cache:
-	$(IN_VENV)  pytest --cache-clear -vv --cov=fpr/ fpr/ tests/
+	$(IN_VENV)  pytest --cache-clear -vv --cov-branch --cov=fpr/ fpr/ tests/
 
 coverage: test
 	$(IN_VENV) coverage html
@@ -109,13 +109,14 @@ run-cargo-metadata-and-save:
 	$(FPR_PYTHON) cargo_metadata -i tests/fixtures/mozilla_services_channelserver_branch.jsonl -o output.jsonl
 
 run-crates-io-metadata-and-save:
-	$(FPR_PYTHON) crates_io_metadata -i tests/fixtures/channelserver_tags_metadata.jsonl -o output.jsonl
+	$(FPR_PYTHON) crates_io_metadata --db crates_io_metadata.db -i tests/fixtures/channelserver_tags_metadata.jsonl -o output.jsonl
 
 run-cargo-metadata-fxa-and-save:
 	$(FPR_PYTHON) cargo_metadata -i tests/fixtures/mozilla_services_fxa_branch.jsonl -o output.jsonl
 
 run-rust-changelog:
-	$(FPR_PYTHON) rust_changelog -i tests/fixtures/channelserver_tags_metadata.jsonl
+	# run run-crates-io-metadata-and-save to have crates.io metadata available
+	$(FPR_PYTHON) rust_changelog --db crates_io_metadata.db -i tests/fixtures/channelserver_tags_metadata.jsonl
 
 run-rust-changelog-and-save:
 	$(FPR_PYTHON) rust_changelog -i tests/fixtures/channelserver_tags_metadata.jsonl -o output.jsonl
