@@ -2,13 +2,22 @@ import json
 from typing import Any, Dict, Iterable, Set, Sequence, List, Union, Generator
 
 
-def get_in(d: Dict, key_path: Iterable[str], default: Any = None):
+def get_in(d: Dict, path: Iterable[Union[str, int]], default: Any = None):
     if default is None:
         sentinel = object()
-    for key_part in key_path:
-        d = d.get(key_part, sentinel)
-        if d == sentinel:
-            return default
+    for path_part in path:
+        if isinstance(path_part, str):
+            assert hasattr(d, "get")
+            d = d.get(path_part, sentinel)
+            if d == sentinel:
+                return default
+        elif isinstance(path_part, int):
+            assert hasattr(d, "__getitem__")
+            if not (-1 < path_part < len(d)):
+                return default
+            d = d[path_part]
+        else:
+            raise NotImplementedError()
     return d
 
 
