@@ -49,12 +49,12 @@ shellcheck:
 	shellcheck -s bash -x bin/*.sh
 
 test:
-	$(IN_VENV) pytest -vv --cov=fpr/ fpr/ tests/
+	$(IN_VENV) pytest -vv --cov-branch --cov=fpr/ fpr/ tests/
 
 unit-test: format style-check test type-check shellcheck
 
 test-clear-cache:
-	$(IN_VENV)  pytest --cache-clear -vv --cov=fpr/ fpr/ tests/
+	$(IN_VENV)  pytest --cache-clear -vv --cov-branch --cov=fpr/ fpr/ tests/
 
 coverage: test
 	$(IN_VENV) coverage html
