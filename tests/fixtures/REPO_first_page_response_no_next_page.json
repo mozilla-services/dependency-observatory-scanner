@@ -1,0 +1,23 @@
+{
+  "repository": {
+    "createdAt": "2013-10-11T20:35:42Z",
+    "databaseId": 13509108,
+    "description": "Read-only Git mirror of the Mercurial gecko repositories at https://hg.mozilla.org. How to contribute: http://bit.ly/contribute-code",
+    "diskUsage": 2605879,
+    "id": "MDEwOlJlcG9zaXRvcnkxMzUwOTEwOA==",
+    "isArchived": false,
+    "isDisabled": false,
+    "isFork": false,
+    "isLocked": false,
+    "isMirror": false,
+    "isPrivate": false,
+    "isTemplate": false,
+    "licenseInfo": {
+      "key": "other"
+    },
+    "name": "gecko-dev",
+    "primaryLanguage": null,
+    "pushedAt": "2019-12-05T18:51:20Z",
+    "updatedAt": "2019-12-05T12:50:22Z"
+  }
+}

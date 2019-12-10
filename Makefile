@@ -111,6 +111,9 @@ run-cargo-metadata-and-save:
 run-crates-io-metadata-and-save:
 	$(FPR_PYTHON) crates_io_metadata --db crates_io_metadata.db -i tests/fixtures/channelserver_tags_metadata.jsonl -o output.jsonl
 
+run-github-metadata-and-save:
+	printf "{\"repo_url\": \"https://github.com/mozilla/extension-workshop.git\"}" | $(FPR_PYTHON) github_metadata -i - -o output.jsonl --github-query-type=REPO_DEP_MANIFESTS --github-repo-dep-manifests-page-size=1 --github-query-type=REPO_DEP_MANIFEST_DEPS --github-repo-dep-manifest-deps-page-size=50 --github-query-type=REPO_VULN_ALERTS --github-repo-vuln-alerts-page-size=1 --github-query-type=REPO_VULN_ALERT_VULNS --github-repo-vuln-alert-vulns-page-size=1 --github-query-type=REPO_LANGS --github-repo-langs-page-size=50
+
 run-cargo-metadata-fxa-and-save:
 	$(FPR_PYTHON) cargo_metadata -i tests/fixtures/mozilla_services_fxa_branch.jsonl -o output.jsonl
 
@@ -135,4 +138,4 @@ update-requirements:
 dump-test-fixture-pickle-files:
 	$(IN_VENV) python -m pickle tests/fixtures/*.pickle
 
-.PHONY: build-image dump-test-fixture-pickle-files run-image coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save update-requirements show-dot integration-test run-find-git-refs run-find-git-refs-and-save publish-latest run-repo-analysis-in-image check-channelserver-repo-analysis run-diff-repo-analysis-in-image unit-test
+.PHONY: build-image dump-test-fixture-pickle-files run-image coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save run-crates-io-metadata-and-save run-github-metadata-and-save update-requirements show-dot integration-test run-find-git-refs run-find-git-refs-and-save publish-latest run-repo-analysis-in-image check-channelserver-repo-analysis run-diff-repo-analysis-in-image unit-test

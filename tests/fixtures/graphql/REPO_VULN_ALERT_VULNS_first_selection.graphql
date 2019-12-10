@@ -1,0 +1,58 @@
+{
+  repository(owner: "test_org_or_owner_name", name: "test_repo_name") {
+    databaseId
+    id
+    name
+    vulnerabilityAlerts(first: 1, after: "test_parent_after_cursor") {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      totalCount
+      edges {
+        node {
+          id
+          dismissReason
+          dismissedAt
+          dismisser {
+            id
+            name
+          }
+          securityAdvisory {
+            id
+            ghsaId
+            summary
+            description
+            severity
+            publishedAt
+            updatedAt
+            withdrawnAt
+            identifiers {
+              type
+              value
+            }
+            vulnerabilities(first: 3) {
+              pageInfo {
+                hasNextPage
+                endCursor
+              }
+              totalCount
+              nodes {
+                package {
+                  name
+                  ecosystem
+                }
+                severity
+                updatedAt
+                vulnerableVersionRange
+              }
+            }
+          }
+          vulnerableManifestFilename
+          vulnerableManifestPath
+          vulnerableRequirements
+        }
+      }
+    }
+  }
+}

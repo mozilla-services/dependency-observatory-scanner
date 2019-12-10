@@ -1,0 +1,21 @@
+{
+  repository(owner: "test_org_or_owner_name", name: "test_repo_name") {
+    databaseId
+    id
+    name
+    languages(first: 7) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      totalCount
+      totalSize
+      edges {
+        node {
+          id
+          name
+        }
+      }
+    }
+  }
+}
