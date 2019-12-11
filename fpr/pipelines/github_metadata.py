@@ -24,6 +24,7 @@ import quiz
 
 from fpr.rx_util import on_next_save_to_jsonl
 from fpr.serialize_util import iter_jsonlines
+from fpr.quiz_util import raw_result_to_dict
 from fpr.models import OrgRepo, Pipeline
 from fpr.models.github import (
     ResourceKind,
@@ -300,12 +301,7 @@ async def run_pipeline(
                     to_run.put_nowait(request)
 
                 # yield results to sink to write to stdout
-                response_json = exchange.response.json
-                assert response_json
-                assert isinstance(response_json, dict)
-                # drop __metadata__ from the quiz.execution.RawResult since it hits the
-                # recursion limit when pickled
-                yield {k: v for k, v in response_json.items() if k != "__metadata__"}
+                yield raw_result_to_dict(exchange.response.json)
             except asyncio.QueueEmpty:
                 log.debug(
                     f"no responses to write. sleeping for {args.github_poll_seconds}s"
