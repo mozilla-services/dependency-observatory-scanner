@@ -254,8 +254,20 @@ async def run_pipeline(
         to_write: asyncio.Queue = asyncio.Queue()
         stop_workers = asyncio.Event()
 
-        # start workers that run queries from to_run and write
-        # responses to to_write until the stop_workers event is set
+        # start workers that run queries from to_run and write responses to
+        # to_write until the stop_workers event is set
+
+        # TODO: waiting for a worker to read results off the wire before
+        # writing them to the write queue means main (here) can cancel workers
+        # before all results come in i.e.
+        #
+        # queue a request in to_run
+        # worker pick up to_run job and waits for the result
+        # main sees empty to_run and to_write queues and stops the workers
+        # worker gets result with next page, but was canceled so more pages aren't fetched and we miss data
+        #
+        # as a workaround: we run with a larger poll timeout, but we want to track pending/in flight jobs
+
         worker_tasks: AbstractSet[asyncio.Task] = {
             asyncio.create_task(
                 worker(f"worker-{i}", to_run, to_write, schema, executor, stop_workers)
