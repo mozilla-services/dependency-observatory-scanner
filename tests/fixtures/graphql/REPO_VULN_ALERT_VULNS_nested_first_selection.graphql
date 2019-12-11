@@ -3,7 +3,7 @@
     databaseId
     id
     name
-    vulnerabilityAlerts(first: 1, after: "Y3Vyc29yOnYyOpHOCOpjzQ==") {
+    vulnerabilityAlerts(first: 1, after: null) {
       pageInfo {
         hasNextPage
         endCursor

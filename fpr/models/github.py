@@ -455,15 +455,18 @@ def get_nested_next_page_request(
     nested resource (e.g. manifest deps or vuln alerts vulns) if any or
     None
     """
-    assert isinstance(exchange.response.json, dict)
-    parent_page_info = get_in_dict(
-        exchange.response.json, list(exchange.request.resource.page_path) + ["pageInfo"]
-    )
-    log.debug(f"got {exchange.request.resource.kind.name} page response with next page")
-    assert "endCursor" in parent_page_info
+    # path in the selection to add the parent after cursor params (can't get
+    # from response since that cursor gives the next page of the parent
+    # (alternatively use a before param?)
+    path: SelectionPath = [
+        path_part for path_part in exchange.request.resource.page_path if path_part != 0
+    ]
+    parent_params = get_kwargs_in(exchange.request.graphql, path)
+    assert parent_params is not None
 
+    # NB: builds gql with 'null' as the after param but GH's API is OK with it
     context = ChainMap(
-        dict(parent_after=parent_page_info["endCursor"]),
+        dict(parent_after=parent_params.get("after", None)),
         context,
         get_owner_repo_kwargs(exchange.request.graphql),
     )

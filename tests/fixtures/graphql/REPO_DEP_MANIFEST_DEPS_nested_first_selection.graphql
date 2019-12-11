@@ -3,7 +3,7 @@
     databaseId
     id
     name
-    dependencyGraphManifests(first: 1, after: "MQ") {
+    dependencyGraphManifests(first: 1, after: null) {
       pageInfo {
         hasNextPage
         endCursor
