@@ -117,15 +117,15 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     )
     parser.add_argument(
         "--github-repo-dep-manifests-page-size",
-        help="number of github repo dep manifests to fetch with each request (defaults to 25)",
+        help="number of github repo dep manifests to fetch with each request (defaults to 1)",
         type=int,
-        default=25,
+        default=1,
     )
     parser.add_argument(
         "--github-repo-dep-manifest-deps-page-size",
-        help="number of github repo deps for a manifest to fetch with each request (defaults to 25)",
+        help="number of github repo deps for a manifest to fetch with each request (defaults to 100)",
         type=int,
-        default=25,
+        default=100,
     )
     parser.add_argument(
         "--github-repo-vuln-alerts-page-size",
@@ -141,9 +141,9 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     )
     parser.add_argument(
         "--github-poll-seconds",
-        help="frequency in seconds to check whether worker queues are empty and quit (defaults to 3)",
+        help="frequency in seconds to check whether worker queues are empty and quit (defaults to 30)",
         type=int,
-        default=3,
+        default=30,
     )
     return parser
 
