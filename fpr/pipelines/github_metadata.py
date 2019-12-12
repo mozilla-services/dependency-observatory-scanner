@@ -3,6 +3,7 @@ import sys
 import argparse
 import asyncio
 from collections import ChainMap
+from contextlib import contextmanager
 import logging
 import time
 from typing import (
@@ -24,6 +25,7 @@ import quiz
 
 from fpr.rx_util import on_next_save_to_jsonl
 from fpr.serialize_util import iter_jsonlines
+from fpr.quiz_util import raw_result_to_dict
 from fpr.models import OrgRepo, Pipeline
 from fpr.models.github import (
     ResourceKind,
@@ -141,11 +143,19 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     )
     parser.add_argument(
         "--github-poll-seconds",
-        help="frequency in seconds to check whether worker queues are empty and quit (defaults to 30)",
+        help="frequency in seconds to check whether worker queues are empty and quit (defaults to 3)",
         type=int,
-        default=30,
+        default=3,
     )
     return parser
+
+
+@contextmanager
+def event_in_progress(event: asyncio.Event):
+    "sets an asyncio.Event to true for the duration of the yield"
+    event.set()
+    yield
+    event.clear()
 
 
 def aiohttp_session(args: argparse.Namespace) -> aiohttp.ClientSession:
@@ -189,14 +199,25 @@ async def worker(
     schema: quiz.Schema,
     executor: quiz.execution.async_executor,
     shutdown: asyncio.Event,
+    request_pending: asyncio.Event,
 ):
-    # response = await run_graphql(schema, executor, rate_limit_graphql())
-    # log.debug("fetched rate limits {}".format(response))
+    """worker runs Github metadata requests until shutdown
 
+    More specifically until the shutdown event fires it repeatedly:
+
+    1. pulls a request from the to_run queue
+    2. sets request pending
+    3. runs the request
+    4. clears request pending
+    5. pushes successful request response exhcanges to the to_write queue
+    """
     while True:
         if shutdown.is_set():
             log.debug(f"{name} shutting down")
             break
+
+        # response = await run_graphql(schema, executor, rate_limit_graphql())
+        # log.debug("fetched rate limits {}".format(response))
 
         try:
             request: Request = await asyncio.wait_for(to_run.get(), 2)
@@ -204,28 +225,28 @@ async def worker(
             log.debug(f"{name} didn't get any new requests after 2s timeout")
             continue
 
-        # run query
-        # TODO: retry if it failed due to rate limit or intermittant error; otherwise log error
-        try:
-            log.debug(
-                f"{name} running query {type(request)} {type(request.resource.kind)}"
-            )
-            response: quiz.execution.RawResult = await run_graphql(
-                schema, executor, request.graphql
-            )
-            log.debug(f"{name} writing query to to_write {response!r}")
-            # write non-empty responses to stdout
-            assert response
-            to_write.put_nowait(
-                RequestResponseExchange(
-                    request, Response(resource=request.resource, json=response)
+        with event_in_progress(request_pending):
+            # TODO: retry if request fails due to rate limit or intermittant error
+            try:
+                log.debug(
+                    f"{name} running query {type(request)} {type(request.resource.kind)}"
                 )
-            )
-        except Exception as err:
-            log.error(f"{name} error running query {request}\n:{exc_to_str()}")
+                response: quiz.execution.RawResult = await run_graphql(
+                    schema, executor, request.graphql
+                )
+                log.debug(f"{name} writing query to to_write {response!r}")
+                # write non-empty responses to stdout
+                assert response
+                to_write.put_nowait(
+                    RequestResponseExchange(
+                        request, Response(resource=request.resource, json=response)
+                    )
+                )
+            except Exception as err:
+                log.error(f"{name} error running query {request}\n:{exc_to_str()}")
 
-        # Notify the queue that the "work item" has been processed.
-        to_run.task_done()
+            # Notify the queue that the "work item" has been processed.
+            to_run.task_done()
 
 
 def get_response(task):
@@ -256,23 +277,22 @@ async def run_pipeline(
 
         # start workers that run queries from to_run and write responses to
         # to_write until the stop_workers event is set
-
-        # TODO: waiting for a worker to read results off the wire before
-        # writing them to the write queue means main (here) can cancel workers
-        # before all results come in i.e.
-        #
-        # queue a request in to_run
-        # worker pick up to_run job and waits for the result
-        # main sees empty to_run and to_write queues and stops the workers
-        # worker gets result with next page, but was canceled so more pages aren't fetched and we miss data
-        #
-        # as a workaround: we run with a larger poll timeout, but we want to track pending/in flight jobs
-
-        worker_tasks: AbstractSet[asyncio.Task] = {
-            asyncio.create_task(
-                worker(f"worker-{i}", to_run, to_write, schema, executor, stop_workers)
+        pending_tasks: Dict[str, asyncio.Event] = {
+            f"worker-{i}": asyncio.Event() for i in range(args.github_workers)
+        }
+        worker_tasks: Dict[str, asyncio.Task] = {
+            name: asyncio.create_task(
+                worker(
+                    name,
+                    to_run,
+                    to_write,
+                    schema,
+                    executor,
+                    stop_workers,
+                    request_pending,
+                )
             )
-            for i in range(args.github_workers)
+            for (name, request_pending) in pending_tasks.items()
         }
         log.debug(f"started {len(worker_tasks)} GH workers")
 
@@ -289,33 +309,38 @@ async def run_pipeline(
         log.debug(f"queued {to_run.qsize()} initial queries")
 
         while True:
-            log.debug(
-                f"run queue size is {to_run.qsize()}; write queue size is {to_write.qsize()}"
-            )
             try:
                 exchange: RequestResponseExchange = to_write.get_nowait()
 
                 # add any follow up reqs to the queue (as written these won't run)
                 for request in get_next_requests(log, ChainMap(args_dict), exchange):
+                    log.debug(
+                        f"queued {request.resource.kind} for {exchange.request.resource.kind}"
+                    )
                     to_run.put_nowait(request)
 
                 # yield results to sink to write to stdout
-                response_json = exchange.response.json
-                assert response_json
-                assert isinstance(response_json, dict)
-                # drop __metadata__ from the quiz.execution.RawResult since it hits the
-                # recursion limit when pickled
-                yield {k: v for k, v in response_json.items() if k != "__metadata__"}
+                yield raw_result_to_dict(exchange.response.json)
+                to_write.task_done()
             except asyncio.QueueEmpty:
                 log.debug(
                     f"no responses to write. sleeping for {args.github_poll_seconds}s"
                 )
                 await asyncio.sleep(args.github_poll_seconds)
 
-            if to_run.empty() and to_write.empty():
+            log.debug(
+                f"{to_run.qsize()} to run; "
+                "{len([pending for pending in pending_tasks.values() if pending.is_set()])} pending; "
+                "{to_write.qsize()} to write"
+            )
+            if (
+                to_run.empty()
+                and to_write.empty()
+                and not any(pending.is_set() for pending in pending_tasks.values())
+            ):
                 log.debug(f"queues are empty stopping workers")
                 stop_workers.set()
-                for worker_task in worker_tasks:
+                for worker_task in worker_tasks.values():
                     try:
                         await asyncio.wait_for(worker_task, timeout=5)
                     except asyncio.TimeoutError:
@@ -323,7 +348,7 @@ async def run_pipeline(
                         worker_task.cancel()
                 break
 
-        assert all(get_response(task) for task in worker_tasks)
+        assert all(get_response(task) for task in worker_tasks.values())
 
 
 FIELDS: AbstractSet[str] = set()  # "crate", "categories", "keywords", "versions"}

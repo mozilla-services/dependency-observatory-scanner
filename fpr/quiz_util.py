@@ -157,3 +157,11 @@ def multi_upsert_kwargs(
             selection, path, functools.partial(upsert_kwargs, path[-1], new_kwargs)
         )
     return selection
+
+
+def raw_result_to_dict(result: Optional[quiz.execution.RawResult]) -> Dict:
+    """drop __metadata__ from a quiz.execution.RawResult so it pickles
+    without hitting the recursion limit"""
+    assert result
+    assert isinstance(result, dict)
+    return {k: v for k, v in result.items() if k != "__metadata__"}
