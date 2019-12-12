@@ -143,9 +143,9 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     )
     parser.add_argument(
         "--github-poll-seconds",
-        help="frequency in seconds to check whether worker queues are empty and quit (defaults to 30)",
+        help="frequency in seconds to check whether worker queues are empty and quit (defaults to 3)",
         type=int,
-        default=30,
+        default=3,
     )
     return parser
 
