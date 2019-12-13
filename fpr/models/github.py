@@ -79,6 +79,7 @@ class Resource:
 @dataclass(frozen=True)
 class Request:
     resource: Resource
+    selection_updates: List[SelectionUpdate]
     graphql: quiz.Selection
 
 
@@ -117,6 +118,9 @@ class RequestResponseExchange:
 
         return Request(
             resource=self.request.resource,
+            selection_updates=get_next_page_selection_updates(
+                self.request.resource, dict(after=self.response.end_cursor)
+            ),
             graphql=get_next_page_selection(
                 self.request.graphql,
                 get_next_page_selection_updates(
@@ -477,6 +481,7 @@ def get_nested_next_page_request(
     updates = get_first_page_selection_updates(child_resource, context)
     return Request(
         resource=child_resource,
+        selection_updates=updates,
         graphql=get_first_page_selection(child_resource, updates),
     )
 
@@ -507,6 +512,7 @@ def get_next_requests(
                     updates = get_first_page_selection_updates(resource, context)
                     yield Request(
                         resource=resource,
+                        selection_updates=updates,
                         graphql=get_first_page_selection(
                             resource=resource, updates=updates
                         ),

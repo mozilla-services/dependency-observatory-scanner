@@ -273,13 +273,12 @@ def test_get_next_requests_for_last_page_returns_no_more_requests_for_resource(
     context = m.ChainMap(
         owner_repo_dict, github_args_dict, {"github_query_type": all_resource_kinds}
     )
+    updates = m.get_first_page_selection_updates(last_resource, context)
     last_exchange = m.RequestResponseExchange(
         request=m.Request(
             resource=last_resource,
-            graphql=m.get_first_page_selection(
-                last_resource,
-                m.get_first_page_selection_updates(last_resource, context),
-            ),
+            selection_updates=updates,
+            graphql=m.get_first_page_selection(last_resource, updates),
         ),
         response=m.Response(
             resource=last_resource,
@@ -312,13 +311,12 @@ def test_get_next_requests_returns_more_pages_of_the_same_resource_and_linked_re
             "parent_after": "test_parent_after_cursor",  # only for nested pages
         },
     )
+    updates = m.get_first_page_selection_updates(last_resource, context)
     last_exchange = m.RequestResponseExchange(
         request=m.Request(
             resource=last_resource,
-            graphql=m.get_first_page_selection(
-                last_resource,
-                m.get_first_page_selection_updates(last_resource, context),
-            ),
+            selection_updates=updates,
+            graphql=m.get_first_page_selection(last_resource, updates),
         ),
         response=m.Response(
             resource=last_resource,
@@ -356,13 +354,12 @@ def test_get_next_requests_for_last_page_returns_no_more_requests_for_resource(
             "parent_after": "test_parent_first_page_after_cursor",  # only for nested pages
         },
     )
+    updates = m.get_first_page_selection_updates(last_resource, context)
     last_exchange = m.RequestResponseExchange(
         request=m.Request(
             resource=last_resource,
-            graphql=m.get_first_page_selection(
-                last_resource,
-                m.get_first_page_selection_updates(last_resource, context),
-            ),
+            selection_updates=updates,
+            graphql=m.get_first_page_selection(last_resource, updates),
         ),
         response=m.Response(
             resource=last_resource,
@@ -393,15 +390,14 @@ def test_get_next_requests_only_returns_requests_for_enabled_resource(
             "parent_after": "test_parent_after_cursor",  # only for nested pages
         },
     )
+    updates = m.get_first_page_selection_updates(
+        last_resource, m.ChainMap(context, owner_repo_dict)
+    )
     last_exchange = m.RequestResponseExchange(
         request=m.Request(
             resource=last_resource,
-            graphql=m.get_first_page_selection(
-                last_resource,
-                m.get_first_page_selection_updates(
-                    last_resource, m.ChainMap(context, owner_repo_dict)
-                ),
-            ),
+            selection_updates=updates,
+            graphql=m.get_first_page_selection(last_resource, updates),
         ),
         response=m.Response(
             resource=last_resource,
