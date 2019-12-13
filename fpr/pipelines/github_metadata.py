@@ -305,7 +305,7 @@ async def run_pipeline(
             context = ChainMap(args_dict, dict(owner=org_repo.org, name=org_repo.repo))
             for request in get_next_requests(log, context, last_exchange=None):
                 log.debug(
-                    f"initial request for resource kind {request.resource.kind} context {context}"
+                    f"{context['owner']}/{context['name']} initial request for resource kind {request.resource.kind}"
                 )
                 to_run.put_nowait(request)
         log.debug(f"queued {to_run.qsize()} initial queries")
