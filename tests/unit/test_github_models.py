@@ -135,7 +135,9 @@ def test_get_first_page_selection(
     context = m.ChainMap(
         github_args_dict, owner_repo_dict, dict(parent_after="test_parent_after_cursor")
     )
-    selection = m.get_first_page_selection(resource, context)
+    selection = m.get_first_page_selection(
+        resource, m.get_first_page_selection_updates(resource, context)
+    )
     assert_selection_is_sane(selection, github_schema)
     if len(resource.children):  # a root resource
         assert "after" not in str(selection)
@@ -191,7 +193,11 @@ def test_get_first_page_selection_against_fixtures(
         github_args_dict, owner_repo_dict, dict(parent_after="test_parent_after_cursor")
     )
     expected_serialized = load_graphql_fixture(f"{resource.kind.name}_first_selection")
-    serialized = str(m.get_first_page_selection(resource, context))
+    serialized = str(
+        m.get_first_page_selection(
+            resource, m.get_first_page_selection_updates(resource, context)
+        )
+    )
     assert serialized == expected_serialized
 
 
@@ -266,7 +272,10 @@ def test_get_next_requests_for_last_page_returns_no_more_requests_for_resource(
     last_exchange = m.RequestResponseExchange(
         request=m.Request(
             resource=last_resource,
-            graphql=m.get_first_page_selection(last_resource, context),
+            graphql=m.get_first_page_selection(
+                last_resource,
+                m.get_first_page_selection_updates(last_resource, context),
+            ),
         ),
         response=m.Response(
             resource=last_resource,
@@ -302,7 +311,10 @@ def test_get_next_requests_returns_more_pages_of_the_same_resource_and_linked_re
     last_exchange = m.RequestResponseExchange(
         request=m.Request(
             resource=last_resource,
-            graphql=m.get_first_page_selection(last_resource, context),
+            graphql=m.get_first_page_selection(
+                last_resource,
+                m.get_first_page_selection_updates(last_resource, context),
+            ),
         ),
         response=m.Response(
             resource=last_resource,
@@ -343,7 +355,10 @@ def test_get_next_requests_for_last_page_returns_no_more_requests_for_resource(
     last_exchange = m.RequestResponseExchange(
         request=m.Request(
             resource=last_resource,
-            graphql=m.get_first_page_selection(last_resource, context),
+            graphql=m.get_first_page_selection(
+                last_resource,
+                m.get_first_page_selection_updates(last_resource, context),
+            ),
         ),
         response=m.Response(
             resource=last_resource,
@@ -378,7 +393,10 @@ def test_get_next_requests_only_returns_requests_for_enabled_resource(
         request=m.Request(
             resource=last_resource,
             graphql=m.get_first_page_selection(
-                last_resource, m.ChainMap(context, owner_repo_dict)
+                last_resource,
+                m.get_first_page_selection_updates(
+                    last_resource, m.ChainMap(context, owner_repo_dict)
+                ),
             ),
         ),
         response=m.Response(

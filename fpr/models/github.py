@@ -359,16 +359,31 @@ _resources: Sequence[Resource] = [
 ]
 
 
-def apply_diff(diff: QueryDiff, context: ChainMap) -> SelectionUpdate:
-    return (diff[0], {k: context[v] for k, v in diff[1].items()})
+def get_diff_kwargs(diff: QueryDiff, context: ChainMap) -> SelectionUpdate:
+    path, kwargs = diff
+    return (
+        path,
+        {
+            kwargs_dest: context[context_key]
+            for kwargs_dest, context_key in kwargs.items()
+        },
+    )
 
 
-def get_first_page_selection(resource: Resource, context: ChainMap) -> quiz.Selection:
-    """replaces dataclass.MISSING params in a Request using
-    github_metadata pipeline args and returns a quiz graphql selection"""
-    updates = [apply_diff(diff, context) for diff in resource.first_page_diffs]
-    selection = multi_upsert_kwargs(updates, resource.base_graphql)
-    return selection
+def get_first_page_selection_updates(
+    resource: Resource, context: ChainMap
+) -> List[SelectionUpdate]:
+    """returns updates to replace dataclass.MISSING params in a
+
+    quiz.Selection from a context dict
+    """
+    return [get_diff_kwargs(diff, context) for diff in resource.first_page_diffs]
+
+
+def get_first_page_selection(
+    resource: Resource, updates: List[SelectionUpdate]
+) -> quiz.Selection:
+    return multi_upsert_kwargs(updates, resource.base_graphql)
 
 
 def get_next_page_selection(
@@ -464,9 +479,10 @@ def get_nested_next_page_request(
         context,
         get_owner_repo_kwargs(exchange.request.graphql),
     )
+    updates = get_first_page_selection_updates(child_resource, context)
     return Request(
         resource=child_resource,
-        graphql=get_first_page_selection(child_resource, context),
+        graphql=get_first_page_selection(child_resource, updates),
     )
 
 
@@ -493,10 +509,11 @@ def get_next_requests(
         for resource_kind_name in context["github_query_type"]:
             for resource in [Repo, RepoLangs, RepoManifests, RepoVulnAlerts]:
                 if resource_kind_name == resource.kind.name:
+                    updates = get_first_page_selection_updates(resource, context)
                     yield Request(
                         resource=resource,
                         graphql=get_first_page_selection(
-                            resource=resource, context=context
+                            resource=resource, updates=updates
                         ),
                     )
     else:
