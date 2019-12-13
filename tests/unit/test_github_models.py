@@ -148,7 +148,10 @@ def test_get_first_page_selection(
 def test_get_next_page_selection(_):
     # should add first and after params and drop totalCount, totalSize
     assert (
-        m.get_next_page_selection(
+        m.multi_upsert_kwargs(
+            m.get_next_page_selection_updates(
+                m.RepoLangs, dict(first=25, after="test-cursor-xyz")
+            ),
             _.repository[
                 _.id.databaseId.name.languages(first="test-first")[
                     _.pageInfo[_.hasNextPage.endCursor].totalCount.totalSize.edges[
@@ -156,9 +159,6 @@ def test_get_next_page_selection(_):
                     ]
                 ]
             ],
-            m.get_next_page_selection_updates(
-                m.RepoLangs, dict(first=25, after="test-cursor-xyz")
-            ),
         )
         == _.repository[
             _.id.databaseId.name.languages(first=25, after="test-cursor-xyz")[
@@ -171,15 +171,15 @@ def test_get_next_page_selection(_):
 
     # example 2nd to 3rd page query
     assert (
-        m.get_next_page_selection(
+        m.multi_upsert_kwargs(
+            m.get_next_page_selection_updates(
+                m.RepoLangs, dict(first=5, after="test-3rd-page-cursor")
+            ),
             _.repository[
                 _.id.databaseId.name.languages(first=25, after="test-2nd-page-cursor")[
                     _.pageInfo[_.hasNextPage.endCursor].edges[_.node[_.id.name]]
                 ]
             ],
-            m.get_next_page_selection_updates(
-                m.RepoLangs, dict(first=5, after="test-3rd-page-cursor")
-            ),
         )
         == _.repository[
             _.id.databaseId.name.languages(first=5, after="test-3rd-page-cursor")[

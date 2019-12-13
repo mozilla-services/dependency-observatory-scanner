@@ -436,12 +436,6 @@ def get_next_page_selection_updates(
     return [(resource.next_page_selection_path, new_page_kwargs)]
 
 
-def get_next_page_selection(
-    last_graphql: quiz.Selection, updates: List[SelectionUpdate]
-) -> quiz.Selection:
-    return multi_upsert_kwargs(updates, last_graphql)
-
-
 def get_owner_repo_kwargs(last_graphql: quiz.Selection) -> Dict[str, str]:
     repo_kwargs = get_kwargs_in(last_graphql, ["repository"])
     assert repo_kwargs is not None
