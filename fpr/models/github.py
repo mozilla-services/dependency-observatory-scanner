@@ -21,9 +21,9 @@ import quiz
 
 from fpr.quiz_util import (
     get_kwargs_in,
-    upsert_kwargs,
     SelectionPath,
     SelectionUpdate,
+    SelectionKwargs,
     multi_upsert_kwargs,
 )
 from fpr.serialize_util import get_in as get_in_dict, extract_fields
@@ -384,8 +384,19 @@ def get_first_page_selection(
     return multi_upsert_kwargs(updates, resource.base_graphql)
 
 
+def get_next_page_selection_updates(
+    resource: Resource, new_page_kwargs: SelectionKwargs
+) -> List[SelectionUpdate]:
+    # path in the selection to add the selection page size and after cursor
+    # params
+    path: SelectionPath = [
+        path_part for path_part in resource.page_path if path_part != 0
+    ]
+    return [(path, new_page_kwargs)]
+
+
 def get_next_page_selection(
-    path: SelectionPath, selection: quiz.Selection, next_page_kwargs: Dict[str, str]
+    last_graphql: quiz.Selection, updates: List[SelectionUpdate]
 ) -> quiz.Selection:
     """returns quiz.Selection to fetch the next page of resource.
 
@@ -403,10 +414,7 @@ def get_next_page_selection(
             ]
     ]
     """
-    selection = update_in(
-        selection, path, functools.partial(upsert_kwargs, path[-1], next_page_kwargs)
-    )
-    return selection
+    return multi_upsert_kwargs(updates, last_graphql)
 
 
 def get_owner_repo_kwargs(last_graphql: quiz.Selection) -> Dict[str, str]:
@@ -429,17 +437,14 @@ def get_next_page_request(exchange: RequestResponseExchange) -> Optional[Request
 
     assert "endCursor" in page_info
 
-    # path in the selection to add the selection page size and after cursor params
-    # e.g.
-    path: SelectionPath = [
-        path_part for path_part in exchange.request.resource.page_path if path_part != 0
-    ]
-
     # return previous query with after set to endCursor value
     return Request(
         resource=exchange.request.resource,
         graphql=get_next_page_selection(
-            path, exchange.request.graphql, dict(after=page_info["endCursor"])
+            exchange.request.graphql,
+            get_next_page_selection_updates(
+                exchange.request.resource, dict(after=page_info["endCursor"])
+            ),
         ),
     )
 
