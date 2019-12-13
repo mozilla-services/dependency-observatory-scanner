@@ -80,7 +80,10 @@ class Resource:
 class Request:
     resource: Resource
     selection_updates: List[SelectionUpdate]
-    graphql: quiz.Selection
+
+    @property
+    def graphql(self: "Request") -> quiz.Selection:
+        return multi_upsert_kwargs(self.selection_updates, self.resource.base_graphql)
 
 
 @dataclass(frozen=True)
@@ -118,14 +121,9 @@ class RequestResponseExchange:
 
         return Request(
             resource=self.request.resource,
-            selection_updates=get_next_page_selection_updates(
+            selection_updates=self.request.selection_updates
+            + get_next_page_selection_updates(
                 self.request.resource, dict(after=self.response.end_cursor)
-            ),
-            graphql=get_next_page_selection(
-                self.request.graphql,
-                get_next_page_selection_updates(
-                    self.request.resource, dict(after=self.response.end_cursor)
-                ),
             ),
         )
 
@@ -478,11 +476,9 @@ def get_nested_next_page_request(
         context,
         get_owner_repo_kwargs(exchange.request.graphql),
     )
-    updates = get_first_page_selection_updates(child_resource, context)
     return Request(
         resource=child_resource,
-        selection_updates=updates,
-        graphql=get_first_page_selection(child_resource, updates),
+        selection_updates=get_first_page_selection_updates(child_resource, context),
     )
 
 
@@ -510,13 +506,7 @@ def get_next_requests(
             for resource in [Repo, RepoLangs, RepoManifests, RepoVulnAlerts]:
                 if resource_kind_name == resource.kind.name:
                     updates = get_first_page_selection_updates(resource, context)
-                    yield Request(
-                        resource=resource,
-                        selection_updates=updates,
-                        graphql=get_first_page_selection(
-                            resource=resource, updates=updates
-                        ),
-                    )
+                    yield Request(resource=resource, selection_updates=updates)
     else:
         if last_exchange.next_page_request:
             log.debug(

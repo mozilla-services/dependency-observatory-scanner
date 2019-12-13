@@ -275,11 +275,7 @@ def test_get_next_requests_for_last_page_returns_no_more_requests_for_resource(
     )
     updates = m.get_first_page_selection_updates(last_resource, context)
     last_exchange = m.RequestResponseExchange(
-        request=m.Request(
-            resource=last_resource,
-            selection_updates=updates,
-            graphql=m.get_first_page_selection(last_resource, updates),
-        ),
+        request=m.Request(resource=last_resource, selection_updates=updates),
         response=m.Response(
             resource=last_resource,
             json=load_json_fixture(
@@ -313,11 +309,7 @@ def test_get_next_requests_returns_more_pages_of_the_same_resource_and_linked_re
     )
     updates = m.get_first_page_selection_updates(last_resource, context)
     last_exchange = m.RequestResponseExchange(
-        request=m.Request(
-            resource=last_resource,
-            selection_updates=updates,
-            graphql=m.get_first_page_selection(last_resource, updates),
-        ),
+        request=m.Request(resource=last_resource, selection_updates=updates),
         response=m.Response(
             resource=last_resource,
             json=load_json_fixture(
@@ -356,11 +348,7 @@ def test_get_next_requests_for_last_page_returns_no_more_requests_for_resource(
     )
     updates = m.get_first_page_selection_updates(last_resource, context)
     last_exchange = m.RequestResponseExchange(
-        request=m.Request(
-            resource=last_resource,
-            selection_updates=updates,
-            graphql=m.get_first_page_selection(last_resource, updates),
-        ),
+        request=m.Request(resource=last_resource, selection_updates=updates),
         response=m.Response(
             resource=last_resource,
             json=load_json_fixture(
@@ -394,11 +382,7 @@ def test_get_next_requests_only_returns_requests_for_enabled_resource(
         last_resource, m.ChainMap(context, owner_repo_dict)
     )
     last_exchange = m.RequestResponseExchange(
-        request=m.Request(
-            resource=last_resource,
-            selection_updates=updates,
-            graphql=m.get_first_page_selection(last_resource, updates),
-        ),
+        request=m.Request(resource=last_resource, selection_updates=updates),
         response=m.Response(
             resource=last_resource,
             json=load_json_fixture(
