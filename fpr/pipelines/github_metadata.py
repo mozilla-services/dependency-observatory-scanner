@@ -308,7 +308,7 @@ async def run_pipeline(
                     f"{context['owner']}/{context['name']} initial request for resource kind {request.resource.kind}"
                 )
                 to_run.put_nowait(request)
-        log.debug(f"queued {to_run.qsize()} initial queries")
+        log.info(f"queued {to_run.qsize()} initial requests")
 
         while True:
             try:
