@@ -33,6 +33,7 @@ from fpr.models.github import (
     Response,
     RequestResponseExchange,
     get_next_requests,
+    MISSING,
 )
 from fpr.models.rust import cargo_metadata_to_rust_crates
 from fpr.models.pipeline import add_infile_and_outfile, add_aiohttp_args
@@ -231,6 +232,7 @@ async def worker(
                 log.debug(
                     f"{name} running query {type(request)} {type(request.resource.kind)}"
                 )
+                assert str(MISSING) not in str(request.graphql)
                 response: quiz.execution.RawResult = await run_graphql(
                     schema, executor, request.graphql
                 )
