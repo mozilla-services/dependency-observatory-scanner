@@ -436,12 +436,6 @@ def get_next_page_selection_updates(
     return [(resource.next_page_selection_path, new_page_kwargs)]
 
 
-def get_first_page_selection(
-    resource: Resource, updates: List[SelectionUpdate]
-) -> quiz.Selection:
-    return multi_upsert_kwargs(updates, resource.base_graphql)
-
-
 def get_next_page_selection(
     last_graphql: quiz.Selection, updates: List[SelectionUpdate]
 ) -> quiz.Selection:

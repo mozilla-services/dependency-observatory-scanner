@@ -135,8 +135,8 @@ def test_get_first_page_selection(
     context = m.ChainMap(
         github_args_dict, owner_repo_dict, dict(parent_after="test_parent_after_cursor")
     )
-    selection = m.get_first_page_selection(
-        resource, m.get_first_page_selection_updates(resource, context)
+    selection = m.multi_upsert_kwargs(
+        m.get_first_page_selection_updates(resource, context), resource.base_graphql
     )
     assert_selection_is_sane(selection, github_schema)
     if len(resource.children):  # a root resource
@@ -198,8 +198,8 @@ def test_get_first_page_selection_against_fixtures(
     )
     expected_serialized = load_graphql_fixture(f"{resource.kind.name}_first_selection")
     serialized = str(
-        m.get_first_page_selection(
-            resource, m.get_first_page_selection_updates(resource, context)
+        m.multi_upsert_kwargs(
+            m.get_first_page_selection_updates(resource, context), resource.base_graphql
         )
     )
     assert serialized == expected_serialized
