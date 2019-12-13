@@ -68,7 +68,7 @@ class Resource:
     children: List["Resource"] = field(default_factory=list)
 
     @property
-    def next_page_selection_path(self) -> SelectionPath:
+    def next_page_selection_path(self: "Resource") -> SelectionPath:
         """path in the quiz.Selection to add params like page size or
 
         after cursor
@@ -88,11 +88,53 @@ class Response:
     # dict for a JSON response from the GitHub API
     json: Optional[Dict[str, Any]] = None
 
+    @property
+    def end_cursor(self: "Response") -> Optional[str]:
+        if self.json is None:
+            return None
+        if not isinstance(self.json, dict):
+            return None
+
+        page_info = get_in_dict(self.json, list(self.resource.page_path) + ["pageInfo"])
+        if page_info and page_info.get("hasNextPage", False):
+            return page_info.get("endCursor", None)
+        return None
+
 
 @dataclass(frozen=True)
 class RequestResponseExchange:
     request: Request
     response: Response
+
+    @property
+    def next_page_request(self: "RequestResponseExchange") -> Optional[Request]:
+        """returns a Request for the next page of the same resource type or None
+
+        Set request graphql after param to response endCursor value
+        """
+        if self.response.end_cursor is None:
+            return None
+
+        return Request(
+            resource=self.request.resource,
+            graphql=get_next_page_selection(
+                self.request.graphql,
+                get_next_page_selection_updates(
+                    self.request.resource, dict(after=self.response.end_cursor)
+                ),
+            ),
+        )
+
+    def next_nested_page_requests_iter(
+        self: "RequestResponseExchange", context: ChainMap
+    ) -> Generator[Request, None, None]:
+        for child_resource in self.request.resource.children:
+            next_page_request = get_nested_next_page_request(
+                self, child_resource, context
+            )
+            if next_page_request is None:
+                continue
+            yield next_page_request
 
 
 _ = quiz.SELECTOR
@@ -410,32 +452,6 @@ def get_owner_repo_kwargs(last_graphql: quiz.Selection) -> Dict[str, str]:
     return extract_fields(repo_kwargs, ["owner", "name"])
 
 
-def get_next_page_request(exchange: RequestResponseExchange) -> Optional[Request]:
-    """for the req res exchange returns a Request for the next page if any or None
-    """
-    assert isinstance(exchange.response.json, dict)
-    page_info = get_in_dict(
-        exchange.response.json, list(exchange.request.resource.page_path) + ["pageInfo"]
-    )
-    if not (
-        page_info and "hasNextPage" in page_info and page_info["hasNextPage"] is True
-    ):
-        return None
-
-    assert "endCursor" in page_info
-
-    # return previous query with after set to endCursor value
-    return Request(
-        resource=exchange.request.resource,
-        graphql=get_next_page_selection(
-            exchange.request.graphql,
-            get_next_page_selection_updates(
-                exchange.request.resource, dict(after=page_info["endCursor"])
-            ),
-        ),
-    )
-
-
 def get_nested_next_page_request(
     exchange: RequestResponseExchange, child_resource: Resource, context: ChainMap
 ) -> Optional[Request]:
@@ -496,27 +512,21 @@ def get_next_requests(
                         ),
                     )
     else:
-        next_page_req = get_next_page_request(last_exchange)
-        if next_page_req:
+        if last_exchange.next_page_request:
             log.debug(
                 f"fetching another page of {last_exchange.request.resource.kind.name}"
             )
-            yield next_page_req
+            yield last_exchange.next_page_request
 
-        for child_resource in last_exchange.request.resource.children:
-            if child_resource.kind.name not in context["github_query_type"]:
+        for next_page_request in last_exchange.next_nested_page_requests_iter(context):
+            if next_page_request.resource.kind.name not in context["github_query_type"]:
                 log.debug(
-                    f"skipping fetch of nested page of {child_resource.kind.name} \
+                    f"skipping fetch of nested page of {next_page_request.resource.kind.name} \
 for {last_exchange.request.resource.kind.name}"
                 )
                 continue
-
-            next_page_req = get_nested_next_page_request(
-                last_exchange, child_resource, context
-            )
-            if next_page_req:
-                log.debug(
-                    f"fetch nested page of {child_resource.kind.name} for \
+            log.debug(
+                f"fetching nested page of {next_page_request.resource.kind.name} for \
 {last_exchange.request.resource.kind.name}"
-                )
-                yield next_page_req
+            )
+            yield next_page_request
