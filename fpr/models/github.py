@@ -55,7 +55,7 @@ QueryDiff = SelectionUpdate
 MISSING = "MISSING fpr gql param."
 
 
-@dataclass
+@dataclass(frozen=True)
 class Resource:
     kind: ResourceKind
     base_graphql: quiz.Selection
@@ -70,20 +70,20 @@ class Resource:
     children: List["Resource"] = field(default_factory=list)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Request:
     resource: Resource
     graphql: quiz.Selection
 
 
-@dataclass
+@dataclass(frozen=True)
 class Response:
     resource: Resource
     # dict for a JSON response from the GitHub API
     json: Optional[Dict[str, Any]] = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class RequestResponseExchange:
     request: Request
     response: Response
