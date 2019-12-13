@@ -412,9 +412,7 @@ def get_owner_repo_kwargs(last_graphql: quiz.Selection) -> Dict[str, str]:
     return extract_fields(repo_kwargs, ["owner", "name"])
 
 
-def get_next_page_request(
-    log: logging.Logger, exchange: RequestResponseExchange
-) -> Optional[Request]:
+def get_next_page_request(exchange: RequestResponseExchange) -> Optional[Request]:
     """for the req res exchange returns a Request for the next page if any or None
     """
     assert isinstance(exchange.response.json, dict)
@@ -426,7 +424,6 @@ def get_next_page_request(
     ):
         return None
 
-    log.debug(f"got {exchange.request.resource.kind.name} page response with next page")
     assert "endCursor" in page_info
 
     # path in the selection to add the selection page size and after cursor params
@@ -445,10 +442,7 @@ def get_next_page_request(
 
 
 def get_nested_next_page_request(
-    log: logging.Logger,
-    exchange: RequestResponseExchange,
-    child_resource: Resource,
-    context: ChainMap,
+    exchange: RequestResponseExchange, child_resource: Resource, context: ChainMap
 ) -> Optional[Request]:
     """for the req res exchange returns a Request for the next page of a
 
@@ -469,9 +463,6 @@ def get_nested_next_page_request(
         dict(parent_after=parent_params.get("after", None)),
         context,
         get_owner_repo_kwargs(exchange.request.graphql),
-    )
-    log.debug(
-        f"querying for first nested page of {child_resource.kind.name} for {exchange.request.resource.kind.name}"
     )
     return Request(
         resource=child_resource,
@@ -509,7 +500,7 @@ def get_next_requests(
                         ),
                     )
     else:
-        next_page_req = get_next_page_request(log, last_exchange)
+        next_page_req = get_next_page_request(last_exchange)
         if next_page_req:
             log.debug(
                 f"fetching another page of {last_exchange.request.resource.kind.name}"
@@ -525,7 +516,7 @@ for {last_exchange.request.resource.kind.name}"
                 continue
 
             next_page_req = get_nested_next_page_request(
-                log, last_exchange, child_resource, context
+                last_exchange, child_resource, context
             )
             if next_page_req:
                 log.debug(
