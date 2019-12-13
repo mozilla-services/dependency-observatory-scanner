@@ -67,6 +67,14 @@ class Resource:
     # nested resources to fetch
     children: List["Resource"] = field(default_factory=list)
 
+    @property
+    def next_page_selection_path(self) -> SelectionPath:
+        """path in the quiz.Selection to add params like page size or
+
+        after cursor
+        """
+        return [path_part for path_part in self.page_path if path_part != 0]
+
 
 @dataclass(frozen=True)
 class Request:
@@ -378,42 +386,21 @@ def get_first_page_selection_updates(
     return [get_diff_kwargs(diff, context) for diff in resource.first_page_diffs]
 
 
+def get_next_page_selection_updates(
+    resource: Resource, new_page_kwargs: SelectionKwargs
+) -> List[SelectionUpdate]:
+    return [(resource.next_page_selection_path, new_page_kwargs)]
+
+
 def get_first_page_selection(
     resource: Resource, updates: List[SelectionUpdate]
 ) -> quiz.Selection:
     return multi_upsert_kwargs(updates, resource.base_graphql)
 
 
-def get_next_page_selection_updates(
-    resource: Resource, new_page_kwargs: SelectionKwargs
-) -> List[SelectionUpdate]:
-    # path in the selection to add the selection page size and after cursor
-    # params
-    path: SelectionPath = [
-        path_part for path_part in resource.page_path if path_part != 0
-    ]
-    return [(path, new_page_kwargs)]
-
-
 def get_next_page_selection(
     last_graphql: quiz.Selection, updates: List[SelectionUpdate]
 ) -> quiz.Selection:
-    """returns quiz.Selection to fetch the next page of resource.
-
-    At the param path in the selection it adds or updates the after cursor e.g.
-
-    _.languages(first=MISSING)[
-            _.pageInfo[_.hasNextPage.endCursor].totalCount.totalSize.edges[
-                _.node[_.id.name]
-            ]
-    ]
-
-    _.languages(first=first, after=after)[
-        _.pageInfo[_.hasNextPage.endCursor].totalCount.totalSize.edges[
-                _.node[_.id.name]
-            ]
-    ]
-    """
     return multi_upsert_kwargs(updates, last_graphql)
 
 
@@ -459,11 +446,10 @@ def get_nested_next_page_request(
     """
     # path in the selection to add the parent after cursor params (can't get
     # from response since that cursor gives the next page of the parent
-    # (alternatively use a before param?)
-    path: SelectionPath = [
-        path_part for path_part in exchange.request.resource.page_path if path_part != 0
-    ]
-    parent_params = get_kwargs_in(exchange.request.graphql, path)
+    # (alternatively could use a before param)
+    parent_params = get_kwargs_in(
+        exchange.request.graphql, exchange.request.resource.next_page_selection_path
+    )
     assert parent_params is not None
 
     # NB: builds gql with 'null' as the after param but GH's API is OK with it
