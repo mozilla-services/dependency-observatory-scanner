@@ -305,6 +305,9 @@ async def run_pipeline(
             context = ChainMap(args_dict, dict(owner=org_repo.org, name=org_repo.repo))
             for request in get_next_requests(log, context, last_exchange=None):
                 log.debug(f"initial request: {request!r}")
+                assert len(request.selection_updates) == len(
+                    request.resource.first_page_diffs
+                )
                 to_run.put_nowait(request)
         log.info(f"queued {to_run.qsize()} initial requests")
 
@@ -314,6 +317,10 @@ async def run_pipeline(
 
                 # add any follow up reqs to the queue (as written these won't run)
                 for request in get_next_requests(log, ChainMap(args_dict), exchange):
+                    assert (
+                        len(request.selection_updates)
+                        <= len(request.resource.first_page_diffs) + 1
+                    )
                     log.debug(
                         f"queued {request.resource.kind} for {exchange.request.resource.kind}"
                     )

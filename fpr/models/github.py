@@ -108,6 +108,11 @@ class Response:
         return None
 
 
+def is_page_update(resource: Resource, update: QueryDiff) -> bool:
+    path, kwargs = update
+    return path == resource.next_page_selection_path and "after" in kwargs
+
+
 @dataclass(frozen=True)
 class RequestResponseExchange:
     request: Request
@@ -122,13 +127,20 @@ class RequestResponseExchange:
         if self.response.end_cursor is None:
             return None
 
-        return Request(
-            resource=self.request.resource,
-            selection_updates=self.request.selection_updates
-            + get_next_page_selection_updates(
-                self.request.resource, dict(after=self.response.end_cursor)
-            ),
+        updates = self.request.selection_updates + get_next_page_selection_updates(
+            self.request.resource, dict(after=self.response.end_cursor)
         )
+        # de-duplicate after updates for more pages
+        if (
+            len(updates) > 1
+            and is_page_update(self.request.resource, updates[-1])
+            and is_page_update(self.request.resource, updates[-2])
+        ):
+            last_update = updates.pop()
+            updates.pop()
+            updates.append(last_update)
+
+        return Request(resource=self.request.resource, selection_updates=updates)
 
     def next_nested_page_requests_iter(
         self: "RequestResponseExchange", context: ChainMap

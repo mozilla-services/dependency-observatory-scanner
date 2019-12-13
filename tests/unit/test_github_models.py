@@ -273,9 +273,13 @@ def test_get_next_requests_for_last_page_returns_no_more_requests_for_resource(
     context = m.ChainMap(
         owner_repo_dict, github_args_dict, {"github_query_type": all_resource_kinds}
     )
-    updates = m.get_first_page_selection_updates(last_resource, context)
     last_exchange = m.RequestResponseExchange(
-        request=m.Request(resource=last_resource, selection_updates=updates),
+        request=m.Request(
+            resource=last_resource,
+            selection_updates=m.get_first_page_selection_updates(
+                last_resource, context
+            ),
+        ),
         response=m.Response(
             resource=last_resource,
             json=load_json_fixture(
@@ -307,9 +311,13 @@ def test_get_next_requests_returns_more_pages_of_the_same_resource_and_linked_re
             "parent_after": "test_parent_after_cursor",  # only for nested pages
         },
     )
-    updates = m.get_first_page_selection_updates(last_resource, context)
     last_exchange = m.RequestResponseExchange(
-        request=m.Request(resource=last_resource, selection_updates=updates),
+        request=m.Request(
+            resource=last_resource,
+            selection_updates=m.get_first_page_selection_updates(
+                last_resource, context
+            ),
+        ),
         response=m.Response(
             resource=last_resource,
             json=load_json_fixture(
@@ -327,11 +335,13 @@ def test_get_next_requests_returns_more_pages_of_the_same_resource_and_linked_re
                 f"{r.resource.kind.name}_nested_first_selection"
             ), f"did not matched expected serialized \
 gql for next {r.resource.kind} from {last_exchange.request.resource.kind}"
+            assert len(r.selection_updates) == len(r.resource.first_page_diffs)
         else:
             assert str(r.graphql) == load_graphql_fixture(
                 f"{r.resource.kind.name}_next_selection"
             ), f"did not matched expected serialized \
 gql for next {r.resource.kind} from {last_exchange.request.resource.kind}"
+            assert len(r.selection_updates) == len(r.resource.first_page_diffs) + 1
 
 
 @pytest.mark.parametrize("last_resource", m._resources, ids=id_resource_by_kind)
@@ -346,9 +356,13 @@ def test_get_next_requests_for_last_page_returns_no_more_requests_for_resource(
             "parent_after": "test_parent_first_page_after_cursor",  # only for nested pages
         },
     )
-    updates = m.get_first_page_selection_updates(last_resource, context)
     last_exchange = m.RequestResponseExchange(
-        request=m.Request(resource=last_resource, selection_updates=updates),
+        request=m.Request(
+            resource=last_resource,
+            selection_updates=m.get_first_page_selection_updates(
+                last_resource, context
+            ),
+        ),
         response=m.Response(
             resource=last_resource,
             json=load_json_fixture(
@@ -378,11 +392,13 @@ def test_get_next_requests_only_returns_requests_for_enabled_resource(
             "parent_after": "test_parent_after_cursor",  # only for nested pages
         },
     )
-    updates = m.get_first_page_selection_updates(
-        last_resource, m.ChainMap(context, owner_repo_dict)
-    )
     last_exchange = m.RequestResponseExchange(
-        request=m.Request(resource=last_resource, selection_updates=updates),
+        request=m.Request(
+            resource=last_resource,
+            selection_updates=m.get_first_page_selection_updates(
+                last_resource, m.ChainMap(context, owner_repo_dict)
+            ),
+        ),
         response=m.Response(
             resource=last_resource,
             json=load_json_fixture(
@@ -399,3 +415,53 @@ def test_get_next_requests_only_returns_requests_for_enabled_resource(
         f"{r.resource.kind.name}_next_selection"
     ), f"did not matched expected serialized \
 gql for next {r.resource.kind} from {last_exchange.request.resource.kind}"
+
+
+@pytest.mark.parametrize(
+    "last_resource", [r for r in m._resources if r != m.Repo], ids=id_resource_by_kind
+)
+def test_get_next_requests_does_not_grow_request_selection_updates(
+    logger, github_args_dict, owner_repo_dict, last_resource, github_schema
+):
+    context = m.ChainMap(
+        owner_repo_dict,
+        github_args_dict,
+        {
+            "github_query_type": all_resource_kinds,
+            "parent_after": "test_parent_after_cursor",  # only for nested pages
+        },
+    )
+    first_exchange = m.RequestResponseExchange(
+        request=m.Request(
+            resource=last_resource,
+            selection_updates=m.get_first_page_selection_updates(
+                last_resource, context
+            ),
+        ),
+        response=m.Response(
+            resource=last_resource,
+            json=load_json_fixture(
+                f"{last_resource.kind.name}_first_page_response_next_page"
+            ),
+        ),
+    )
+    r = next(m.get_next_requests(logger, context, first_exchange))
+    assert_selection_is_sane(r.graphql, github_schema)
+    assert r.resource not in last_resource.children
+    assert len(r.selection_updates) == len(r.resource.first_page_diffs) + 1
+
+    second_exchange = m.RequestResponseExchange(
+        request=r,
+        response=m.Response(
+            resource=last_resource,
+            json=load_json_fixture(
+                f"{last_resource.kind.name}_first_page_response_next_page"
+            ),
+        ),
+    )
+    r = next(m.get_next_requests(logger, context, second_exchange))
+    assert_selection_is_sane(r.graphql, github_schema)
+    assert r.resource not in last_resource.children
+    for update in r.selection_updates:
+        print(update)
+    assert len(r.selection_updates) == len(r.resource.first_page_diffs) + 1
