@@ -85,6 +85,9 @@ class Request:
     def graphql(self: "Request") -> quiz.Selection:
         return multi_upsert_kwargs(self.selection_updates, self.resource.base_graphql)
 
+    def __repr__(self):
+        return f"Request(resource={self.resource.kind.name}, selection_updates={self.selection_updates})"
+
 
 @dataclass(frozen=True)
 class Response:
