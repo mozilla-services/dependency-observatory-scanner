@@ -8,6 +8,8 @@
         hasNextPage
         endCursor
       }
+      totalCount
+      totalSize
       edges {
         node {
           id

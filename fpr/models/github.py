@@ -21,9 +21,7 @@ import quiz
 
 from fpr.quiz_util import (
     get_kwargs_in,
-    update_in,
     upsert_kwargs,
-    drop_fields,
     SelectionPath,
     SelectionUpdate,
     multi_upsert_kwargs,
@@ -391,12 +389,7 @@ def get_next_page_selection(
 ) -> quiz.Selection:
     """returns quiz.Selection to fetch the next page of resource.
 
-    At the param path in the selection it:
-
-    1. adds or update the after cursor
-    2. drops totalCount and totalSize attrs when present
-
-    e.g.
+    At the param path in the selection it adds or updates the after cursor e.g.
 
     _.languages(first=MISSING)[
             _.pageInfo[_.hasNextPage.endCursor].totalCount.totalSize.edges[
@@ -405,18 +398,13 @@ def get_next_page_selection(
     ]
 
     _.languages(first=first, after=after)[
-        _.pageInfo[_.hasNextPage.endCursor].edges[
+        _.pageInfo[_.hasNextPage.endCursor].totalCount.totalSize.edges[
                 _.node[_.id.name]
             ]
     ]
     """
     selection = update_in(
         selection, path, functools.partial(upsert_kwargs, path[-1], next_page_kwargs)
-    )
-    selection = update_in(
-        selection,
-        path,
-        functools.partial(drop_fields, {"totalCount", "totalSize"}, path[-1]),
     )
     return selection
 

@@ -161,7 +161,9 @@ def test_get_next_page_selection(_):
         )
         == _.repository[
             _.id.databaseId.name.languages(first=25, after="test-cursor-xyz")[
-                _.pageInfo[_.hasNextPage.endCursor].edges[_.node[_.id.name]]
+                _.pageInfo[_.hasNextPage.endCursor].totalCount.totalSize.edges[
+                    _.node[_.id.name]
+                ]
             ]
         ]
     )

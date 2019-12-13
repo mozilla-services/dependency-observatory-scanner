@@ -17,6 +17,7 @@
               hasNextPage
               endCursor
             }
+            totalCount
             nodes {
               packageName
               packageManager

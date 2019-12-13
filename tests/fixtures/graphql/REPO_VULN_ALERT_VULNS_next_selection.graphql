@@ -36,6 +36,7 @@
                 hasNextPage
                 endCursor
               }
+              totalCount
               nodes {
                 package {
                   name
