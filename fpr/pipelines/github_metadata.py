@@ -330,8 +330,8 @@ async def run_pipeline(
 
             log.debug(
                 f"{to_run.qsize()} to run; "
-                "{len([pending for pending in pending_tasks.values() if pending.is_set()])} pending; "
-                "{to_write.qsize()} to write"
+                f"{len([pending for pending in pending_tasks.values() if pending.is_set()])} pending; "
+                f"{to_write.qsize()} to write"
             )
             if (
                 to_run.empty()
