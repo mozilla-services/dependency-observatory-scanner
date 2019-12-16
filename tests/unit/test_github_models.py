@@ -592,3 +592,8 @@ def test_response_fetching_results(resource):
     else:
         raise NotImplementedError()
     assert r.log_str
+
+
+def test_resouce_parent_link():
+    assert m.RepoVulnAlertVulns.parent == m.RepoVulnAlerts
+    assert m.RepoManifestDeps.parent == m.RepoManifests

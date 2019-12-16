@@ -161,6 +161,8 @@ class Request:
         parent_page_size = self._get_selection_kwarg_at_path(
             self.resource.parent.next_page_selection_path, "first"
         )
+        if parent_page_size is None:
+            return None
         assert isinstance(parent_page_size, int)
         return parent_page_size
 
@@ -171,6 +173,8 @@ class Request:
         parent_page_cursor = self._get_selection_kwarg_at_path(
             self.resource.parent.next_page_selection_path, "after"
         )
+        if parent_page_cursor is None:
+            return None
         assert isinstance(parent_page_cursor, str)
         return parent_page_cursor
 
@@ -182,12 +186,12 @@ class Request:
     def log_str(self: "Request") -> str:
         "returns a less verbose string for debug logging than the full __repr__"
         s = (
-            f"request {self.repo_owner}/{self.repo_name}"
+            f"{self.log_id} {self.repo_owner}/{self.repo_name}"
             f" {self.resource.kind.name} page {self.page_number}"
             f" (size {self.page_size}, cursor {self.page_cursor})"
         )
         if self.resource.parent:
-            s + (
+            s += (
                 f" parent {self.resource.parent.kind.name}"
                 f"(size {self.parent_page_size}, cursor {self.parent_page_cursor})"
             )
@@ -224,7 +228,6 @@ class Response:
         assert isinstance(self.json, dict)
 
         results = get_in_dict(self.json, self.resource.result_path)
-        print("r", results, self.resource.result_path)
         if results is None:
             return 0
         return len(results)
