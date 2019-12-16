@@ -251,6 +251,7 @@ def test_get_next_requests_for_initial_requests(
     assert len(initial_requests) == len(expected_request_resources)
     for r, er in zip(initial_requests, expected_request_resources):
         assert r.resource.kind == er
+        assert r.page_number == 0
 
         expected_serialized = load_graphql_fixture(f"{er.name}_first_selection")
         assert str(r.graphql) == str(expected_serialized)
@@ -291,6 +292,7 @@ def test_get_next_requests_for_last_page_returns_no_more_requests_for_resource(
     assert all(r.resource != last_resource for r in next_requests)
     for r in next_requests:
         assert_selection_is_sane(r.graphql, github_schema)
+        assert r.page_number == 0
         assert str(r.graphql) == load_graphql_fixture(
             f"{r.resource.kind.name}_next_selection"
         ), f"did not matched expected serialized \
@@ -331,12 +333,14 @@ def test_get_next_requests_returns_more_pages_of_the_same_resource_and_linked_re
         assert_selection_is_sane(r.graphql, github_schema)
 
         if r.resource in last_resource.children:
+            assert r.page_number == 0
             assert str(r.graphql) == load_graphql_fixture(
                 f"{r.resource.kind.name}_nested_first_selection"
             ), f"did not matched expected serialized \
 gql for next {r.resource.kind} from {last_exchange.request.resource.kind}"
             assert len(r.selection_updates) == len(r.resource.first_page_diffs)
         else:
+            assert r.page_number == 1
             assert str(r.graphql) == load_graphql_fixture(
                 f"{r.resource.kind.name}_next_selection"
             ), f"did not matched expected serialized \
@@ -373,6 +377,7 @@ def test_get_next_requests_for_last_page_returns_no_more_requests_for_resource(
     next_requests = list(m.get_next_requests(logger, context, last_exchange))
     for r in next_requests:
         assert r.resource != last_resource
+        assert r.page_number == 0
         assert_selection_is_sane(r.graphql, github_schema)
         assert str(r.graphql) == load_graphql_fixture(
             f"{r.resource.kind.name}_nested_first_selection"
@@ -446,6 +451,7 @@ def test_get_next_requests_does_not_grow_request_selection_updates(
         ),
     )
     r = next(m.get_next_requests(logger, context, first_exchange))
+    assert r.page_number == 1
     assert_selection_is_sane(r.graphql, github_schema)
     assert r.resource not in last_resource.children
     assert len(r.selection_updates) == len(r.resource.first_page_diffs) + 1
@@ -460,6 +466,7 @@ def test_get_next_requests_does_not_grow_request_selection_updates(
         ),
     )
     r = next(m.get_next_requests(logger, context, second_exchange))
+    assert r.page_number == 2
     assert_selection_is_sane(r.graphql, github_schema)
     assert r.resource not in last_resource.children
     for update in r.selection_updates:

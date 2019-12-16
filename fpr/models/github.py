@@ -89,6 +89,7 @@ class Resource:
 class Request:
     resource: Resource
     selection_updates: List[SelectionUpdate]
+    page_number: int = 0
 
     @property
     def graphql(self: "Request") -> quiz.Selection:
@@ -149,7 +150,11 @@ class RequestResponseExchange:
             updates.pop()
             updates.append(last_update)
 
-        return Request(resource=self.request.resource, selection_updates=updates)
+        return Request(
+            resource=self.request.resource,
+            selection_updates=updates,
+            page_number=self.request.page_number + 1,
+        )
 
     def next_nested_page_requests_iter(
         self: "RequestResponseExchange", context: ChainMap
