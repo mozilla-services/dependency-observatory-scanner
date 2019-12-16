@@ -16,6 +16,7 @@ from typing import (
     Tuple,
     Type,
 )
+from uuid import uuid4, UUID
 
 import quiz
 
@@ -98,6 +99,7 @@ class Request:
     resource: Resource
     selection_updates: List[SelectionUpdate]
     page_number: int = 0
+    guid: UUID = field(default_factory=uuid4)
 
     @property
     def graphql(self: "Request") -> quiz.Selection:
@@ -171,6 +173,10 @@ class Request:
         )
         assert isinstance(parent_page_cursor, str)
         return parent_page_cursor
+
+    @property
+    def log_id(self: "Request") -> str:
+        return f"request {self.guid}"
 
     @property
     def log_str(self: "Request") -> str:
