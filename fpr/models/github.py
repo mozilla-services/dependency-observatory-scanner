@@ -64,8 +64,17 @@ class Resource:
     # diffs to apply to base_graphql to get a first page selection
     first_page_diffs: List[QueryDiff] = field(default_factory=list)
 
-    # nested resources to fetch
-    children: List["Resource"] = field(default_factory=list)
+    @property
+    def children(self: "Resource") -> List["Resource"]:
+        # nested resources to fetch
+        return [edge.child for edge in _resource_edges if edge.parent.kind == self.kind]
+
+    @property
+    def parent(self: "Resource") -> Optional["Resource"]:
+        for edge in _resource_edges:
+            if edge.child.kind == self.kind:
+                return edge.parent
+        return None
 
     @property
     def next_page_selection_path(self: "Resource") -> SelectionPath:
@@ -340,6 +349,12 @@ SetRepositoryVulnAlertVulnsFirst: QueryDiff = (
 )
 
 
+@dataclass
+class ResourceEdge:
+    parent: Resource
+    child: Resource
+
+
 Repo = Resource(
     kind=ResourceKind.REPO,
     base_graphql=repo_gql,
@@ -379,7 +394,6 @@ RepoManifests = Resource(
     kind=ResourceKind.REPO_DEP_MANIFESTS,
     base_graphql=repo_manifests_gql,
     page_path=["repository", "dependencyGraphManifests"],
-    children=[RepoManifestDeps],
     first_page_diffs=[SetRepositoryOwnerAndName, SetRepositoryManifestsFirst],
 )
 
@@ -409,7 +423,6 @@ RepoVulnAlerts = Resource(
     kind=ResourceKind.REPO_VULN_ALERTS,
     base_graphql=repo_vuln_alerts_gql,
     page_path=["repository", "vulnerabilityAlerts"],
-    children=[RepoVulnAlertVulns],
     first_page_diffs=[SetRepositoryOwnerAndName, SetRepositoryVulnAlertsFirst],
 )
 
@@ -421,6 +434,11 @@ _resources: Sequence[Resource] = [
     RepoManifestDeps,
     RepoVulnAlerts,
     RepoVulnAlertVulns,
+]
+
+_resource_edges: Sequence[ResourceEdge] = [
+    ResourceEdge(parent=RepoManifests, child=RepoManifestDeps),
+    ResourceEdge(parent=RepoVulnAlerts, child=RepoVulnAlertVulns),
 ]
 
 
