@@ -2,6 +2,7 @@ import os
 import sys
 import argparse
 import asyncio
+import backoff
 from collections import ChainMap
 from contextlib import contextmanager
 import logging
@@ -47,32 +48,37 @@ and outputs them to jsonl and optionally saves them to a local SQLite3 DB.
 """
 
 
+def is_not_found_exception(err: Exception) -> bool:
+    is_quiz_not_found_err_response = (
+        isinstance(err, quiz.ErrorResponse)
+        and len(err.errors)
+        and err.errors[0].get("type", None) == "NOT_FOUND"
+    )
+    is_quiz_http_404 = (
+        isinstance(err, quiz.HTTPError) and err.response.status_code == 404
+    )
+    return is_quiz_not_found_err_response or is_quiz_http_404
+
+
 async def run_graphql(
     executor: quiz.execution.async_executor, worker_name: str, gql_query: str
 ) -> quiz.execution.RawResult:
     """run_graphql runs a single serialized graphql query against the
 
     GitHub API and returns the response JSON
-
-    TODO: check rate limits and sleep as necessary
     """
     try:
-        response = await executor(gql_query)
-        return response
+        return await executor(gql_query)
     except quiz.ErrorResponse as err:
         log.error(
             f"{worker_name} run_graphql: got a quiz.ErrorResponse {err} {err.errors}"
         )
-        # if len(err.errors) and err.errors[0].get("type", None) == "NOT_FOUND":
-        #     break
         raise err
     except quiz.HTTPError as err:
         log.error(
             f"{worker_name} run_graphql: got a quiz.HTTPError {err} {err.response}"
         )
         raise err
-        # if err.response.status_code == 404:
-        #     break
         # if we hit the rate limit or the server is down
         # elif err.response.status_code in {403, 503}:
 
@@ -147,6 +153,13 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
         type=int,
         default=3,
     )
+    parser.add_argument(
+        "--github-max-retries",
+        help="max times to retry a query with jitter and exponential backoff (defaults to 12)"
+        "Ignores 404s and graphql not found errors",
+        type=int,
+        default=12,
+    )
     return parser
 
 
@@ -200,6 +213,9 @@ async def worker(
     executor: quiz.execution.async_executor,
     shutdown: asyncio.Event,
     request_pending: asyncio.Event,
+    run_graphql_with_backoff: Callable[
+        [quiz.execution.async_executor, str, str], quiz.execution.RawResult
+    ],
 ):
     """worker runs Github metadata requests until shutdown
 
@@ -225,7 +241,6 @@ async def worker(
             request: Request = await asyncio.wait_for(
                 to_run.get(), queue_wait_timeout_seconds
             )
-
         except asyncio.TimeoutError:
             log.debug(f"{name} no new requests after {queue_wait_timeout_seconds}s")
             continue
@@ -237,7 +252,7 @@ async def worker(
                 assert str(MISSING) not in gql_query
                 log.info(f"{name} running {request.log_str}")
                 log.debug(f"{name} {request.log_id} gql_query is: {gql_query}")
-                result: quiz.execution.RawResult = await run_graphql(
+                result: quiz.execution.RawResult = await run_graphql_with_backoff(
                     executor, name, gql_query
                 )
                 response: Response = Response(resource=request.resource, json=result)
@@ -275,6 +290,13 @@ async def run_pipeline(
 
     async with aiohttp_session(args) as session:
         executor, schema = await quiz_executor_and_schema(args, session)
+        run_graphql_with_backoff = backoff.on_exception(
+            backoff.expo,
+            (quiz.ErrorResponse, quiz.HTTPError),
+            max_tries=args.github_max_retries,
+            giveup=is_not_found_exception,
+            logger=log,
+        )(run_graphql)
 
         to_run: asyncio.Queue = asyncio.Queue()
         to_write: asyncio.Queue = asyncio.Queue()
@@ -295,6 +317,7 @@ async def run_pipeline(
                     executor,
                     stop_workers,
                     request_pending,
+                    run_graphql_with_backoff,
                 )
             )
             for (name, request_pending) in pending_tasks.items()

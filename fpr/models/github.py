@@ -307,10 +307,6 @@ class RequestResponseExchange:
 
 _ = quiz.SELECTOR
 
-# TODO: save E-Tag or Last-Modified then send If-Modified-Since or
-# If-None-Match and check for HTTP 304 Not Modified
-# https://developer.github.com/v3/#conditional-requests
-# NB: this might not be supported https://developer.github.com/v4/guides/resource-limitations/
 rate_limit_gql = _.rateLimit[
     # https://developer.github.com/v4/object/ratelimit/
     _.limit.cost.remaining.resetAt
