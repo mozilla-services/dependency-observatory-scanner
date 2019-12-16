@@ -539,3 +539,56 @@ def test_request_properties():
     assert r.page_size is 10
     assert r.page_cursor is "end-cursor"
     assert r.log_str
+
+
+def test_response_properties():
+    r = m.Response(resource=m.RepoManifests)
+    assert r.end_cursor is None
+    assert r.num_results is None
+    assert r.total_results is None
+    assert r.log_str == "invalid response!"
+
+    r = m.Response(resource=m.RepoManifests, json="[]")
+    assert r.end_cursor is None
+    assert r.num_results is None
+    assert r.total_results is None
+    assert r.log_str == "invalid response!"
+
+    r = m.Response(resource=m.RepoManifests, json={})
+    assert r.end_cursor is None
+    assert r.num_results is 0
+    assert r.total_results is 0
+    assert r.log_str == "0 of 0"
+
+
+@pytest.mark.parametrize(
+    "resource", [r for r in m._resources if r != m.Repo], ids=id_resource_by_kind
+)
+def test_response_fetching_results(resource):
+    r = m.Response(
+        resource=resource,
+        json=load_json_fixture(f"{resource.kind.name}_first_page_response_next_page"),
+    )
+    if r.resource.kind == m.RepoLangs.kind:
+        assert r.end_cursor == "Y3Vyc29yOnYyOpHORMtSuQ=="
+        assert r.num_results == 2
+        assert r.total_results == 10
+    elif r.resource.kind == m.RepoManifests.kind:
+        assert r.end_cursor == "MQ"
+        assert r.num_results == 1
+        assert r.total_results == 1
+    elif r.resource.kind == m.RepoManifestDeps.kind:
+        assert r.end_cursor == "Mg"
+        assert r.num_results == 2
+        assert r.total_results == 2
+    elif r.resource.kind == m.RepoVulnAlerts.kind:
+        assert r.end_cursor == "Y3Vyc29yOnYyOpHOCOpjzQ=="
+        assert r.num_results == 4
+        assert r.total_results == 5
+    elif r.resource.kind == m.RepoVulnAlertVulns.kind:
+        assert r.end_cursor == "Mg"
+        assert r.num_results == 2
+        assert r.total_results == 2
+    else:
+        raise NotImplementedError()
+    assert r.log_str

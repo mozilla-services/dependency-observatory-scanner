@@ -17,6 +17,7 @@
           }
         }
       ],
+      "totalCount": 10,
       "pageInfo": {
         "endCursor": "Y3Vyc29yOnYyOpHORMtSuQ==",
         "hasNextPage": true

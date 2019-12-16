@@ -85,6 +85,13 @@ class Resource:
         """
         return [path_part for path_part in self.page_path if path_part != 0]
 
+    @property
+    def result_path(self: "Resource") -> JSONPath:
+        """path in the JSON response to get results
+        """
+        result_path_item = "nodes" if self.parent else "edges"
+        return list(self.page_path) + [result_path_item]
+
 
 @dataclass(frozen=True)
 class Request:
@@ -187,17 +194,56 @@ class Response:
     # dict for a JSON response from the GitHub API
     json: Optional[Dict[str, Any]] = None
 
+    def _json_is_dict(self: "Response") -> bool:
+        return self.json is not None and isinstance(self.json, dict)
+
     @property
     def end_cursor(self: "Response") -> Optional[str]:
-        if self.json is None:
+        if not self._json_is_dict():
             return None
-        if not isinstance(self.json, dict):
-            return None
+        assert self.json is not None
+        assert isinstance(self.json, dict)
 
         page_info = get_in_dict(self.json, list(self.resource.page_path) + ["pageInfo"])
         if page_info and page_info.get("hasNextPage", False):
             return page_info.get("endCursor", None)
         return None
+
+    @property
+    def num_results(self: "Response") -> Optional[int]:
+        "count of results for this page"
+        if not self._json_is_dict():
+            return None
+        assert self.json is not None
+        assert isinstance(self.json, dict)
+
+        results = get_in_dict(self.json, self.resource.result_path)
+        print("r", results, self.resource.result_path)
+        if results is None:
+            return 0
+        return len(results)
+
+    @property
+    def total_results(self: "Response") -> Optional[int]:
+        "count of results for all pages"
+        if not self._json_is_dict():
+            return None
+        assert self.json is not None
+        assert isinstance(self.json, dict)
+
+        total = get_in_dict(self.json, list(self.resource.page_path) + ["totalCount"])
+        if total is None:
+            return 0
+        assert isinstance(total, int)
+        return total
+
+    @property
+    def log_str(self: "Response") -> str:
+        if not self._json_is_dict():
+            return "invalid response!"
+        assert self.json is not None
+        assert isinstance(self.json, dict)
+        return f"{self.num_results} of {self.total_results}"
 
 
 def is_page_update(resource: Resource, update: QueryDiff) -> bool:
