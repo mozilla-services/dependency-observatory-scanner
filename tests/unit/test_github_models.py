@@ -135,7 +135,9 @@ def test_get_first_page_selection(
     context = m.ChainMap(
         github_args_dict, owner_repo_dict, dict(parent_after="test_parent_after_cursor")
     )
-    selection = m.get_first_page_selection(resource, context)
+    selection = m.multi_upsert_kwargs(
+        m.get_first_page_selection_updates(resource, context), resource.base_graphql
+    )
     assert_selection_is_sane(selection, github_schema)
     if len(resource.children):  # a root resource
         assert "after" not in str(selection)
@@ -146,8 +148,10 @@ def test_get_first_page_selection(
 def test_get_next_page_selection(_):
     # should add first and after params and drop totalCount, totalSize
     assert (
-        m.get_next_page_selection(
-            ["repository", "languages"],
+        m.multi_upsert_kwargs(
+            m.get_next_page_selection_updates(
+                m.RepoLangs, dict(first=25, after="test-cursor-xyz")
+            ),
             _.repository[
                 _.id.databaseId.name.languages(first="test-first")[
                     _.pageInfo[_.hasNextPage.endCursor].totalCount.totalSize.edges[
@@ -155,28 +159,30 @@ def test_get_next_page_selection(_):
                     ]
                 ]
             ],
-            dict(first=25, after="test-cursor-xyz"),
         )
         == _.repository[
             _.id.databaseId.name.languages(first=25, after="test-cursor-xyz")[
-                _.pageInfo[_.hasNextPage.endCursor].edges[_.node[_.id.name]]
+                _.pageInfo[_.hasNextPage.endCursor].totalCount.totalSize.edges[
+                    _.node[_.id.name]
+                ]
             ]
         ]
     )
 
     # example 2nd to 3rd page query
     assert (
-        m.get_next_page_selection(
-            ["repository", "languages"],
+        m.multi_upsert_kwargs(
+            m.get_next_page_selection_updates(
+                m.RepoLangs, dict(first=5, after="test-3rd-page-cursor")
+            ),
             _.repository[
                 _.id.databaseId.name.languages(first=25, after="test-2nd-page-cursor")[
                     _.pageInfo[_.hasNextPage.endCursor].edges[_.node[_.id.name]]
                 ]
             ],
-            dict(first=25, after="test-3rd-page-cursor"),
         )
         == _.repository[
-            _.id.databaseId.name.languages(first=25, after="test-3rd-page-cursor")[
+            _.id.databaseId.name.languages(first=5, after="test-3rd-page-cursor")[
                 _.pageInfo[_.hasNextPage.endCursor].edges[_.node[_.id.name]]
             ]
         ]
@@ -191,7 +197,11 @@ def test_get_first_page_selection_against_fixtures(
         github_args_dict, owner_repo_dict, dict(parent_after="test_parent_after_cursor")
     )
     expected_serialized = load_graphql_fixture(f"{resource.kind.name}_first_selection")
-    serialized = str(m.get_first_page_selection(resource, context))
+    serialized = str(
+        m.multi_upsert_kwargs(
+            m.get_first_page_selection_updates(resource, context), resource.base_graphql
+        )
+    )
     assert serialized == expected_serialized
 
 
@@ -241,6 +251,7 @@ def test_get_next_requests_for_initial_requests(
     assert len(initial_requests) == len(expected_request_resources)
     for r, er in zip(initial_requests, expected_request_resources):
         assert r.resource.kind == er
+        assert r.page_number == 0
 
         expected_serialized = load_graphql_fixture(f"{er.name}_first_selection")
         assert str(r.graphql) == str(expected_serialized)
@@ -266,7 +277,9 @@ def test_get_next_requests_for_last_page_returns_no_more_requests_for_resource(
     last_exchange = m.RequestResponseExchange(
         request=m.Request(
             resource=last_resource,
-            graphql=m.get_first_page_selection(last_resource, context),
+            selection_updates=m.get_first_page_selection_updates(
+                last_resource, context
+            ),
         ),
         response=m.Response(
             resource=last_resource,
@@ -279,6 +292,7 @@ def test_get_next_requests_for_last_page_returns_no_more_requests_for_resource(
     assert all(r.resource != last_resource for r in next_requests)
     for r in next_requests:
         assert_selection_is_sane(r.graphql, github_schema)
+        assert r.page_number == 0
         assert str(r.graphql) == load_graphql_fixture(
             f"{r.resource.kind.name}_next_selection"
         ), f"did not matched expected serialized \
@@ -302,7 +316,9 @@ def test_get_next_requests_returns_more_pages_of_the_same_resource_and_linked_re
     last_exchange = m.RequestResponseExchange(
         request=m.Request(
             resource=last_resource,
-            graphql=m.get_first_page_selection(last_resource, context),
+            selection_updates=m.get_first_page_selection_updates(
+                last_resource, context
+            ),
         ),
         response=m.Response(
             resource=last_resource,
@@ -317,15 +333,19 @@ def test_get_next_requests_returns_more_pages_of_the_same_resource_and_linked_re
         assert_selection_is_sane(r.graphql, github_schema)
 
         if r.resource in last_resource.children:
+            assert r.page_number == 0
             assert str(r.graphql) == load_graphql_fixture(
                 f"{r.resource.kind.name}_nested_first_selection"
             ), f"did not matched expected serialized \
 gql for next {r.resource.kind} from {last_exchange.request.resource.kind}"
+            assert len(r.selection_updates) == len(r.resource.first_page_diffs)
         else:
+            assert r.page_number == 1
             assert str(r.graphql) == load_graphql_fixture(
                 f"{r.resource.kind.name}_next_selection"
             ), f"did not matched expected serialized \
 gql for next {r.resource.kind} from {last_exchange.request.resource.kind}"
+            assert len(r.selection_updates) == len(r.resource.first_page_diffs) + 1
 
 
 @pytest.mark.parametrize("last_resource", m._resources, ids=id_resource_by_kind)
@@ -343,7 +363,9 @@ def test_get_next_requests_for_last_page_returns_no_more_requests_for_resource(
     last_exchange = m.RequestResponseExchange(
         request=m.Request(
             resource=last_resource,
-            graphql=m.get_first_page_selection(last_resource, context),
+            selection_updates=m.get_first_page_selection_updates(
+                last_resource, context
+            ),
         ),
         response=m.Response(
             resource=last_resource,
@@ -355,6 +377,7 @@ def test_get_next_requests_for_last_page_returns_no_more_requests_for_resource(
     next_requests = list(m.get_next_requests(logger, context, last_exchange))
     for r in next_requests:
         assert r.resource != last_resource
+        assert r.page_number == 0
         assert_selection_is_sane(r.graphql, github_schema)
         assert str(r.graphql) == load_graphql_fixture(
             f"{r.resource.kind.name}_nested_first_selection"
@@ -377,7 +400,7 @@ def test_get_next_requests_only_returns_requests_for_enabled_resource(
     last_exchange = m.RequestResponseExchange(
         request=m.Request(
             resource=last_resource,
-            graphql=m.get_first_page_selection(
+            selection_updates=m.get_first_page_selection_updates(
                 last_resource, m.ChainMap(context, owner_repo_dict)
             ),
         ),
@@ -397,3 +420,180 @@ def test_get_next_requests_only_returns_requests_for_enabled_resource(
         f"{r.resource.kind.name}_next_selection"
     ), f"did not matched expected serialized \
 gql for next {r.resource.kind} from {last_exchange.request.resource.kind}"
+
+
+@pytest.mark.parametrize(
+    "last_resource", [r for r in m._resources if r != m.Repo], ids=id_resource_by_kind
+)
+def test_get_next_requests_does_not_grow_request_selection_updates(
+    logger, github_args_dict, owner_repo_dict, last_resource, github_schema
+):
+    context = m.ChainMap(
+        owner_repo_dict,
+        github_args_dict,
+        {
+            "github_query_type": all_resource_kinds,
+            "parent_after": "test_parent_after_cursor",  # only for nested pages
+        },
+    )
+    first_exchange = m.RequestResponseExchange(
+        request=m.Request(
+            resource=last_resource,
+            selection_updates=m.get_first_page_selection_updates(
+                last_resource, context
+            ),
+        ),
+        response=m.Response(
+            resource=last_resource,
+            json=load_json_fixture(
+                f"{last_resource.kind.name}_first_page_response_next_page"
+            ),
+        ),
+    )
+    r = next(m.get_next_requests(logger, context, first_exchange))
+    assert r.page_number == 1
+    assert_selection_is_sane(r.graphql, github_schema)
+    assert r.resource not in last_resource.children
+    assert len(r.selection_updates) == len(r.resource.first_page_diffs) + 1
+
+    second_exchange = m.RequestResponseExchange(
+        request=r,
+        response=m.Response(
+            resource=last_resource,
+            json=load_json_fixture(
+                f"{last_resource.kind.name}_first_page_response_next_page"
+            ),
+        ),
+    )
+    r = next(m.get_next_requests(logger, context, second_exchange))
+    assert r.page_number == 2
+    assert_selection_is_sane(r.graphql, github_schema)
+    assert r.resource not in last_resource.children
+    for update in r.selection_updates:
+        print(update)
+    assert len(r.selection_updates) == len(r.resource.first_page_diffs) + 1
+
+
+def test_request_properties():
+    r = m.Request(resource=m.RepoVulnAlerts, selection_updates=[])
+    assert r.page_number == 0
+    assert r.repo_owner is None
+    assert r.repo_name is None
+    assert r.parent_page_size is None
+    assert r.parent_page_cursor is None
+    assert r.page_size is None
+    assert r.page_cursor is None
+    assert r.log_str
+
+    r = m.Request(
+        resource=m.RepoVulnAlerts,
+        selection_updates=[
+            (["repository"], {"owner": "mozilla", "name": "browserid-local-verify"}),
+            (["repository", "vulnerabilityAlerts"], {"first": 1}),
+        ],
+    )
+    assert r.page_number == 0
+    assert r.repo_owner == "mozilla"
+    assert r.repo_name == "browserid-local-verify"
+    assert r.parent_page_size is None
+    assert r.parent_page_cursor is None
+    assert r.page_size is 1
+    assert r.page_cursor is None
+    assert r.log_str
+
+    r = m.Request(
+        resource=m.RepoVulnAlertVulns,
+        selection_updates=[
+            (["repository"], {"owner": "mozilla", "name": "browserid-local-verify"}),
+            (["repository", "vulnerabilityAlerts"], {"first": 1}),
+            (["repository", "vulnerabilityAlerts"], {"after": "parent-end-cursor"}),
+        ],
+    )
+    assert r.page_number == 0
+    assert r.repo_owner == "mozilla"
+    assert r.repo_name == "browserid-local-verify"
+    assert r.parent_page_size is 1
+    assert r.parent_page_cursor is "parent-end-cursor"
+    assert r.page_size is None
+    assert r.page_cursor is None
+    assert r.log_str
+
+    r = m.Request(
+        resource=m.RepoVulnAlertVulns,
+        selection_updates=[
+            (["repository"], {"owner": "mozilla", "name": "browserid-local-verify"}),
+            (m.RepoVulnAlertVulns.parent.next_page_selection_path, {"first": 1}),
+            (
+                m.RepoVulnAlertVulns.parent.next_page_selection_path,
+                {"after": "parent-end-cursor"},
+            ),
+            (m.RepoVulnAlertVulns.next_page_selection_path, {"first": 10}),
+            (m.RepoVulnAlertVulns.next_page_selection_path, {"after": "end-cursor"}),
+        ],
+    )
+    assert r.page_number == 0
+    assert r.repo_owner == "mozilla"
+    assert r.repo_name == "browserid-local-verify"
+    assert r.parent_page_size is 1
+    assert r.parent_page_cursor is "parent-end-cursor"
+    assert r.page_size is 10
+    assert r.page_cursor is "end-cursor"
+    assert r.log_str
+
+
+def test_response_properties():
+    r = m.Response(resource=m.RepoManifests)
+    assert r.end_cursor is None
+    assert r.num_results is None
+    assert r.total_results is None
+    assert r.log_str == "invalid response!"
+
+    r = m.Response(resource=m.RepoManifests, json="[]")
+    assert r.end_cursor is None
+    assert r.num_results is None
+    assert r.total_results is None
+    assert r.log_str == "invalid response!"
+
+    r = m.Response(resource=m.RepoManifests, json={})
+    assert r.end_cursor is None
+    assert r.num_results is 0
+    assert r.total_results is 0
+    assert r.log_str == "0 of 0"
+
+
+@pytest.mark.parametrize(
+    "resource", [r for r in m._resources if r != m.Repo], ids=id_resource_by_kind
+)
+def test_response_fetching_results(resource):
+    r = m.Response(
+        resource=resource,
+        json=load_json_fixture(f"{resource.kind.name}_first_page_response_next_page"),
+    )
+    if r.resource.kind == m.RepoLangs.kind:
+        assert r.end_cursor == "Y3Vyc29yOnYyOpHORMtSuQ=="
+        assert r.num_results == 2
+        assert r.total_results == 10
+    elif r.resource.kind == m.RepoManifests.kind:
+        assert r.end_cursor == "MQ"
+        assert r.num_results == 1
+        assert r.total_results == 1
+    elif r.resource.kind == m.RepoManifestDeps.kind:
+        assert r.end_cursor == "Mg"
+        assert r.num_results == 2
+        assert r.total_results == 2
+    elif r.resource.kind == m.RepoVulnAlerts.kind:
+        assert r.end_cursor == "Y3Vyc29yOnYyOpHOCOpjzQ=="
+        assert r.num_results == 4
+        assert r.total_results == 5
+    elif r.resource.kind == m.RepoVulnAlertVulns.kind:
+        assert r.end_cursor == "Mg"
+        assert r.num_results == 2
+        assert r.total_results == 2
+    else:
+        raise NotImplementedError()
+    assert r.log_str
+
+
+def test_resouce_parent_link():
+    assert m.RepoVulnAlertVulns.parent == m.RepoVulnAlerts
+    assert m.RepoManifestDeps.parent == m.RepoManifests

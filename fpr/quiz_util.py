@@ -113,28 +113,6 @@ def update_in(
     return updated_selection
 
 
-def drop_fields(
-    drop_field_names: AbstractSet[str], field_name: str, selection: quiz.Selection
-) -> quiz.Selection:
-    fields = []
-    for field in selection:
-        if field.name == field_name:
-            fields.append(
-                field.replace(
-                    selection_set=quiz.SelectionSet._make(
-                        [
-                            inner_field
-                            for inner_field in field.selection_set
-                            if inner_field.name not in drop_field_names
-                        ]
-                    )
-                )
-            )
-        else:
-            fields.append(field)
-    return quiz.SelectionSet._make(fields)
-
-
 def upsert_kwargs(
     field_name: str, kwargs: SelectionKwargs, selection: quiz.Selection
 ) -> quiz.Selection:

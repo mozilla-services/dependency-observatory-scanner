@@ -16,16 +16,16 @@ from typing import (
     Tuple,
     Type,
 )
+from uuid import uuid4, UUID
 
 import quiz
 
 from fpr.quiz_util import (
     get_kwargs_in,
-    update_in,
-    upsert_kwargs,
-    drop_fields,
     SelectionPath,
     SelectionUpdate,
+    SelectionKwargs,
+    SelectionKwargsValue,
     multi_upsert_kwargs,
 )
 from fpr.serialize_util import get_in as get_in_dict, extract_fields
@@ -55,7 +55,7 @@ QueryDiff = SelectionUpdate
 MISSING = "MISSING fpr gql param."
 
 
-@dataclass
+@dataclass(frozen=True)
 class Resource:
     kind: ResourceKind
     base_graphql: quiz.Selection
@@ -66,27 +66,243 @@ class Resource:
     # diffs to apply to base_graphql to get a first page selection
     first_page_diffs: List[QueryDiff] = field(default_factory=list)
 
-    # nested resources to fetch
-    children: List["Resource"] = field(default_factory=list)
+    @property
+    def children(self: "Resource") -> List["Resource"]:
+        # nested resources to fetch
+        return [edge.child for edge in _resource_edges if edge.parent.kind == self.kind]
+
+    @property
+    def parent(self: "Resource") -> Optional["Resource"]:
+        for edge in _resource_edges:
+            if edge.child.kind == self.kind:
+                return edge.parent
+        return None
+
+    @property
+    def next_page_selection_path(self: "Resource") -> SelectionPath:
+        """path in the quiz.Selection to add params like page size or
+
+        after cursor
+        """
+        return [path_part for path_part in self.page_path if path_part != 0]
+
+    @property
+    def result_path(self: "Resource") -> JSONPath:
+        """path in the JSON response to get results
+        """
+        result_path_item = "nodes" if self.parent else "edges"
+        return list(self.page_path) + [result_path_item]
 
 
-@dataclass
+@dataclass(frozen=True)
 class Request:
     resource: Resource
-    graphql: quiz.Selection
+    selection_updates: List[SelectionUpdate]
+    page_number: int = 0
+    guid: UUID = field(default_factory=uuid4)
+
+    @property
+    def graphql(self: "Request") -> quiz.Selection:
+        return multi_upsert_kwargs(self.selection_updates, self.resource.base_graphql)
+
+    def _get_selection_kwarg_at_path(
+        self: "Request", selection_path: SelectionPath, kwarg_key: str
+    ) -> Optional[SelectionKwargsValue]:
+        for (path, update_kwargs) in reversed(self.selection_updates):
+            if path == selection_path and kwarg_key in update_kwargs:
+                kwarg = update_kwargs.get(kwarg_key, None)
+                return kwarg
+        return None
+
+    def _get_repo_owner_and_name_kwargs(self: "Request") -> Optional[SelectionKwargs]:
+        if (
+            len(self.selection_updates)
+            and self.selection_updates[0][0] == SetRepositoryOwnerAndName[0]
+        ):
+            return self.selection_updates[0][1]
+        return None
+
+    @property
+    def repo_owner(self: "Request") -> Optional[str]:
+        kwargs = self._get_repo_owner_and_name_kwargs()
+        if kwargs and "owner" in kwargs:
+            assert isinstance(kwargs["owner"], str)
+            return kwargs["owner"]
+        return None
+
+    @property
+    def repo_name(self: "Request") -> Optional[str]:
+        kwargs = self._get_repo_owner_and_name_kwargs()
+        if kwargs and "name" in kwargs:
+            assert isinstance(kwargs["name"], str)
+            return kwargs["name"]
+        return None
+
+    @property
+    def page_size(self: "Request") -> Optional[int]:
+        size = self._get_selection_kwarg_at_path(
+            self.resource.next_page_selection_path, "first"
+        )
+        assert isinstance(size, int) or size is None
+        return size
+
+    @property
+    def page_cursor(self: "Request") -> Optional[str]:
+        cursor = self._get_selection_kwarg_at_path(
+            self.resource.next_page_selection_path, "after"
+        )
+        assert isinstance(cursor, str) or cursor is None
+        return cursor
+
+    @property
+    def parent_page_size(self: "Request") -> Optional[int]:
+        if not self.resource.parent:
+            return None
+        parent_page_size = self._get_selection_kwarg_at_path(
+            self.resource.parent.next_page_selection_path, "first"
+        )
+        if parent_page_size is None:
+            return None
+        assert isinstance(parent_page_size, int)
+        return parent_page_size
+
+    @property
+    def parent_page_cursor(self: "Request") -> Optional[str]:
+        if not self.resource.parent:
+            return None
+        parent_page_cursor = self._get_selection_kwarg_at_path(
+            self.resource.parent.next_page_selection_path, "after"
+        )
+        if parent_page_cursor is None:
+            return None
+        assert isinstance(parent_page_cursor, str)
+        return parent_page_cursor
+
+    @property
+    def log_id(self: "Request") -> str:
+        return f"request {self.guid}"
+
+    @property
+    def log_str(self: "Request") -> str:
+        "returns a less verbose string for debug logging than the full __repr__"
+        s = (
+            f"{self.log_id} {self.repo_owner}/{self.repo_name}"
+            f" {self.resource.kind.name} page {self.page_number}"
+            f" (size {self.page_size}, cursor {self.page_cursor})"
+        )
+        if self.resource.parent:
+            s += (
+                f" parent {self.resource.parent.kind.name}"
+                f"(size {self.parent_page_size}, cursor {self.parent_page_cursor})"
+            )
+        return s
 
 
-@dataclass
+@dataclass(frozen=True)
 class Response:
     resource: Resource
     # dict for a JSON response from the GitHub API
     json: Optional[Dict[str, Any]] = None
 
+    def _json_is_dict(self: "Response") -> bool:
+        return self.json is not None and isinstance(self.json, dict)
 
-@dataclass
+    @property
+    def end_cursor(self: "Response") -> Optional[str]:
+        if not self._json_is_dict():
+            return None
+        assert self.json is not None
+        assert isinstance(self.json, dict)
+
+        page_info = get_in_dict(self.json, list(self.resource.page_path) + ["pageInfo"])
+        if page_info and page_info.get("hasNextPage", False):
+            return page_info.get("endCursor", None)
+        return None
+
+    @property
+    def num_results(self: "Response") -> Optional[int]:
+        "count of results for this page"
+        if not self._json_is_dict():
+            return None
+        assert self.json is not None
+        assert isinstance(self.json, dict)
+
+        results = get_in_dict(self.json, self.resource.result_path)
+        if results is None:
+            return 0
+        return len(results)
+
+    @property
+    def total_results(self: "Response") -> Optional[int]:
+        "count of results for all pages"
+        if not self._json_is_dict():
+            return None
+        assert self.json is not None
+        assert isinstance(self.json, dict)
+
+        total = get_in_dict(self.json, list(self.resource.page_path) + ["totalCount"])
+        if total is None:
+            return 0
+        assert isinstance(total, int)
+        return total
+
+    @property
+    def log_str(self: "Response") -> str:
+        if not self._json_is_dict():
+            return "invalid response!"
+        assert self.json is not None
+        assert isinstance(self.json, dict)
+        return f"{self.num_results} of {self.total_results}"
+
+
+def is_page_update(resource: Resource, update: QueryDiff) -> bool:
+    path, kwargs = update
+    return path == resource.next_page_selection_path and "after" in kwargs
+
+
+@dataclass(frozen=True)
 class RequestResponseExchange:
     request: Request
     response: Response
+
+    @property
+    def next_page_request(self: "RequestResponseExchange") -> Optional[Request]:
+        """returns a Request for the next page of the same resource type or None
+
+        Set request graphql after param to response endCursor value
+        """
+        if self.response.end_cursor is None:
+            return None
+
+        updates = self.request.selection_updates + get_next_page_selection_updates(
+            self.request.resource, dict(after=self.response.end_cursor)
+        )
+        # de-duplicate after updates for more pages
+        if (
+            len(updates) > 1
+            and is_page_update(self.request.resource, updates[-1])
+            and is_page_update(self.request.resource, updates[-2])
+        ):
+            last_update = updates.pop()
+            updates.pop()
+            updates.append(last_update)
+
+        return Request(
+            resource=self.request.resource,
+            selection_updates=updates,
+            page_number=self.request.page_number + 1,
+        )
+
+    def next_nested_page_requests_iter(
+        self: "RequestResponseExchange", context: ChainMap
+    ) -> Generator[Request, None, None]:
+        for child_resource in self.request.resource.children:
+            next_page_request = get_nested_next_page_request(
+                self, child_resource, context
+            )
+            if next_page_request is None:
+                continue
+            yield next_page_request
 
 
 _ = quiz.SELECTOR
@@ -275,6 +491,12 @@ SetRepositoryVulnAlertVulnsFirst: QueryDiff = (
 )
 
 
+@dataclass
+class ResourceEdge:
+    parent: Resource
+    child: Resource
+
+
 Repo = Resource(
     kind=ResourceKind.REPO,
     base_graphql=repo_gql,
@@ -314,7 +536,6 @@ RepoManifests = Resource(
     kind=ResourceKind.REPO_DEP_MANIFESTS,
     base_graphql=repo_manifests_gql,
     page_path=["repository", "dependencyGraphManifests"],
-    children=[RepoManifestDeps],
     first_page_diffs=[SetRepositoryOwnerAndName, SetRepositoryManifestsFirst],
 )
 
@@ -344,7 +565,6 @@ RepoVulnAlerts = Resource(
     kind=ResourceKind.REPO_VULN_ALERTS,
     base_graphql=repo_vuln_alerts_gql,
     page_path=["repository", "vulnerabilityAlerts"],
-    children=[RepoVulnAlertVulns],
     first_page_diffs=[SetRepositoryOwnerAndName, SetRepositoryVulnAlertsFirst],
 )
 
@@ -358,52 +578,37 @@ _resources: Sequence[Resource] = [
     RepoVulnAlertVulns,
 ]
 
-
-def apply_diff(diff: QueryDiff, context: ChainMap) -> SelectionUpdate:
-    return (diff[0], {k: context[v] for k, v in diff[1].items()})
-
-
-def get_first_page_selection(resource: Resource, context: ChainMap) -> quiz.Selection:
-    """replaces dataclass.MISSING params in a Request using
-    github_metadata pipeline args and returns a quiz graphql selection"""
-    updates = [apply_diff(diff, context) for diff in resource.first_page_diffs]
-    selection = multi_upsert_kwargs(updates, resource.base_graphql)
-    return selection
+_resource_edges: Sequence[ResourceEdge] = [
+    ResourceEdge(parent=RepoManifests, child=RepoManifestDeps),
+    ResourceEdge(parent=RepoVulnAlerts, child=RepoVulnAlertVulns),
+]
 
 
-def get_next_page_selection(
-    path: SelectionPath, selection: quiz.Selection, next_page_kwargs: Dict[str, str]
-) -> quiz.Selection:
-    """returns quiz.Selection to fetch the next page of resource.
-
-    At the param path in the selection it:
-
-    1. adds or update the after cursor
-    2. drops totalCount and totalSize attrs when present
-
-    e.g.
-
-    _.languages(first=MISSING)[
-            _.pageInfo[_.hasNextPage.endCursor].totalCount.totalSize.edges[
-                _.node[_.id.name]
-            ]
-    ]
-
-    _.languages(first=first, after=after)[
-        _.pageInfo[_.hasNextPage.endCursor].edges[
-                _.node[_.id.name]
-            ]
-    ]
-    """
-    selection = update_in(
-        selection, path, functools.partial(upsert_kwargs, path[-1], next_page_kwargs)
-    )
-    selection = update_in(
-        selection,
+def get_diff_kwargs(diff: QueryDiff, context: ChainMap) -> SelectionUpdate:
+    path, kwargs = diff
+    return (
         path,
-        functools.partial(drop_fields, {"totalCount", "totalSize"}, path[-1]),
+        {
+            kwargs_dest: context[context_key]
+            for kwargs_dest, context_key in kwargs.items()
+        },
     )
-    return selection
+
+
+def get_first_page_selection_updates(
+    resource: Resource, context: ChainMap
+) -> List[SelectionUpdate]:
+    """returns updates to replace dataclass.MISSING params in a
+
+    quiz.Selection from a context dict
+    """
+    return [get_diff_kwargs(diff, context) for diff in resource.first_page_diffs]
+
+
+def get_next_page_selection_updates(
+    resource: Resource, new_page_kwargs: SelectionKwargs
+) -> List[SelectionUpdate]:
+    return [(resource.next_page_selection_path, new_page_kwargs)]
 
 
 def get_owner_repo_kwargs(last_graphql: quiz.Selection) -> Dict[str, str]:
@@ -412,43 +617,8 @@ def get_owner_repo_kwargs(last_graphql: quiz.Selection) -> Dict[str, str]:
     return extract_fields(repo_kwargs, ["owner", "name"])
 
 
-def get_next_page_request(
-    log: logging.Logger, exchange: RequestResponseExchange
-) -> Optional[Request]:
-    """for the req res exchange returns a Request for the next page if any or None
-    """
-    assert isinstance(exchange.response.json, dict)
-    page_info = get_in_dict(
-        exchange.response.json, list(exchange.request.resource.page_path) + ["pageInfo"]
-    )
-    if not (
-        page_info and "hasNextPage" in page_info and page_info["hasNextPage"] is True
-    ):
-        return None
-
-    log.debug(f"got {exchange.request.resource.kind.name} page response with next page")
-    assert "endCursor" in page_info
-
-    # path in the selection to add the selection page size and after cursor params
-    # e.g.
-    path: SelectionPath = [
-        path_part for path_part in exchange.request.resource.page_path if path_part != 0
-    ]
-
-    # return previous query with after set to endCursor value
-    return Request(
-        resource=exchange.request.resource,
-        graphql=get_next_page_selection(
-            path, exchange.request.graphql, dict(after=page_info["endCursor"])
-        ),
-    )
-
-
 def get_nested_next_page_request(
-    log: logging.Logger,
-    exchange: RequestResponseExchange,
-    child_resource: Resource,
-    context: ChainMap,
+    exchange: RequestResponseExchange, child_resource: Resource, context: ChainMap
 ) -> Optional[Request]:
     """for the req res exchange returns a Request for the next page of a
 
@@ -457,11 +627,10 @@ def get_nested_next_page_request(
     """
     # path in the selection to add the parent after cursor params (can't get
     # from response since that cursor gives the next page of the parent
-    # (alternatively use a before param?)
-    path: SelectionPath = [
-        path_part for path_part in exchange.request.resource.page_path if path_part != 0
-    ]
-    parent_params = get_kwargs_in(exchange.request.graphql, path)
+    # (alternatively could use a before param)
+    parent_params = get_kwargs_in(
+        exchange.request.graphql, exchange.request.resource.next_page_selection_path
+    )
     assert parent_params is not None
 
     # NB: builds gql with 'null' as the after param but GH's API is OK with it
@@ -470,12 +639,9 @@ def get_nested_next_page_request(
         context,
         get_owner_repo_kwargs(exchange.request.graphql),
     )
-    log.debug(
-        f"querying for first nested page of {child_resource.kind.name} for {exchange.request.resource.kind.name}"
-    )
     return Request(
         resource=child_resource,
-        graphql=get_first_page_selection(child_resource, context),
+        selection_updates=get_first_page_selection_updates(child_resource, context),
     )
 
 
@@ -502,34 +668,24 @@ def get_next_requests(
         for resource_kind_name in context["github_query_type"]:
             for resource in [Repo, RepoLangs, RepoManifests, RepoVulnAlerts]:
                 if resource_kind_name == resource.kind.name:
-                    yield Request(
-                        resource=resource,
-                        graphql=get_first_page_selection(
-                            resource=resource, context=context
-                        ),
-                    )
+                    updates = get_first_page_selection_updates(resource, context)
+                    yield Request(resource=resource, selection_updates=updates)
     else:
-        next_page_req = get_next_page_request(log, last_exchange)
-        if next_page_req:
+        if last_exchange.next_page_request:
             log.debug(
                 f"fetching another page of {last_exchange.request.resource.kind.name}"
             )
-            yield next_page_req
+            yield last_exchange.next_page_request
 
-        for child_resource in last_exchange.request.resource.children:
-            if child_resource.kind.name not in context["github_query_type"]:
+        for next_page_request in last_exchange.next_nested_page_requests_iter(context):
+            if next_page_request.resource.kind.name not in context["github_query_type"]:
                 log.debug(
-                    f"skipping fetch of nested page of {child_resource.kind.name} \
+                    f"skipping fetch of nested page of {next_page_request.resource.kind.name} \
 for {last_exchange.request.resource.kind.name}"
                 )
                 continue
-
-            next_page_req = get_nested_next_page_request(
-                log, last_exchange, child_resource, context
-            )
-            if next_page_req:
-                log.debug(
-                    f"fetch nested page of {child_resource.kind.name} for \
+            log.debug(
+                f"fetching nested page of {next_page_request.resource.kind.name} for \
 {last_exchange.request.resource.kind.name}"
-                )
-                yield next_page_req
+            )
+            yield next_page_request
