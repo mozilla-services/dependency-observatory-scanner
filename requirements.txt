@@ -1,6 +1,7 @@
 -i https://pypi.org/simple
 aiodocker
 aiohttp
+backoff
 networkx
 pydot
 quiz
