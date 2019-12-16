@@ -472,3 +472,70 @@ def test_get_next_requests_does_not_grow_request_selection_updates(
     for update in r.selection_updates:
         print(update)
     assert len(r.selection_updates) == len(r.resource.first_page_diffs) + 1
+
+
+def test_request_properties():
+    r = m.Request(resource=m.RepoVulnAlerts, selection_updates=[])
+    assert r.page_number == 0
+    assert r.repo_owner is None
+    assert r.repo_name is None
+    assert r.parent_page_size is None
+    assert r.parent_page_cursor is None
+    assert r.page_size is None
+    assert r.page_cursor is None
+    assert r.log_str
+
+    r = m.Request(
+        resource=m.RepoVulnAlerts,
+        selection_updates=[
+            (["repository"], {"owner": "mozilla", "name": "browserid-local-verify"}),
+            (["repository", "vulnerabilityAlerts"], {"first": 1}),
+        ],
+    )
+    assert r.page_number == 0
+    assert r.repo_owner == "mozilla"
+    assert r.repo_name == "browserid-local-verify"
+    assert r.parent_page_size is None
+    assert r.parent_page_cursor is None
+    assert r.page_size is 1
+    assert r.page_cursor is None
+    assert r.log_str
+
+    r = m.Request(
+        resource=m.RepoVulnAlertVulns,
+        selection_updates=[
+            (["repository"], {"owner": "mozilla", "name": "browserid-local-verify"}),
+            (["repository", "vulnerabilityAlerts"], {"first": 1}),
+            (["repository", "vulnerabilityAlerts"], {"after": "parent-end-cursor"}),
+        ],
+    )
+    assert r.page_number == 0
+    assert r.repo_owner == "mozilla"
+    assert r.repo_name == "browserid-local-verify"
+    assert r.parent_page_size is 1
+    assert r.parent_page_cursor is "parent-end-cursor"
+    assert r.page_size is None
+    assert r.page_cursor is None
+    assert r.log_str
+
+    r = m.Request(
+        resource=m.RepoVulnAlertVulns,
+        selection_updates=[
+            (["repository"], {"owner": "mozilla", "name": "browserid-local-verify"}),
+            (m.RepoVulnAlertVulns.parent.next_page_selection_path, {"first": 1}),
+            (
+                m.RepoVulnAlertVulns.parent.next_page_selection_path,
+                {"after": "parent-end-cursor"},
+            ),
+            (m.RepoVulnAlertVulns.next_page_selection_path, {"first": 10}),
+            (m.RepoVulnAlertVulns.next_page_selection_path, {"after": "end-cursor"}),
+        ],
+    )
+    assert r.page_number == 0
+    assert r.repo_owner == "mozilla"
+    assert r.repo_name == "browserid-local-verify"
+    assert r.parent_page_size is 1
+    assert r.parent_page_cursor is "parent-end-cursor"
+    assert r.page_size is 10
+    assert r.page_cursor is "end-cursor"
+    assert r.log_str

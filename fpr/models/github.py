@@ -24,6 +24,7 @@ from fpr.quiz_util import (
     SelectionPath,
     SelectionUpdate,
     SelectionKwargs,
+    SelectionKwargsValue,
     multi_upsert_kwargs,
 )
 from fpr.serialize_util import get_in as get_in_dict, extract_fields
@@ -95,8 +96,89 @@ class Request:
     def graphql(self: "Request") -> quiz.Selection:
         return multi_upsert_kwargs(self.selection_updates, self.resource.base_graphql)
 
-    def __repr__(self):
-        return f"Request(resource={self.resource.kind.name}, selection_updates={self.selection_updates})"
+    def _get_selection_kwarg_at_path(
+        self: "Request", selection_path: SelectionPath, kwarg_key: str
+    ) -> Optional[SelectionKwargsValue]:
+        for (path, update_kwargs) in reversed(self.selection_updates):
+            if path == selection_path and kwarg_key in update_kwargs:
+                kwarg = update_kwargs.get(kwarg_key, None)
+                return kwarg
+        return None
+
+    def _get_repo_owner_and_name_kwargs(self: "Request") -> Optional[SelectionKwargs]:
+        if (
+            len(self.selection_updates)
+            and self.selection_updates[0][0] == SetRepositoryOwnerAndName[0]
+        ):
+            return self.selection_updates[0][1]
+        return None
+
+    @property
+    def repo_owner(self: "Request") -> Optional[str]:
+        kwargs = self._get_repo_owner_and_name_kwargs()
+        if kwargs and "owner" in kwargs:
+            assert isinstance(kwargs["owner"], str)
+            return kwargs["owner"]
+        return None
+
+    @property
+    def repo_name(self: "Request") -> Optional[str]:
+        kwargs = self._get_repo_owner_and_name_kwargs()
+        if kwargs and "name" in kwargs:
+            assert isinstance(kwargs["name"], str)
+            return kwargs["name"]
+        return None
+
+    @property
+    def page_size(self: "Request") -> Optional[int]:
+        size = self._get_selection_kwarg_at_path(
+            self.resource.next_page_selection_path, "first"
+        )
+        assert isinstance(size, int) or size is None
+        return size
+
+    @property
+    def page_cursor(self: "Request") -> Optional[str]:
+        cursor = self._get_selection_kwarg_at_path(
+            self.resource.next_page_selection_path, "after"
+        )
+        assert isinstance(cursor, str) or cursor is None
+        return cursor
+
+    @property
+    def parent_page_size(self: "Request") -> Optional[int]:
+        if not self.resource.parent:
+            return None
+        parent_page_size = self._get_selection_kwarg_at_path(
+            self.resource.parent.next_page_selection_path, "first"
+        )
+        assert isinstance(parent_page_size, int)
+        return parent_page_size
+
+    @property
+    def parent_page_cursor(self: "Request") -> Optional[str]:
+        if not self.resource.parent:
+            return None
+        parent_page_cursor = self._get_selection_kwarg_at_path(
+            self.resource.parent.next_page_selection_path, "after"
+        )
+        assert isinstance(parent_page_cursor, str)
+        return parent_page_cursor
+
+    @property
+    def log_str(self: "Request") -> str:
+        "returns a less verbose string for debug logging than the full __repr__"
+        s = (
+            f"request {self.repo_owner}/{self.repo_name}"
+            f" {self.resource.kind.name} page {self.page_number}"
+            f" (size {self.page_size}, cursor {self.page_cursor})"
+        )
+        if self.resource.parent:
+            s + (
+                f" parent {self.resource.parent.kind.name}"
+                f"(size {self.parent_page_size}, cursor {self.parent_page_cursor})"
+            )
+        return s
 
 
 @dataclass(frozen=True)
