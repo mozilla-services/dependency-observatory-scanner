@@ -7,11 +7,15 @@ def get_in(d: Dict, path: Iterable[Union[str, int]], default: Any = None):
         sentinel = object()
     for path_part in path:
         if isinstance(path_part, str):
+            if not hasattr(d, "get"):
+                return default
             assert hasattr(d, "get")
             d = d.get(path_part, sentinel)
             if d == sentinel:
                 return default
         elif isinstance(path_part, int):
+            if not hasattr(d, "__getitem__"):
+                return default
             assert hasattr(d, "__getitem__")
             if not (-1 < path_part < len(d)):
                 return default
