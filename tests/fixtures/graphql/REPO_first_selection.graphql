@@ -27,7 +27,11 @@
       name
       id
       prefix
-      target
+      target {
+        id
+        oid
+        commitUrl
+      }
     }
   }
 }

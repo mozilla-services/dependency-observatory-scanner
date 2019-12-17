@@ -337,7 +337,18 @@ repo_gql = _.repository(owner=MISSING, name=MISSING)[
         _.key
     ]
     .primaryLanguage[_.name.id]
-    .defaultBranchRef[_.name.id.prefix.target]
+    .defaultBranchRef[
+        _
+        .name
+        .id
+        .prefix
+        .target[
+            _
+            .id
+            .oid
+            .commitUrl
+         ]
+    ]
 ]
 # fmt: on
 
