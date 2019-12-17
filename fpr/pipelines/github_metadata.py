@@ -68,7 +68,9 @@ async def run_graphql(
     GitHub API and returns the response JSON
     """
     try:
-        return await executor(gql_query)
+        result = await executor(gql_query)
+        log.debug(f"{worker_name} run_graphql: got result: {result}")
+        return result
     except quiz.ErrorResponse as err:
         log.error(
             f"{worker_name} run_graphql: got a quiz.ErrorResponse {err} {err.errors}"
