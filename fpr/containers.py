@@ -364,6 +364,15 @@ get_ripgrep_version = functools.partial(
 get_rustc_version = functools.partial(
     run_container_cmd_no_args_return_first_line_or_none, "rustc --version"
 )
+get_node_version = functools.partial(
+    run_container_cmd_no_args_return_first_line_or_none, "node --version"
+)
+get_npm_version = functools.partial(
+    run_container_cmd_no_args_return_first_line_or_none, "npm --version"
+)
+get_yarn_version = functools.partial(
+    run_container_cmd_no_args_return_first_line_or_none, "yarn --version"
+)
 
 
 async def cargo_audit(
@@ -423,6 +432,15 @@ find_cargo_lockfiles.__doc__ = """Find the relative paths to Cargo.lock files in
     TODO use searchfox.org (mozilla central only)
     TODO using github search
     """
+
+
+async def find_nodejs_files(container, working_dir="/repo"):
+    """Finds the relative paths to node.js dep and lock files in a repo
+    using ripgrep"""
+    for fn in ["package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock"]:
+        results = await find_files(fn, container, working_dir)
+        for result in results:
+            yield result
 
 
 def path_relative_to_working_dir(

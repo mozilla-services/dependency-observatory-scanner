@@ -7,6 +7,7 @@ from fpr.models.rust import (
     RustPackage,
     SerializedCargoMetadata,
 )
+from fpr.models.nodejs import SerializedNodeJSMetadata
 
 __all__ = [
     "GitRef",
@@ -17,4 +18,5 @@ __all__ = [
     "RustPackageID",
     "RustPackage",
     "SerializedCargoMetadata",
+    "SerializedNodeJSMetadata",
 ]
