@@ -323,9 +323,20 @@ async def fetch_tags(
     )
 
 
+async def fetch_tag(
+    container: aiodocker.containers.DockerContainer, tag_name: str, working_dir="/repo"
+):
+    await container.run(
+        f"git fetch origin -f tag {tag_name} --no-tags",
+        working_dir=working_dir,
+        wait=True,
+        check=True,
+    )
+
+
 async def ensure_ref(container, ref: GitRef, working_dir="/repo"):
     if ref.kind == GitRefKind.TAG:
-        await fetch_tags(container, working_dir=working_dir)
+        await fetch_tag(container, tag_name=ref.value, working_dir=working_dir)
     elif ref.kind == GitRefKind.BRANCH:
         await fetch_branch(container, branch=ref.value, working_dir=working_dir)
     elif ref.kind == GitRefKind.COMMIT:
