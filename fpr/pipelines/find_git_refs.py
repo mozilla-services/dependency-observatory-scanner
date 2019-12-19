@@ -1,11 +1,12 @@
 import argparse
+import asyncio
 from dataclasses import dataclass
 import functools
 import logging
 from random import randrange
 from typing import Tuple, Dict, Generator, AsyncGenerator
 
-from fpr.rx_util import sleep_by_index, on_next_save_to_jsonl
+from fpr.rx_util import on_next_save_to_jsonl
 from fpr.serialize_util import get_in, extract_fields, iter_jsonlines
 import fpr.containers as containers
 from fpr.models import GitRef, OrgRepo, Pipeline
@@ -111,7 +112,7 @@ async def run_pipeline(
 
     for i, item in enumerate(source):
         row = (i, OrgRepo.from_github_repo_url(item["repo_url"]))
-        await sleep_by_index(sleep_per_index=3.0, item=row)
+        await asyncio.sleep(min(1 * i, 30))
         log.debug("processing {!r}".format(row[1]))
         try:
             for ref in await run_find_git_refs(row[1]):

@@ -233,7 +233,7 @@ class RustPackage:
 
 
 def cargo_metadata_to_rust_crates(
-    cargo_meta_out: SerializedCargoMetadata
+    cargo_meta_out: SerializedCargoMetadata,
 ) -> Dict[str, RustCrate]:
     assert (
         get_in(cargo_meta_out, ["metadata", "version"]) == 1
@@ -249,7 +249,7 @@ def cargo_metadata_to_rust_crates(
 
 
 def cargo_metadata_to_rust_crate_and_packages(
-    cargo_meta_out: SerializedCargoMetadata
+    cargo_meta_out: SerializedCargoMetadata,
 ) -> Tuple[Dict[str, RustCrate], Dict[str, RustPackage]]:
     log.debug(
         "running crate-graph on {0[cargo_tomlfile_path]} in {0[org]}/{0[repo]} at {0[commit]} ".format(

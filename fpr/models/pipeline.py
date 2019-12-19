@@ -7,7 +7,7 @@ from fpr.graph_util import NODE_ID_FORMATS, NODE_LABEL_FORMATS, GROUP_ATTRS
 
 
 def add_infile_and_outfile(
-    pipeline_parser: argparse.ArgumentParser
+    pipeline_parser: argparse.ArgumentParser,
 ) -> argparse.ArgumentParser:
     pipeline_parser.add_argument(
         "-i",
@@ -47,7 +47,7 @@ def add_db_arg(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
 
 
 def add_aiohttp_args(
-    pipeline_parser: argparse.ArgumentParser
+    pipeline_parser: argparse.ArgumentParser,
 ) -> argparse.ArgumentParser:
     pipeline_parser.add_argument(
         "--user-agent",

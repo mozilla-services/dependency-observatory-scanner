@@ -73,7 +73,7 @@ def read_message(msg_bytes: bytes) -> Tuple[DockerLogStream, bytes, bytes]:
 
 
 def iter_messages(
-    msg_bytes: bytes
+    msg_bytes: bytes,
 ) -> Generator[Tuple[DockerLogStream, DockerLogMessage], None, None]:
     msg_bytes_remaining = msg_bytes
     log.debug("itering through {} msg bytes".format(len(msg_bytes)))

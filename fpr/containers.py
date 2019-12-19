@@ -69,14 +69,11 @@ class Exec:
         )
         return cls(data["Id"], container)
 
-    async def start(self, stream=False, timeout=None, receive_timeout=None, **kwargs):
+    async def start(self: "Exec", timeout: int = None, **kwargs) -> bytes:
         """
-        Start an exec.
-        stream
-        ======
-        If it's False, this method will return result of exec process as binary string.
-        If it's True, "WebSocketClientResponse" will be returned.
-        You can use it as same as response of "ws_connect" of aiohttp.
+        Start executing a process
+
+        returns result of exec process as binary string.
         """
         # Don't use docker._query_json
         # content-type of response will be "vnd.docker.raw-stream",
@@ -86,36 +83,12 @@ class Exec:
             method="POST",
             headers={"content-type": "application/json"},
             data=json.dumps(kwargs),
-            # read_until_eof=not stream,
             timeout=timeout,
         )
-
-        if stream:
-            conn = response_cm.connection
-            transport = conn.transport
-            protocol = conn.protocol
-            loop = list(response_cm)._loop
-
-            reader = FlowControlDataQueue(protocol, limit=2 ** 16, loop=loop)
-            writer = ExecWriter(transport)
-            protocol.set_parser(ExecReader(reader), reader)
-            return ClientWebSocketResponse(
-                reader,
-                writer,
-                None,  # protocol
-                response_cm,
-                timeout,
-                True,  # autoclose
-                False,  # autoping
-                loop,
-                receive_timeout=receive_timeout,
-            )
-
-        else:
-            async with response_cm as response:
-                result = await response.read()
-                response.release()
-                return result
+        async with response_cm as response:
+            result = await response.read()
+            response.release()
+            return result
 
     async def resize(self, **kwargs):
         await self.container.docker._query(
@@ -391,16 +364,29 @@ get_ripgrep_version = functools.partial(
 get_rustc_version = functools.partial(
     run_container_cmd_no_args_return_first_line_or_none, "rustc --version"
 )
+get_node_version = functools.partial(
+    run_container_cmd_no_args_return_first_line_or_none, "node --version"
+)
+get_npm_version = functools.partial(
+    run_container_cmd_no_args_return_first_line_or_none, "npm --version"
+)
+get_yarn_version = functools.partial(
+    run_container_cmd_no_args_return_first_line_or_none, "yarn --version"
+)
 
 
-async def cargo_audit(container, working_dir="/repo"):
+async def cargo_audit(
+    container: aiodocker.containers.DockerContainer, working_dir: str = "/repo"
+) -> str:
     exec_ = await container.run(
         "cargo audit --json", working_dir=working_dir, check=False, wait=True
     )
     return exec_.decoded_start_result_stdout[0]
 
 
-async def cargo_metadata(container, working_dir="/repo"):
+async def cargo_metadata(
+    container: aiodocker.containers.DockerContainer, working_dir: str = "/repo"
+) -> str:
     exec_ = await container.run(
         "cargo metadata --format-version 1 --locked",
         working_dir=working_dir,
@@ -409,7 +395,11 @@ async def cargo_metadata(container, working_dir="/repo"):
     return exec_.decoded_start_result_stdout[0]
 
 
-async def find_files(filename, container, working_dir="/repo"):
+async def find_files(
+    filename: str,
+    container: aiodocker.containers.DockerContainer,
+    working_dir: str = "/repo",
+) -> str:
     cmd = "rg --no-ignore -g {} --files".format(filename)
     exec_ = await container.run(cmd, working_dir=working_dir, check=True)
     log.info("{} result: {}".format(cmd, exec_.start_result))
@@ -417,7 +407,9 @@ async def find_files(filename, container, working_dir="/repo"):
     return exec_.decoded_start_result_stdout
 
 
-async def get_tags(container, working_dir="/repo"):
+async def get_tags(
+    container: aiodocker.containers.DockerContainer, working_dir: str = "/repo"
+) -> str:
     await fetch_tags(container, working_dir=working_dir)
     # sort tags from oldest to newest
     cmd = "git tag -l --sort=creatordate"
@@ -440,6 +432,15 @@ find_cargo_lockfiles.__doc__ = """Find the relative paths to Cargo.lock files in
     TODO use searchfox.org (mozilla central only)
     TODO using github search
     """
+
+
+async def find_nodejs_files(container, working_dir="/repo"):
+    """Finds the relative paths to node.js dep and lock files in a repo
+    using ripgrep"""
+    for fn in ["package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock"]:
+        results = await find_files(fn, container, working_dir)
+        for result in results:
+            yield result
 
 
 def path_relative_to_working_dir(

@@ -73,7 +73,7 @@ def repo_langs_gql(_):
 @pytest.fixture
 def set_owner_repo_kwargs() -> Callable:
     def add_owner_repo_to_repository_field(
-        selection: m.quiz.Selection
+        selection: m.quiz.Selection,
     ) -> m.quiz.Selection:
         return m.update_in(
             selection,
