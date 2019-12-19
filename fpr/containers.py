@@ -9,7 +9,7 @@ import pathlib
 from io import BytesIO
 import tarfile
 import tempfile
-from typing import BinaryIO, IO, Sequence, List, Generator, Union, Dict
+from typing import AsyncGenerator, BinaryIO, IO, Sequence, List, Generator, Union, Dict
 import aiodocker
 import traceback
 
@@ -53,13 +53,15 @@ class DockerRunException(Exception):
 class Exec:
     # from: https://github.com/hirokiky/aiodocker/blob/8a91b27cff7311398ca36f5453d94679fed99d11/aiodocker/execute.py
 
-    def __init__(self, exec_id, container):
+    def __init__(self, exec_id, container: aiodocker.docker.DockerContainer):
         self.exec_id = exec_id
         self.container = container
-        self.start_result: Optional[Dict] = None
+        self.start_result: Optional[bytes] = None
 
     @classmethod
-    async def create(cls, container, **kwargs) -> "Exec":
+    async def create(
+        cls, container: aiodocker.docker.DockerContainer, **kwargs
+    ) -> "Exec":
         """ Create and return an instance of Exec
         """
         data = await container.docker._query_json(
@@ -114,6 +116,7 @@ class Exec:
 
     @property
     def decoded_start_result_stdout(self: "Exec") -> List[str]:
+        assert self.start_result is not None
         return list(
             dlog.iter_lines(
                 dlog.iter_messages(self.start_result),
@@ -122,7 +125,7 @@ class Exec:
         )
 
 
-async def _exec_create(self, **kwargs) -> Exec:
+async def _exec_create(self: aiodocker.containers.DockerContainer, **kwargs) -> Exec:
     """ Create an exec (Instance of Exec).
     """
     return await Exec.create(self, **kwargs)
@@ -142,7 +145,7 @@ async def _run(
     # fpr specific args
     wait=True,
     check=True,
-    **kwargs
+    **kwargs,
 ) -> Exec:
     """Create and run an instance of exec (Instance of Exec). Optionally wait for it to finish and check its exit code
     """
@@ -280,7 +283,9 @@ async def build(dockerfile: bytes, tag: str, pull: bool = False):
     return tag
 
 
-async def ensure_repo(container, repo_url, working_dir="/"):
+async def ensure_repo(
+    container: aiodocker.containers.DockerContainer, repo_url: str, working_dir="/"
+):
     cmds = [
         "rm -rf repo",
         "git clone --depth=1 {repo_url} repo".format(repo_url=repo_url),
@@ -290,21 +295,29 @@ async def ensure_repo(container, repo_url, working_dir="/"):
 
 
 async def fetch_branch(
-    container, branch: str, remote: str = "origin", working_dir: str = "/repo"
+    container: aiodocker.containers.DockerContainer,
+    branch: str,
+    remote: str = "origin",
+    working_dir: str = "/repo",
 ):
     cmd = "git fetch {remote} {branch}".format(branch=branch, remote=remote)
     await container.run(cmd, wait=True, check=True, working_dir=working_dir)
 
 
 async def fetch_commit(
-    container, commit: str, remote: str = "origin", working_dir: str = "/repo"
+    container: aiodocker.containers.DockerContainer,
+    commit: str,
+    remote: str = "origin",
+    working_dir: str = "/repo",
 ):
     # per https://stackoverflow.com/a/30701724
     cmd = "git fetch {remote} {commit}".format(commit=commit, remote=remote)
     await container.run(cmd, wait=True, check=True, working_dir=working_dir)
 
 
-async def fetch_tags(container, working_dir="/repo"):
+async def fetch_tags(
+    container: aiodocker.containers.DockerContainer, working_dir="/repo"
+):
     await container.run(
         "git fetch --tags origin", working_dir=working_dir, wait=True, check=True
     )
@@ -327,8 +340,8 @@ async def ensure_ref(container, ref: GitRef, working_dir="/repo"):
 
 
 async def run_container_cmd_no_args_return_first_line_or_none(
-    cmd, container, working_dir="/repo"
-):
+    cmd: str, container: aiodocker.containers.DockerContainer, working_dir="/repo"
+) -> Optional[str]:
     exec_ = await container.run(cmd, working_dir=working_dir, detach=False)
     if len(exec_.decoded_start_result_stdout):
         return exec_.decoded_start_result_stdout[0]
@@ -434,7 +447,9 @@ find_cargo_lockfiles.__doc__ = """Find the relative paths to Cargo.lock files in
     """
 
 
-async def find_nodejs_files(container, working_dir="/repo"):
+async def find_nodejs_files(
+    container: aiodocker.containers.DockerContainer, working_dir: str = "/repo"
+) -> AsyncGenerator[str, None]:
     """Finds the relative paths to node.js dep and lock files in a repo
     using ripgrep"""
     for fn in ["package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock"]:
