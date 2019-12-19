@@ -56,7 +56,7 @@ def repo_langs_gql(_):
 @pytest.fixture
 def set_org_repo_kwargs():
     def add_org_repo_to_repository_field(
-        selection: m.quiz.Selection
+        selection: m.quiz.Selection,
     ) -> m.quiz.Selection:
         return m.update_in(
             selection,

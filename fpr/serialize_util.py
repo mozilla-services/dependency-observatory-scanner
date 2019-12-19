@@ -36,7 +36,7 @@ def extract_fields(d: Dict, fields: Iterable[str]) -> Dict:
 
 
 def iter_jsonlines(
-    f: Sequence
+    f: Sequence,
 ) -> Generator[Union[Dict, Sequence, int, str, None], None, None]:
     "Generator over JSON lines http://jsonlines.org/ files with extension .jsonl"
     for line in f:
