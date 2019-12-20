@@ -7,6 +7,7 @@ from typing import BinaryIO, IO, Sequence, Tuple, Generator, Union
 
 
 log = logging.getLogger("fpr.docker_log_reader")
+log.setLevel(logging.WARN)
 
 
 class DockerLogReadError(Exception):
