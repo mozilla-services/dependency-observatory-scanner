@@ -88,7 +88,7 @@ run-crate-graph-and-save:
 	./bin/write_dotfiles.sh < crate_graph.jsonl
 
 run-nodejs-metadata:
-	printf '{"org": "mozilla", "repo": "fxa", "ref": {"value": "v1.142.0", "kind": "tag"}, "repo_url": "https://github.com/mozilla/fxa.git"}' | $(FPR_PYTHON) -v nodejs_metadata
+	printf '{"org": "mozilla", "repo": "fxa", "ref": {"value": "v1.142.0", "kind": "tag"}, "repo_url": "https://github.com/mozilla/fxa.git"}' | $(FPR_PYTHON) nodejs_metadata
 
 show-dot:
 	dot -O -Tsvg *.dot
