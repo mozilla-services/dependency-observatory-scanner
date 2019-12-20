@@ -23,7 +23,7 @@ from typing import (
 import aiodocker
 import traceback
 
-import fpr.docker_log_reader as dlog
+import fpr.docker_log_reader as docker_log_reader
 from fpr.models import GitRef, GitRefKind
 from fpr.pipelines.util import exc_to_str
 
@@ -128,9 +128,9 @@ class Exec:
     def decoded_start_result_stdout(self: "Exec") -> List[str]:
         assert self.start_result is not None
         return list(
-            dlog.iter_lines(
-                dlog.iter_messages(self.start_result),
-                output_stream=dlog.DockerLogStream.STDOUT,
+            docker_log_reader.iter_lines(
+                docker_log_reader.iter_messages(self.start_result),
+                output_stream=docker_log_reader.DockerLogStream.STDOUT,
             )
         )
 
