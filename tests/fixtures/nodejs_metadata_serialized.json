@@ -3,6 +3,7 @@
   "commit": "760a0e420310433b74ea3ef68eef6e8e372111b5",
   "node_version": "v10.18.0",
   "nodejs_file_path": "packages/fxa-auth-server/npm-shrinkwrap.json",
+  "nodejs_file_sha256": "bac1af8d70f92b928e2d90cbd0f74e5699eab90f7566be55696900df497ee0e4",
   "npm_version": "6.13.4",
   "org": "mozilla",
   "ref": {

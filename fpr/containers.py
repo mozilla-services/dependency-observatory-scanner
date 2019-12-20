@@ -9,7 +9,17 @@ import pathlib
 from io import BytesIO
 import tarfile
 import tempfile
-from typing import AsyncGenerator, BinaryIO, IO, Sequence, List, Generator, Union, Dict
+from typing import (
+    AsyncGenerator,
+    BinaryIO,
+    IO,
+    Sequence,
+    List,
+    Generator,
+    Union,
+    Dict,
+    Optional,
+)
 import aiodocker
 import traceback
 
@@ -467,6 +477,21 @@ async def find_nodejs_files(
         results = await find_files(fn, container, working_dir)
         for result in results:
             yield result
+
+
+async def sha256sum(
+    container: aiodocker.containers.DockerContainer,
+    file_path: str,
+    working_dir: str = "/repo",
+) -> Optional[str]:
+    result = await run_container_cmd_no_args_return_first_line_or_none(
+        container=container, cmd=f"sha256sum {file_path}", working_dir=working_dir
+    )
+    # e.g. "553bb7ff086dea3b4eb195c09517fbe7d006422f78d990811bfb5d4eeaec7166  out.json"
+    # to "553bb7ff086dea3b4eb195c09517fbe7d006422f78d990811bfb5d4eeaec7166"
+    if result and len(result.split(" ", 1)) > 1:
+        return result.split(" ", 1)[0]
+    return result
 
 
 def path_relative_to_working_dir(

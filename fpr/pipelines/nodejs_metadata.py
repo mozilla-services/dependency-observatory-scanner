@@ -85,6 +85,7 @@ async def run_nodejs_metadata(item: Tuple[OrgRepo, GitRef]):
         log.debug("{} stderr: {}".format(name, await c.log(stderr=True)))
 
         async for nodejs_file in containers.find_nodejs_files(c, working_dir="/repo"):
+            nodejs_file_sha256 = await containers.sha256sum(c, file_path=nodejs_file)
             working_dir = str(
                 containers.path_relative_to_working_dir(
                     working_dir="/repo", file_path=nodejs_file
@@ -115,6 +116,7 @@ async def run_nodejs_metadata(item: Tuple[OrgRepo, GitRef]):
                 node_version=node_version,
                 yarn_version=yarn_version,
                 nodejs_file_path=nodejs_file,
+                nodejs_file_sha256=nodejs_file_sha256,
                 # metadata_output=nodejs_meta,
             )
             # log.debug("{} metadata result {}".format(name, result))
