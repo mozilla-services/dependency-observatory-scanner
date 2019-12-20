@@ -479,6 +479,26 @@ async def find_nodejs_files(
             yield result
 
 
+async def nodejs_metadata(
+    container: aiodocker.containers.DockerContainer, working_dir: str = "/repo"
+) -> str:
+    await container.run("npm install", working_dir=working_dir, check=True)
+    exec_ = await container.run(
+        "npm ls --json --long", working_dir=working_dir, check=True
+    )
+    return exec_.decoded_start_result_stdout[0]
+
+
+async def nodejs_audit(
+    container: aiodocker.containers.DockerContainer, working_dir: str = "/repo"
+) -> str:
+    # npm audit exits with non-zero code when a vuln is found
+    exec_ = await container.run(
+        "npm audit --json", working_dir=working_dir, check=False
+    )
+    return exec_.decoded_start_result_stdout[0]
+
+
 async def sha256sum(
     container: aiodocker.containers.DockerContainer,
     file_path: str,

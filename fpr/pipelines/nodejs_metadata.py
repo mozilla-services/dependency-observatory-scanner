@@ -6,7 +6,17 @@ import json
 import functools
 from dataclasses import dataclass
 from random import randrange
-from typing import Any, AnyStr, Dict, Tuple, AsyncGenerator, Generator, Union
+from typing import (
+    AbstractSet,
+    Any,
+    AnyStr,
+    AsyncGenerator,
+    Dict,
+    Generator,
+    Optional,
+    Tuple,
+    Union,
+)
 
 
 from fpr.rx_util import on_next_save_to_jsonl
@@ -81,28 +91,47 @@ async def run_nodejs_metadata(item: Tuple[OrgRepo, GitRef]):
         yarn_version = await containers.get_yarn_version(c)
         ripgrep_version = await containers.get_ripgrep_version(c)
 
-        log.debug("{} stdout: {}".format(name, await c.log(stdout=True)))
-        log.debug("{} stderr: {}".format(name, await c.log(stderr=True)))
+        log.debug(f"{name} stdout: {await c.log(stdout=True)}")
+        log.debug(f"{name} stderr: {await c.log(stderr=True)}")
 
+        # cache of the tuple (nodejs_meta, nodejs_audit) output for dep file sha256sum
+        meta_by_sha2sum: Dict[str, Tuple[str, str]] = {}
         async for nodejs_file in containers.find_nodejs_files(c, working_dir="/repo"):
             nodejs_file_sha256 = await containers.sha256sum(c, file_path=nodejs_file)
-            working_dir = str(
-                containers.path_relative_to_working_dir(
-                    working_dir="/repo", file_path=nodejs_file
+            nodejs_meta: Optional[str] = None
+            audit_output: Optional[str] = None
+
+            if nodejs_file_sha256 in meta_by_sha2sum:
+                log.debug(f"using cached results for sha2 {nodejs_file_sha256}")
+                nodejs_meta, audit_output = meta_by_sha2sum[nodejs_file_sha256]
+            elif nodejs_file.endswith("package-lock.json"):
+                working_dir = str(
+                    containers.path_relative_to_working_dir(
+                        working_dir="/repo", file_path=nodejs_file
+                    )
                 )
-            )
-            log.info("working_dir: {}".format(working_dir))
-            # try:
-            #     nodejs_meta = await containers.nodejs_metadata(
-            #         c, working_dir=working_dir
-            #     )
-            # except containers.DockerRunException as e:
-            #     log.debug(
-            #         "in {} error running nodejs metadata in {}: {}".format(
-            #             name, working_dir, e
-            #         )
-            #     )
-            #     continue
+                log.debug(f"working_dir: {working_dir}")
+                try:
+                    nodejs_meta = await containers.nodejs_metadata(
+                        c, working_dir=working_dir
+                    )
+                except containers.DockerRunException as e:
+                    log.debug(
+                        f"in {name} error running nodejs metadata in {working_dir}: {e}"
+                    )
+
+                try:
+                    audit_output = await containers.nodejs_audit(
+                        c, working_dir=working_dir
+                    )
+                except containers.DockerRunException as e:
+                    log.debug(
+                        f"in {name} error running nodejs audit in {working_dir}: {e}"
+                    )
+            else:
+                log.info(
+                    f"skipping node metadata fetch for file: {nodejs_file} {nodejs_file_sha256}"
+                )
 
             result: Dict[str, Any] = dict(
                 org=org_repo.org,
@@ -117,11 +146,12 @@ async def run_nodejs_metadata(item: Tuple[OrgRepo, GitRef]):
                 yarn_version=yarn_version,
                 nodejs_file_path=nodejs_file,
                 nodejs_file_sha256=nodejs_file_sha256,
-                # metadata_output=nodejs_meta,
+                metadata_output=nodejs_meta,
+                audit_output=audit_output,
             )
             # log.debug("{} metadata result {}".format(name, result))
-            log.debug("{} stdout: {}".format(name, await c.log(stdout=True)))
-            log.debug("{} stderr: {}".format(name, await c.log(stderr=True)))
+            # log.debug("{} stdout: {}".format(name, await c.log(stdout=True)))
+            # log.debug("{} stderr: {}".format(name, await c.log(stderr=True)))
             results.append(result)
     return results
 
@@ -171,15 +201,22 @@ def serialize_nodejs_metadata_output(
     return result
 
 
-# id: str, features: Seq[str], deps[{}]
-NODE_FIELDS = {"id", "features", "deps"}
-
-FIELDS = REPO_FIELDS | {"nodejs_file_path", "ripgrep_version"}
+FIELDS = REPO_FIELDS | {
+    "nodejs_file_path",
+    "nodejs_file_sha256",
+    "ripgrep_version",
+    "npm_version",
+    "node_version",
+    "yarn_version",
+}
 
 
 def serialize(_: argparse.Namespace, result: Dict):
-    # r = extract_fields(metadata_result, FIELDS)
-    # r["metadata"] = serialize_nodejs_metadata_output(metadata_result["metadata_output"])
+    r = extract_fields(result, FIELDS)
+    if result.get("metadata_output", None):
+        r["metadata"] = json.loads(result["metadata_output"])
+    if result.get("audit_output", None):
+        r["audit"] = json.loads(result["audit_output"])
     return result
 
 
