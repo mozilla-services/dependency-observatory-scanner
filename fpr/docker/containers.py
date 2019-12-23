@@ -22,7 +22,7 @@ from typing import (
 )
 import aiodocker
 
-import fpr.docker_log_reader as docker_log_reader
+import fpr.docker.log_reader as docker_log_reader
 from fpr.models import GitRef, GitRefKind
 from fpr.pipelines.util import exc_to_str
 
