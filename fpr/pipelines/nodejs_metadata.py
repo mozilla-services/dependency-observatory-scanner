@@ -23,6 +23,7 @@ from fpr.rx_util import on_next_save_to_jsonl
 from fpr.serialize_util import get_in, extract_fields, iter_jsonlines, REPO_FIELDS
 import fpr.containers as containers
 from fpr.models import GitRef, OrgRepo, Pipeline, SerializedNodeJSMetadata
+from fpr.models.pipeline import add_infile_and_outfile
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.nodejs_metadata")
@@ -31,6 +32,20 @@ __doc__ = """Given a repo_url and git ref, clones the repo, finds Node
 package.json, package-lock.json, npm-shrinkwrap.json, and yarn.lock files, and
 runs npm install then list and npm audit to collect dep. and vuln. metadata on
 them."""
+
+
+def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    parser = add_infile_and_outfile(pipeline_parser)
+    parser.add_argument(
+        "-m",
+        "--manifest-path",
+        type=str,
+        required=False,
+        default=None,
+        help="Filter to only run npm install, list, and audit "
+        "for matching manifest file name and path",
+    )
+    return parser
 
 
 @dataclass
@@ -67,7 +82,7 @@ async def build_container(args: NodeJSMetadataBuildArgs = None) -> str:
     return args.repo_tag
 
 
-async def run_nodejs_metadata(item: Tuple[OrgRepo, GitRef]):
+async def run_nodejs_metadata(args: argparse.Namespace, item: Tuple[OrgRepo, GitRef]):
     org_repo, git_ref = item
     log.debug(
         "running nodejs-metadata on repo {!r} ref {!r}".format(
@@ -107,6 +122,7 @@ async def run_nodejs_metadata(item: Tuple[OrgRepo, GitRef]):
             elif (
                 nodejs_file.endswith("package-lock.json")
                 and "node_modules" not in nodejs_file
+                and (nodejs_file == args.manifest_path if args.manifest_path else True)
             ):
                 working_dir = str(
                     containers.path_relative_to_working_dir(
@@ -160,7 +176,7 @@ async def run_nodejs_metadata(item: Tuple[OrgRepo, GitRef]):
 
 
 async def run_pipeline(
-    source: Generator[Dict[str, Any], None, None], _: argparse.Namespace
+    source: Generator[Dict[str, Any], None, None], args: argparse.Namespace
 ) -> AsyncGenerator[Dict, None]:
     log.info("pipeline started")
     try:
@@ -179,7 +195,7 @@ async def run_pipeline(
             GitRef.from_dict(item["ref"]),
         )
         try:
-            for result in await run_nodejs_metadata((org_repo, git_ref)):
+            for result in await run_nodejs_metadata(args, (org_repo, git_ref)):
                 yield result
         except Exception as e:
             log.error("error running nodejs metadata:\n{}".format(exc_to_str()))
@@ -227,6 +243,7 @@ pipeline = Pipeline(
     name="nodejs_metadata",
     desc=__doc__,
     fields=FIELDS,
+    argparser=parse_args,
     reader=iter_jsonlines,
     runner=run_pipeline,
     serializer=serialize,
