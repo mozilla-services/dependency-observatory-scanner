@@ -21,7 +21,7 @@ from typing import (
 
 from fpr.rx_util import on_next_save_to_jsonl
 from fpr.serialize_util import get_in, extract_fields, iter_jsonlines, REPO_FIELDS
-import fpr.containers as containers
+import fpr.docker.containers as containers
 from fpr.models import GitRef, OrgRepo, Pipeline, SerializedNodeJSMetadata
 from fpr.models.pipeline import add_infile_and_outfile
 from fpr.pipelines.util import exc_to_str

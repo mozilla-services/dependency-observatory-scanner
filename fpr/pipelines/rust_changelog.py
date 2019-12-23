@@ -26,7 +26,7 @@ from fpr.serialize_util import (
     REPO_FIELDS,
     RUST_FIELDS,
 )
-import fpr.containers as containers
+import fpr.docker.containers as containers
 from fpr.models import GitRef, OrgRepo, Pipeline, SerializedCargoMetadata
 from fpr.models.rust import cargo_metadata_to_rust_crate_and_packages
 from fpr.graph_util import (
