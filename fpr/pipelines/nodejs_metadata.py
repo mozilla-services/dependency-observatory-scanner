@@ -104,7 +104,10 @@ async def run_nodejs_metadata(item: Tuple[OrgRepo, GitRef]):
             if nodejs_file_sha256 in meta_by_sha2sum:
                 log.debug(f"using cached results for sha2 {nodejs_file_sha256}")
                 nodejs_meta, audit_output = meta_by_sha2sum[nodejs_file_sha256]
-            elif nodejs_file.endswith("package-lock.json"):
+            elif (
+                nodejs_file.endswith("package-lock.json")
+                and "node_modules" not in nodejs_file
+            ):
                 working_dir = str(
                     containers.path_relative_to_working_dir(
                         working_dir="/repo", file_path=nodejs_file
