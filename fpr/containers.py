@@ -21,7 +21,6 @@ from typing import (
     Optional,
 )
 import aiodocker
-import traceback
 
 import fpr.docker_log_reader as docker_log_reader
 from fpr.models import GitRef, GitRefKind
