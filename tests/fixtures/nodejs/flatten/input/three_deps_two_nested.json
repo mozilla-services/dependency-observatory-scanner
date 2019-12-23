@@ -1,0 +1,23 @@
+{
+    "name": "fxa-content-server",
+    "version": "1.152.1",
+    "dependencies": {
+        "yargs-parser": {
+            "version": "16.1.0",
+            "from": "yargs-parser@16.1.0",
+            "resolved": "https://registry.npmjs.org/yargs-parser/-/yargs-parser-16.1.0.tgz",
+            "dependencies": {
+                "decamelize": {
+                    "version": "1.2.0",
+                    "from": "decamelize@1.2.0",
+                    "resolved": "https://registry.npmjs.org/decamelize/-/decamelize-1.2.0.tgz"
+                },
+                "camelcase": {
+                    "version": "5.3.1",
+                    "from": "camelcase@5.3.1",
+                    "resolved": "https://registry.npmjs.org/camelcase/-/camelcase-5.3.1.tgz"
+                }
+            }
+        }
+    }
+}

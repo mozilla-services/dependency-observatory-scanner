@@ -1,0 +1,35 @@
+[
+    {
+        "name": "decamelize",
+        "version": "1.2.0",
+        "from_field": "decamelize@1.2.0",
+        "dependencies": [],
+        "resolved": "https://registry.npmjs.org/decamelize/-/decamelize-1.2.0.tgz"
+    },
+    {
+        "name": "camelcase",
+        "version": "5.3.1",
+        "from_field": "camelcase@5.3.1",
+        "resolved": "https://registry.npmjs.org/camelcase/-/camelcase-5.3.1.tgz",
+        "dependencies": []
+    },
+    {
+        "name": "yargs-parser",
+        "version": "16.1.0",
+        "from_field": "yargs-parser@16.1.0",
+        "resolved": "https://registry.npmjs.org/yargs-parser/-/yargs-parser-16.1.0.tgz",
+        "dependencies": [
+            "camelcase@5.3.1",
+            "decamelize@1.2.0"
+        ]
+    },
+    {
+        "name": "fxa-content-server",
+        "version": "1.152.1",
+        "dependencies": [
+            "yargs-parser@16.1.0"
+        ],
+        "resolved": null,
+        "from_field": null
+    }
+]

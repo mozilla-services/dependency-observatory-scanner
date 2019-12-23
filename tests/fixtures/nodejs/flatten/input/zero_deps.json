@@ -1,0 +1,5 @@
+{
+  "name": "fxa-content-server",
+  "version": "1.152.1",
+  "dependencies": {}
+}
