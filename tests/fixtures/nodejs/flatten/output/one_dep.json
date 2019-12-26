@@ -1,0 +1,16 @@
+[
+    {
+        "name": "y18n",
+        "version": "4.0.0",
+        "dependencies": [],
+	"resolved": "https://registry.npmjs.org/y18n/-/y18n-4.0.0.tgz",
+	"from_field": "y18n@4.0.0"
+    },
+    {
+        "name": "fxa-content-server",
+        "version": "1.152.1",
+        "dependencies": ["y18n@4.0.0"],
+	"resolved": null,
+	"from_field": null
+    }
+]

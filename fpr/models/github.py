@@ -28,11 +28,12 @@ from fpr.quiz_util import (
     SelectionKwargsValue,
     multi_upsert_kwargs,
 )
-from fpr.serialize_util import get_in as get_in_dict, extract_fields
-
-
-JSONPathElement = Union[int, str]
-JSONPath = Sequence[JSONPathElement]
+from fpr.serialize_util import (
+    get_in as get_in_dict,
+    extract_fields,
+    JSONPath,
+    JSONPathElement,
+)
 
 
 @enum.unique

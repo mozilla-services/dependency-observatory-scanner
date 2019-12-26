@@ -1,0 +1,9 @@
+[
+    {
+        "name": "fxa-content-server",
+        "version": "1.152.1",
+        "dependencies": [],
+	"resolved": null,
+	"from_field": null
+    }
+]

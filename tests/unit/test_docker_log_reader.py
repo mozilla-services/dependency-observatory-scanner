@@ -6,7 +6,7 @@ import pathlib
 import pytest
 
 import context
-import fpr.docker_log_reader as m
+import fpr.docker.log_reader as m
 
 
 @pytest.fixture

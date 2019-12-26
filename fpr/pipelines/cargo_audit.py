@@ -14,7 +14,7 @@ from fpr.serialize_util import (
     REPO_FIELDS,
     RUST_FIELDS,
 )
-import fpr.containers as containers
+import fpr.docker.containers as containers
 from fpr.models import GitRef, OrgRepo, Pipeline
 from fpr.pipelines.util import exc_to_str
 

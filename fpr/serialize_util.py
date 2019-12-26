@@ -1,8 +1,11 @@
 import json
 from typing import Any, Dict, Iterable, Set, Sequence, List, Union, Generator
 
+JSONPathElement = Union[int, str]
+JSONPath = Sequence[JSONPathElement]
 
-def get_in(d: Dict, path: Iterable[Union[str, int]], default: Any = None):
+
+def get_in(d: Dict, path: Iterable[JSONPathElement], default: Any = None):
     if default is None:
         sentinel = object()
     for path_part in path:

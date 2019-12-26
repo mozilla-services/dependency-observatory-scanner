@@ -1,0 +1,19 @@
+[
+    [
+        "dependencies",
+        "yargs-parser",
+        "dependencies",
+        "decamelize"
+    ],
+    [
+        "dependencies",
+        "yargs-parser",
+        "dependencies",
+        "camelcase"
+    ],
+    [
+        "dependencies",
+        "yargs-parser"
+    ],
+    []
+]

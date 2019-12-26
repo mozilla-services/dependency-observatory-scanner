@@ -1,0 +1,25 @@
+[
+    {
+        "name": "decamelize",
+        "version": "1.2.0",
+        "from_field": "decamelize@1.2.0",
+        "dependencies": [],
+        "resolved": "https://registry.npmjs.org/decamelize/-/decamelize-1.2.0.tgz"
+    },
+    {
+        "name": "camelcase",
+        "version": "5.3.1",
+        "from_field": "camelcase@5.3.1",
+        "resolved": "https://registry.npmjs.org/camelcase/-/camelcase-5.3.1.tgz"
+    },
+    {
+        "name": "fxa-content-server",
+        "version": "1.152.1",
+        "dependencies": [
+            "camelcase@5.3.1",
+            "decamelize@1.2.0"
+        ],
+        "resolved": null,
+        "from_field": null
+    }
+]

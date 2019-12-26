@@ -1,0 +1,165 @@
+[
+    {
+        "name": "decamelize",
+        "version": "1.2.0",
+        "resolved": "https://registry.npmjs.org/decamelize/-/decamelize-1.2.0.tgz",
+        "from_field": "decamelize@1.2.0"
+    },
+    {
+        "name": "ansi-regex",
+        "version": "5.0.0",
+        "resolved": "https://registry.npmjs.org/ansi-regex/-/ansi-regex-5.0.0.tgz",
+        "from_field": "ansi-regex@5.0.0"
+    },
+    {
+        "name": "strip-ansi",
+        "version": "6.0.0",
+        "resolved": "https://registry.npmjs.org/strip-ansi/-/strip-ansi-6.0.0.tgz",
+        "from_field": "strip-ansi@6.0.0",
+        "dependencies": [
+            "ansi-regex@5.0.0"
+        ]
+    },
+    {
+        "name": "@types/color-name",
+        "version": "1.1.1",
+        "resolved": "https://registry.npmjs.org/@types/color-name/-/color-name-1.1.1.tgz",
+        "from_field": "@types/color-name@1.1.1"
+    },
+    {
+        "name": "color-name",
+        "version": "1.1.4",
+        "resolved": "https://registry.npmjs.org/color-name/-/color-name-1.1.4.tgz",
+        "from_field": "color-name@1.1.4"
+    },
+    {
+        "name": "color-convert",
+        "version": "2.0.1",
+        "resolved": "https://registry.npmjs.org/color-convert/-/color-convert-2.0.1.tgz",
+        "from_field": "color-convert@2.0.1",
+        "dependencies": [
+            "color-name@1.1.4"
+        ]
+    },
+    {
+        "name": "ansi-styles",
+        "version": "4.2.0",
+        "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-4.2.0.tgz",
+        "from_field": "ansi-styles@4.2.0",
+        "dependencies": [
+            "@types/color-name@1.1.1",
+            "color-convert@2.0.1"
+        ]
+    },
+    {
+        "name": "wrap-ansi",
+        "version": "6.2.0",
+        "resolved": "https://registry.npmjs.org/wrap-ansi/-/wrap-ansi-6.2.0.tgz",
+        "from_field": "wrap-ansi@6.2.0",
+        "dependencies": [
+            "ansi-styles@4.2.0"
+        ]
+    },
+    {
+        "name": "cliui",
+        "version": "6.0.0",
+        "resolved": "https://registry.npmjs.org/cliui/-/cliui-6.0.0.tgz",
+        "from_field": "cliui@6.0.0",
+        "dependencies": [
+            "strip-ansi@6.0.0",
+            "wrap-ansi@6.2.0"
+        ]
+    },
+    {
+        "name": "p-try",
+        "version": "2.2.0",
+        "resolved": "https://registry.npmjs.org/p-try/-/p-try-2.2.0.tgz",
+        "from_field": "p-try@2.2.0"
+    },
+    {
+        "name": "p-limit",
+        "version": "2.2.1",
+        "resolved": "https://registry.npmjs.org/p-limit/-/p-limit-2.2.1.tgz",
+        "from_field": "p-limit@2.2.1",
+        "dependencies": [
+            "p-try@2.2.0"
+        ]
+    },
+    {
+        "name": "p-locate",
+        "version": "4.1.0",
+        "resolved": "https://registry.npmjs.org/p-locate/-/p-locate-4.1.0.tgz",
+        "from_field": "p-locate@4.1.0",
+        "dependencies": [
+            "p-limit@2.2.1"
+        ]
+    },
+    {
+        "name": "locate-path",
+        "version": "5.0.0",
+        "resolved": "https://registry.npmjs.org/locate-path/-/locate-path-5.0.0.tgz",
+        "from_field": "locate-path@5.0.0",
+        "dependencies": [
+            "p-locate@4.1.0"
+        ]
+    },
+    {
+        "name": "path-exists",
+        "version": "4.0.0",
+        "resolved": "https://registry.npmjs.org/path-exists/-/path-exists-4.0.0.tgz",
+        "from_field": "path-exists@4.0.0"
+    },
+    {
+        "name": "find-up",
+        "version": "4.1.0",
+        "resolved": "https://registry.npmjs.org/find-up/-/find-up-4.1.0.tgz",
+        "from_field": "find-up@4.1.0",
+        "dependencies": [
+            "locate-path@5.0.0",
+            "path-exists@4.0.0"
+        ]
+    },
+    {
+        "name": "decamelize",
+        "version": "1.2.0",
+        "resolved": "https://registry.npmjs.org/decamelize/-/decamelize-1.2.0.tgz",
+        "from_field": "decamelize@1.2.0"
+    },
+    {
+        "name": "camelcase",
+        "version": "5.3.1",
+        "resolved": "https://registry.npmjs.org/camelcase/-/camelcase-5.3.1.tgz",
+        "from_field": "camelcase@5.3.1"
+    },
+    {
+        "name": "yargs-parser",
+        "version": "16.1.0",
+        "resolved": "https://registry.npmjs.org/yargs-parser/-/yargs-parser-16.1.0.tgz",
+        "from_field": "yargs-parser@16.1.0",
+        "dependencies": [
+            "camelcase@5.3.1",
+            "decamelize@1.2.0"
+        ]
+    },
+    {
+        "name": "yargs",
+        "version": "15.0.2",
+        "resolved": "https://registry.npmjs.org/yargs/-/yargs-15.0.2.tgz",
+        "from_field": "yargs@15.0.2",
+        "dependencies": [
+            "cliui@6.0.0",
+            "decamelize@1.2.0",
+            "find-up@4.1.0",
+            "yargs-parser@16.1.0"
+        ]
+    },
+    {
+        "name": "fxa-content-server",
+        "version": "1.152.1",
+        "dependencies": [
+	    "yargs@15.0.2"
+        ],
+        "resolved": null,
+        "from_field": null
+    }
+]
