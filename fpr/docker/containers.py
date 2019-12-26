@@ -62,9 +62,9 @@ class DockerRunException(Exception):
 class Exec:
     # from: https://github.com/hirokiky/aiodocker/blob/8a91b27cff7311398ca36f5453d94679fed99d11/aiodocker/execute.py
 
-    def __init__(self, exec_id, container: aiodocker.docker.DockerContainer):
-        self.exec_id = exec_id
-        self.container = container
+    def __init__(self, exec_id: str, container: aiodocker.docker.DockerContainer):
+        self.exec_id: str = exec_id
+        self.container: aiodocker.docker.DockerContainer = container
         self.start_result: Optional[bytes] = None
 
     @classmethod
@@ -101,20 +101,20 @@ class Exec:
             response.release()
             return result
 
-    async def resize(self, **kwargs):
+    async def resize(self: "Exec", **kwargs) -> None:
         await self.container.docker._query(
             "exec/{exec_id}/resize".format(exec_id=self.exec_id),
             method="POST",
             params=kwargs,
         )
 
-    async def inspect(self) -> DockerExecInspectResult:
+    async def inspect(self: "Exec") -> DockerExecInspectResult:
         data = await self.container.docker._query_json(
             "exec/{exec_id}/json".format(exec_id=self.exec_id), method="GET"
         )
         return data
 
-    async def wait(self):
+    async def wait(self: "Exec") -> None:
         while True:
             resp = await self.inspect()
             log.debug("Exec wait resp:", resp)
@@ -140,20 +140,20 @@ async def _exec_create(self: aiodocker.containers.DockerContainer, **kwargs) -> 
     return await Exec.create(self, **kwargs)
 
 
-aiodocker.containers.DockerContainer.exec_create = _exec_create  # type: ignore
+aiodocker.containers.DockerContainer.exec_create = _exec_create
 
 
 async def _run(
-    self,
-    cmd,
-    attach_stdout=True,
-    attach_stderr=True,
-    detach=False,
-    tty=False,
-    working_dir=None,
+    self: aiodocker.containers.DockerContainer,
+    cmd: str,
+    attach_stdout: bool = True,
+    attach_stderr: bool = True,
+    detach: bool = False,
+    tty: bool = False,
+    working_dir: Optional[str] = None,
     # fpr specific args
-    wait=True,
-    check=True,
+    wait: bool = True,
+    check: bool = True,
     **kwargs,
 ) -> Exec:
     """Create and run an instance of exec (Instance of Exec). Optionally wait for it to finish and check its exit code
@@ -196,11 +196,17 @@ async def _run(
     return exec_
 
 
-aiodocker.containers.DockerContainer.run = _run  # type: ignore
+aiodocker.containers.DockerContainer.run = _run
 
 
 @contextlib.asynccontextmanager
-async def run(repository_tag, name, cmd=None, entrypoint=None, working_dir=None):
+async def run(
+    repository_tag: str,
+    name: str,
+    cmd: str = None,
+    entrypoint: Optional[str] = None,
+    working_dir: Optional[str] = None,
+) -> AsyncGenerator[aiodocker.docker.DockerContainer, None]:
     client = aiodocker.Docker()
     config = dict(
         Cmd=cmd,
@@ -276,7 +282,7 @@ async def aiodocker_client():
         await client.close()
 
 
-async def build(dockerfile: bytes, tag: str, pull: bool = False):
+async def build(dockerfile: bytes, tag: str, pull: bool = False) -> str:
     client = aiodocker.Docker()
     log.info("building image {}".format(tag))
     log.debug("building image {} with dockerfile:\n{}".format(tag, dockerfile))
