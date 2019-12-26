@@ -207,39 +207,38 @@ async def run(
     entrypoint: Optional[str] = None,
     working_dir: Optional[str] = None,
 ) -> AsyncGenerator[aiodocker.docker.DockerContainer, None]:
-    client = aiodocker.Docker()
-    config = dict(
-        Cmd=cmd,
-        Image=repository_tag,
-        LogConfig={"Type": "json-file"},
-        AttachStdout=True,
-        AttachStderr=True,
-        Tty=True,
-    )
-    if entrypoint:
-        config["Entrypoint"] = entrypoint
-    if working_dir:
-        config["WorkingDir"] = working_dir
-    log.info("starting image {} as {}".format(repository_tag, name))
-    log.debug("container {} starting {} with config {}".format(name, cmd, config))
-    container = await client.containers.run(config=config, name=name)
-    # fetch container info so we can include container name in logs
-    await container.show()
-    try:
-        yield container
-    except DockerRunException as e:
-        container_log_name = (
-            container["Name"] if "Name" in container._container else container["Id"]
+    async with aiodocker_client() as client:
+        config = dict(
+            Cmd=cmd,
+            Image=repository_tag,
+            LogConfig={"Type": "json-file"},
+            AttachStdout=True,
+            AttachStderr=True,
+            Tty=True,
         )
-        log.error(
-            "{} error running docker command {}:\n{}".format(
-                container_log_name, cmd, exc_to_str()
+        if entrypoint:
+            config["Entrypoint"] = entrypoint
+        if working_dir:
+            config["WorkingDir"] = working_dir
+        log.info("starting image {} as {}".format(repository_tag, name))
+        log.debug("container {} starting {} with config {}".format(name, cmd, config))
+        container = await client.containers.run(config=config, name=name)
+        # fetch container info so we can include container name in logs
+        await container.show()
+        try:
+            yield container
+        except DockerRunException as e:
+            container_log_name = (
+                container["Name"] if "Name" in container._container else container["Id"]
             )
-        )
-    finally:
-        await container.stop()
-        await container.delete()
-        await client.close()
+            log.error(
+                "{} error running docker command {}:\n{}".format(
+                    container_log_name, cmd, exc_to_str()
+                )
+            )
+        finally:
+            await container.stop()
+            await container.delete()
 
 
 @contextlib.contextmanager
@@ -273,8 +272,8 @@ def temp_dockerfile_tgz(fileobject: BinaryIO) -> Generator[IO, None, None]:
         f.close()
 
 
-@contextlib.contextmanager
-async def aiodocker_client():
+@contextlib.asynccontextmanager
+async def aiodocker_client() -> AsyncGenerator[aiodocker.docker.Docker, None]:
     client = aiodocker.Docker()
     try:
         yield client
@@ -283,18 +282,23 @@ async def aiodocker_client():
 
 
 async def build(dockerfile: bytes, tag: str, pull: bool = False) -> str:
-    client = aiodocker.Docker()
-    log.info("building image {}".format(tag))
-    log.debug("building image {} with dockerfile:\n{}".format(tag, dockerfile))
-    with temp_dockerfile_tgz(BytesIO(dockerfile)) as tar_obj:
-        async for build_log_line in client.images.build(
-            fileobj=tar_obj, encoding="utf-8", rm=True, tag=tag, pull=pull, stream=True
-        ):
-            log.debug("building image {}: {}".format(tag, build_log_line))
+    async with aiodocker_client() as client:
+        log.info("building image {}".format(tag))
+        log.debug("building image {} with dockerfile:\n{}".format(tag, dockerfile))
+        with temp_dockerfile_tgz(BytesIO(dockerfile)) as tar_obj:
+            async for build_log_line in client.images.build(
+                fileobj=tar_obj,
+                encoding="utf-8",
+                rm=True,
+                tag=tag,
+                pull=pull,
+                stream=True,
+            ):
+                log.debug("building image {}: {}".format(tag, build_log_line))
 
-    image_info = await client.images.inspect(tag)
-    log.info("built docker image: {} {}".format(tag, image_info["Id"]))
-    await client.close()
+        image_info = await client.images.inspect(tag)
+        log.info("built docker image: {} {}".format(tag, image_info["Id"]))
+>>>>>>> 530cc67... docker: use aiodocker_client context manager
     return tag
 
 
