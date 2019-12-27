@@ -1,6 +1,6 @@
 import argparse
 import asyncio
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 import functools
 import logging
 from random import randrange
@@ -9,6 +9,7 @@ from typing import Tuple, Dict, Generator, AsyncGenerator
 from fpr.rx_util import on_next_save_to_jsonl
 from fpr.serialize_util import get_in, extract_fields, iter_jsonlines
 import fpr.docker.containers as containers
+import fpr.docker.volumes as volumes
 from fpr.models import GitRef, OrgRepo, Pipeline
 from fpr.models.pipeline import add_infile_and_outfile
 from fpr.pipelines.util import exc_to_str
@@ -66,19 +67,38 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
         required=False,
         help="Output metadata for each tag in the repo. Defaults to False.",
     )
+    parser.add_argument(
+        "--keep-volumes",
+        action="store_true",
+        default=False,
+        required=False,
+        help="Keep volumes after cloning the repo. Defaults to False.",
+    )
     return parser
 
 
-async def run_find_git_refs(org_repo: OrgRepo):
+async def run_find_git_refs(org_repo: OrgRepo, args: argparse.Namespace):
     # takes a json line with a repo_url
     log.debug(f"finding git refs for repo {org_repo.github_clone_url!r}")
     name = f"dep-obs-find-git-refs-{org_repo.org}-{org_repo.repo}-{hex(randrange(1 << 32))[2:]}"
     results = []
     async with containers.run(
-        "dep-obs/find-git-refs:latest", name=name, cmd="/bin/bash"
+        "dep-obs/find-git-refs:latest",
+        name=name,
+        cmd="/bin/bash",
+        volumes=[
+            volumes.DockerVolumeConfig(
+                name=f"fpr-org_{org_repo.org}-repo_{org_repo.repo}",
+                mount_point="/repos",
+                labels=asdict(org_repo),
+                delete=not args.keep_volumes,
+            )
+        ],
     ) as c:
-        await containers.ensure_repo(c, org_repo.github_clone_url, working_dir="/")
-        tags = await containers.get_tags(c, working_dir="/repo")
+        await containers.ensure_repo(
+            c, org_repo.github_clone_url, working_dir="/repos/"
+        )
+        tags = await containers.get_tags(c, working_dir="/repos/repo")
 
         log.debug(f"{name} stdout: {await c.log(stdout=True)}")
         log.debug(f"{name} stderr: {await c.log(stderr=True)}")
@@ -96,7 +116,7 @@ async def run_find_git_refs(org_repo: OrgRepo):
 
 
 async def run_pipeline(
-    source: Generator[Dict[str, str], None, None], _: argparse.Namespace
+    source: Generator[Dict[str, str], None, None], args: argparse.Namespace
 ) -> AsyncGenerator[OrgRepo, None]:
     log.info("pipeline started")
     try:
@@ -111,7 +131,7 @@ async def run_pipeline(
         await asyncio.sleep(min(1 * i, 30))
         log.debug(f"processing {row[1]!r}")
         try:
-            for ref in await run_find_git_refs(row[1]):
+            for ref in await run_find_git_refs(row[1], args):
                 yield ref
         except Exception as e:
             log.error(f"error running find_git_refs:\n{exc_to_str()}")

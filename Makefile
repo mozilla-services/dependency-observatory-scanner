@@ -66,7 +66,7 @@ clean:
 	docker container prune -f
 
 run-find-git-refs:
-	$(FPR_PYTHON) find_git_refs -i tests/fixtures/mozilla_services_channelserver_repo_url.jsonl
+	$(FPR_PYTHON) find_git_refs --keep-volumes -i tests/fixtures/mozilla_services_channelserver_repo_url.jsonl
 
 run-find-git-refs-and-save:
 	$(FPR_PYTHON) find_git_refs -i tests/fixtures/mozilla_services_channelserver_repo_url.jsonl -o output.jsonl

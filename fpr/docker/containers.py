@@ -301,12 +301,22 @@ async def build(dockerfile: bytes, tag: str, pull: bool = False) -> str:
 
 
 async def ensure_repo(
-    container: aiodocker.containers.DockerContainer, repo_url: str, working_dir="/"
+    container: aiodocker.containers.DockerContainer, repo_url: str, working_dir="/repo"
 ):
-    cmds = [
-        "rm -rf repo",
-        f"git clone --depth=1 {repo_url} repo",
-    ]
+    test_repo_exec: Exec = await container.run(
+        f"test -d repo", wait=True, check=False, working_dir=working_dir
+    )
+    test_repo_exec_inspect_result = await test_repo_exec.inspect()
+    log.debug(f"test repo result: {test_repo_exec_inspect_result}")
+    if test_repo_exec_inspect_result["ExitCode"] == 0:
+        log.debug(
+            f"git repo found for: {repo_url} at {working_dir}; checking remote url and cleaning"
+        )
+        # TODO: make sure the repo remote matches repo_url
+        cmds = ["git remote get-url origin", "git clean -f -d -q"]
+        working_dir += "repo"
+    else:
+        cmds = ["rm -rf repo", f"git clone --depth=1 --origin origin {repo_url} repo"]
     for cmd in cmds:
         await container.run(cmd, wait=True, check=True, working_dir=working_dir)
 
@@ -446,12 +456,12 @@ async def find_files(
 
 
 async def get_tags(
-    container: aiodocker.containers.DockerContainer, working_dir: str = "/repo"
+    container: aiodocker.containers.DockerContainer, working_dir: str = "/repos/repo"
 ) -> str:
     await fetch_tags(container, working_dir=working_dir)
     # sort tags from oldest to newest
     cmd = "git tag -l --sort=creatordate"
-    exec_ = await container.run(cmd, working_dir="/repo", check=True)
+    exec_ = await container.run(cmd, working_dir=working_dir, check=True)
     log.info(f"{cmd} result: {exec_.start_result}")
 
     return exec_.decoded_start_result_stdout
