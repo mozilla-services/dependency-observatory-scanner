@@ -10,6 +10,7 @@ from io import BytesIO
 import tarfile
 import tempfile
 from typing import (
+    Any,
     AsyncGenerator,
     BinaryIO,
     IO,
@@ -22,7 +23,9 @@ from typing import (
 )
 import aiodocker
 
+from fpr.docker.client import aiodocker_client
 import fpr.docker.log_reader as docker_log_reader
+import fpr.docker.volumes
 from fpr.models import GitRef, GitRefKind
 from fpr.pipelines.util import exc_to_str
 
@@ -206,39 +209,58 @@ async def run(
     cmd: str = None,
     entrypoint: Optional[str] = None,
     working_dir: Optional[str] = None,
+    volumes: Optional[List[fpr.docker.volumes.DockerVolumeConfig]] = None,
 ) -> AsyncGenerator[aiodocker.docker.DockerContainer, None]:
     async with aiodocker_client() as client:
-        config = dict(
-            Cmd=cmd,
-            Image=repository_tag,
-            LogConfig={"Type": "json-file"},
-            AttachStdout=True,
-            AttachStderr=True,
-            Tty=True,
-        )
-        if entrypoint:
-            config["Entrypoint"] = entrypoint
-        if working_dir:
-            config["WorkingDir"] = working_dir
-        log.info("starting image {} as {}".format(repository_tag, name))
-        log.debug("container {} starting {} with config {}".format(name, cmd, config))
-        container = await client.containers.run(config=config, name=name)
-        # fetch container info so we can include container name in logs
-        await container.show()
-        try:
-            yield container
-        except DockerRunException as e:
-            container_log_name = (
-                container["Name"] if "Name" in container._container else container["Id"]
+        volume_configs: List[
+            fpr.docker.volumes.DockerVolumeConfig
+        ] = volumes if volumes is not None else []
+        async with fpr.docker.volumes.ensure_many(log, client, volume_configs):
+            config: Dict[str, Any] = dict(
+                Cmd=cmd,
+                Image=repository_tag,
+                LogConfig={"Type": "json-file"},
+                AttachStdout=True,
+                AttachStderr=True,
+                Tty=True,
+                HostConfig={
+                    # "ContainerIDFile": "./"
+                    "Mounts": []
+                },
             )
-            log.error(
-                "{} error running docker command {}:\n{}".format(
-                    container_log_name, cmd, exc_to_str()
+            if entrypoint:
+                config["Entrypoint"] = entrypoint
+            if working_dir:
+                config["WorkingDir"] = working_dir
+            if volumes:
+                config["Volumes"] = {cfg.mount_point: dict() for cfg in volume_configs}
+                config["HostConfig"]["Mounts"] = [
+                    dict(Target=cfg.mount_point, Source=cfg.name, Type="volume")
+                    for cfg in volume_configs
+                ]
+            log.info("starting image {} as {}".format(repository_tag, name))
+            log.debug(
+                "container {} starting {} with config {}".format(name, cmd, config)
+            )
+            container = await client.containers.run(config=config, name=name)
+            # fetch container info so we can include container name in logs
+            await container.show()
+            try:
+                yield container
+            except DockerRunException as e:
+                container_log_name = (
+                    container["Name"]
+                    if "Name" in container._container
+                    else container["Id"]
                 )
-            )
-        finally:
-            await container.stop()
-            await container.delete()
+                log.error(
+                    "{} error running docker command {}:\n{}".format(
+                        container_log_name, cmd, exc_to_str()
+                    )
+                )
+            finally:
+                await container.stop()
+                await container.delete()
 
 
 @contextlib.contextmanager
@@ -270,15 +292,6 @@ def temp_dockerfile_tgz(fileobject: BinaryIO) -> Generator[IO, None, None]:
         yield f
     finally:
         f.close()
-
-
-@contextlib.asynccontextmanager
-async def aiodocker_client() -> AsyncGenerator[aiodocker.docker.Docker, None]:
-    client = aiodocker.Docker()
-    try:
-        yield client
-    finally:
-        await client.close()
 
 
 async def build(dockerfile: bytes, tag: str, pull: bool = False) -> str:
