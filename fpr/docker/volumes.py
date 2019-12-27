@@ -37,6 +37,15 @@ async def create(
     )
 
 
+async def delete(
+    client: aiodocker.docker.Docker, volume: aiodocker.volumes.DockerVolume
+) -> None:
+    async with client._query(
+        "volumes/{self.name}".format(self=volume), method="DELETE"
+    ):
+        pass
+
+
 @asynccontextmanager
 async def ensure(
     log: logging.Logger, client: aiodocker.docker.Docker, config: DockerVolumeConfig
@@ -60,7 +69,7 @@ async def ensure(
         yield volume
     finally:
         if config.delete:
-            await volume.delete()
+            await delete(client, volume)
             log.info(f"deleted volume {config.name}")
         else:
             log.info(f"did not delete volume {config.name}")
