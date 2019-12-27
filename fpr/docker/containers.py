@@ -444,11 +444,13 @@ async def cargo_metadata(
 
 
 async def find_files(
-    filename: str,
+    search_patterns: List[str],
     container: aiodocker.containers.DockerContainer,
     working_dir: str = "/repo",
 ) -> str:
-    cmd = "rg --no-ignore -g {filename} --files"
+    cmd = "rg --no-ignore --files"
+    for search_pattern in search_patterns:
+        cmd += f" -g {search_pattern}"
     exec_ = await container.run(cmd, working_dir=working_dir, check=True)
     log.info(f"{cmd} result: {exec_.start_result}")
 
@@ -465,32 +467,6 @@ async def get_tags(
     log.info(f"{cmd} result: {exec_.start_result}")
 
     return exec_.decoded_start_result_stdout
-
-
-find_cargo_tomlfiles = functools.partial(find_files, "Cargo.toml")
-find_cargo_tomlfiles.__doc__ = (
-    """Finds the relative paths to Cargo.toml files in a repo using ripgrep"""
-)
-
-find_cargo_lockfiles = functools.partial(find_files, "Cargo.lock")
-find_cargo_lockfiles.__doc__ = """Find the relative paths to Cargo.lock files in a repo in one or
-    more ways:
-
-    git clone the repo in a container
-    TODO use searchfox.org (mozilla central only)
-    TODO using github search
-    """
-
-
-async def find_nodejs_files(
-    container: aiodocker.containers.DockerContainer, working_dir: str = "/repo"
-) -> AsyncGenerator[str, None]:
-    """Finds the relative paths to node.js dep and lock files in a repo
-    using ripgrep"""
-    for fn in ["package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock"]:
-        results = await find_files(fn, container, working_dir)
-        for result in results:
-            yield result
 
 
 async def nodejs_metadata(
