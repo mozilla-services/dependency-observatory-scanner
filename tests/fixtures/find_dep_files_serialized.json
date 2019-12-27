@@ -1,0 +1,14 @@
+{
+  "branch": "HEAD",
+  "commit": "760a0e420310433b74ea3ef68eef6e8e372111b5",
+  "dep_file_path": "packages/fxa-basket-proxy/package.json",
+  "dep_file_sha256": "dfae1db85c49e22b443b20fe495638b9c33396917df31672d4aabbe36bbab0d9",
+  "org": "mozilla",
+  "ref": {
+    "kind": "tag",
+    "value": "v1.142.0"
+  },
+  "repo": "fxa",
+  "ripgrep_version": "ripgrep 11.0.2 (rev 3de31f7527)",
+  "tag": "v1.142.0"
+}
