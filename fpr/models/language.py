@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 import enum
+import pathlib
 from typing import Dict, List
 
 
@@ -13,6 +14,15 @@ class DependencyFileKind(enum.Enum):
 class DependencyFilePattern:
     search_glob: str
     kind: DependencyFileKind
+
+
+@dataclass(frozen=True)
+class DependencyFile:
+    # path relative to the repo root including the filename
+    path: pathlib.Path
+
+    # sha256 hex digest of the file
+    sha256: str
 
 
 @dataclass(frozen=True)
