@@ -37,12 +37,17 @@ class PackageManager:
     commands: Dict[str, List[str]] = field(
         default_factory=lambda: dict(install=list(), list_metadata=list(), audit=list())
     )
+    # commands for listing the package manager version
+    version_commands: Dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
 class Language:
     name: str
     package_managers: List[PackageManager]
+
+    # commands for listing the language compiler or runtime version
+    version_commands: Dict[str, str]
 
 
 dependency_file_patterns: Dict[str, DependencyFilePattern] = {
@@ -86,6 +91,7 @@ package_managers: Dict[str, PackageManager] = {
                 "list_metadata": ["npm list --json"],
                 "audit": ["npm audit --json"],
             },
+            version_commands={"npm": "npm --version"},
         ),
         PackageManager(
             name="yarn",
@@ -99,6 +105,7 @@ package_managers: Dict[str, PackageManager] = {
                 "list_metadata": ["yarn list --json --frozen-lockfile"],
                 "audit": ["yarn audit --json --frozen-lockfile"],
             },
+            version_commands={"yarn": "yarn --version"},
         ),
         PackageManager(
             name="cargo",
@@ -112,6 +119,10 @@ package_managers: Dict[str, PackageManager] = {
                 "list_metadata": ["cargo metadata --format-version 1 --locked"],
                 "audit": ["cargo audit --json"],
             },
+            version_commands={
+                "cargo": "cargo --version",
+                "cargo-audit": "cargo audit --version",
+            },
         ),
     ]
 }
@@ -120,10 +131,15 @@ package_managers: Dict[str, PackageManager] = {
 languages: Dict[str, Language] = {
     l.name: l
     for l in [
-        Language(name="rust", package_managers=[package_managers["cargo"]]),
+        Language(
+            name="rust",
+            package_managers=[package_managers["cargo"]],
+            version_commands={"rustc": "rustc --version"},
+        ),
         Language(
             name="nodejs",
             package_managers=[package_managers["npm"], package_managers["yarn"]],
+            version_commands={"node": "node --version"},
         ),
     ]
 }
