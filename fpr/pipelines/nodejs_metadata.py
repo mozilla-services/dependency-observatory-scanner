@@ -67,7 +67,7 @@ CMD ["node"]
 
     @property
     def base_image(self) -> str:
-        return "{0.base_image_name}:{0.base_image_tag}".format(self)
+        return f"{self.base_image_name}:{self.base_image_tag}"
 
     @property
     def dockerfile(self) -> bytes:
@@ -79,20 +79,16 @@ async def build_container(args: NodeJSMetadataBuildArgs = None) -> str:
     if args is None:
         args = NodeJSMetadataBuildArgs()
     await containers.build(args.dockerfile, args.repo_tag, pull=True)
-    log.info("successfully built and tagged image {}".format(args.repo_tag))
+    log.info(f"successfully built and tagged image {args.repo_tag}")
     return args.repo_tag
 
 
 async def run_nodejs_metadata(args: argparse.Namespace, item: Tuple[OrgRepo, GitRef]):
     org_repo, git_ref = item
     log.debug(
-        "running nodejs-metadata on repo {!r} ref {!r}".format(
-            org_repo.github_clone_url, git_ref
-        )
+        f"running nodejs-metadata on repo {org_repo.github_clone_url!r} ref {git_ref}"
     )
-    name = "dep-obs-nodejs-metadata-{0.org}-{0.repo}-{1}".format(
-        org_repo, hex(randrange(1 << 32))[2:]
-    )
+    name = f"dep-obs-nodejs-metadata-{org_repo.org}-{org_repo.repo}-{hex(randrange(1 << 32))[2:]}"
     results = []
     async with containers.run(
         "dep-obs/nodejs-metadata:latest", name=name, cmd="/bin/bash"
@@ -175,9 +171,6 @@ async def run_nodejs_metadata(args: argparse.Namespace, item: Tuple[OrgRepo, Git
                 metadata_output=nodejs_meta,
                 audit_output=audit_output,
             )
-            # log.debug("{} metadata result {}".format(name, result))
-            # log.debug("{} stdout: {}".format(name, await c.log(stdout=True)))
-            # log.debug("{} stderr: {}".format(name, await c.log(stderr=True)))
             results.append(result)
     return results
 
@@ -190,13 +183,11 @@ async def run_pipeline(
         await build_container()
     except Exception as e:
         log.error(
-            "error occurred building the nodejs metadata image: {0}\n{1}".format(
-                e, exc_to_str()
-            )
+            f"error occurred building the nodejs metadata image: {e}\n{exc_to_str()}"
         )
 
     for i, item in enumerate(source):
-        log.debug("processing {!r}".format(item))
+        log.debug(f"processing {item!r}")
         org_repo, git_ref = (
             OrgRepo.from_github_repo_url(item["repo_url"]),
             GitRef.from_dict(item["ref"]),
@@ -205,7 +196,7 @@ async def run_pipeline(
             for result in await run_nodejs_metadata(args, (org_repo, git_ref)):
                 yield result
         except Exception as e:
-            log.error("error running nodejs metadata:\n{}".format(exc_to_str()))
+            log.error(f"error running nodejs metadata:\n{exc_to_str()}")
 
 
 def serialize_nodejs_metadata_output(
