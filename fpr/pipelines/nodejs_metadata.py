@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import logging
 import sys
 import time
@@ -98,13 +99,15 @@ async def run_nodejs_metadata(args: argparse.Namespace, item: Tuple[OrgRepo, Git
     ) as c:
         await containers.ensure_repo(c, org_repo.github_clone_url)
         await containers.ensure_ref(c, git_ref, working_dir="/repo")
-        branch = await containers.get_branch(c)
-        commit = await containers.get_commit(c)
-        tag = await containers.get_tag(c)
-        node_version = await containers.get_node_version(c)
-        npm_version = await containers.get_npm_version(c)
-        yarn_version = await containers.get_yarn_version(c)
-        ripgrep_version = await containers.get_ripgrep_version(c)
+        branch, commit, tag, ripgrep_version, node_version, npm_version, yarn_version = await asyncio.gather(
+            containers.get_branch(c),
+            containers.get_commit(c),
+            containers.get_tag(c),
+            containers.get_ripgrep_version(c),
+            containers.get_node_version(c),
+            containers.get_npm_version(c),
+            containers.get_yarn_version(c),
+        )
 
         log.debug(f"{name} stdout: {await c.log(stdout=True)}")
         log.debug(f"{name} stderr: {await c.log(stderr=True)}")

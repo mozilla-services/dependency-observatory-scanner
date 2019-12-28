@@ -103,14 +103,12 @@ async def run_find_dep_files(item: Tuple[OrgRepo, GitRef], args: argparse.Namesp
             c, org_repo.github_clone_url, working_dir="/repos/"
         )
         await containers.ensure_ref(c, git_ref, working_dir="/repos/repo")
-        # TODO: parallelize these four calls
-        branch = await containers.get_branch(c, working_dir="/repos/repo")
-        commit = await containers.get_commit(c, working_dir="/repos/repo")
-        tag = await containers.get_tag(c, working_dir="/repos/repo")
-        ripgrep_version = await containers.get_ripgrep_version(
-            c, working_dir="/repos/repo"
+        branch, commit, tag, ripgrep_version = await asyncio.gather(
+            containers.get_branch(c, working_dir="/repos/repo"),
+            containers.get_commit(c, working_dir="/repos/repo"),
+            containers.get_tag(c, working_dir="/repos/repo"),
+            containers.get_ripgrep_version(c, working_dir="/repos/repo"),
         )
-
         log.debug(f"{name} stdout: {await c.log(stdout=True)}")
         log.debug(f"{name} stderr: {await c.log(stderr=True)}")
 
