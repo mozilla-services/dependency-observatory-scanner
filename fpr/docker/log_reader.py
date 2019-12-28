@@ -46,25 +46,21 @@ def stream_no_to_DockerLogStream(stream_no: int) -> DockerLogStream:
     elif stream_no == DockerLogStream.STDERR.value:
         return DockerLogStream.STDERR
     else:
-        raise DockerLogReadError(
-            "Unrecognized raw log stream no {!r}".format(stream_no)
-        )
+        raise DockerLogReadError(f"Unrecognized raw log stream no {stream_no}")
 
 
 def read_message(msg_bytes: bytes) -> Tuple[DockerLogStream, bytes, bytes]:
-    log.debug("reading {} byte message {}".format(len(msg_bytes), msg_bytes))
+    log.debug(f"reading {len(msg_bytes)} byte message {msg_bytes}")
     if len(msg_bytes) < HEADER_LENGTH:
         raise DockerLogReadError(
-            "Too few bytes in {!r}. Need at least {}.".format(msg_bytes, HEADER_LENGTH)
+            f"Too few bytes in {msg_bytes}. Need at least {HEADER_LENGTH}."
         )
 
     msg_header, rest = msg_bytes[:HEADER_LENGTH], msg_bytes[HEADER_LENGTH:]
     stream_no, msg_length_from_header = struct.unpack(LOG_HEADER_FORMAT, msg_header)
     if len(rest) < msg_length_from_header:
         raise DockerLogReadError(
-            "message header wants {} bytes but message only has {} left".format(
-                msg_length_from_header, len(rest)
-            )
+            f"message header wants {msg_length_from_header} bytes but message only has {len(rest)} left"
         )
     return (
         stream_no_to_DockerLogStream(stream_no),
@@ -77,17 +73,15 @@ def iter_messages(
     msg_bytes: bytes,
 ) -> Generator[Tuple[DockerLogStream, DockerLogMessage], None, None]:
     msg_bytes_remaining = msg_bytes
-    log.debug("itering through {} msg bytes".format(len(msg_bytes)))
+    log.debug(f"itering through {len(msg_bytes)} msg bytes")
     while True:
         if not msg_bytes_remaining:
-            log.debug("nothing to read from {!r}".format(msg_bytes_remaining))
+            log.debug(f"nothing to read from {msg_bytes_remaining}")
             break
 
         stream, content, msg_bytes_remaining = read_message(msg_bytes_remaining)
         log.debug(
-            "read msg {} ({} bytes, {} left) {}".format(
-                stream, len(content), len(msg_bytes_remaining), content
-            )
+            f"read msg {stream} ({len(content)} bytes, {len(msg_bytes_remaining)} left) {content}"
         )
         yield stream, content
         if not msg_bytes_remaining:
@@ -104,7 +98,7 @@ def iter_lines(
     buf = bytes()
     for stream, msg in msgs_iter:
         if stream != output_stream:
-            log.debug("Skipping {} message {}".format(stream, msg))
+            log.debug(f"Skipping {stream} message {msg}")
             continue
 
         before = msg
