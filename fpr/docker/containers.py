@@ -10,6 +10,7 @@ from io import BytesIO
 import tarfile
 import tempfile
 from typing import (
+    Any,
     AsyncGenerator,
     BinaryIO,
     IO,
@@ -22,7 +23,9 @@ from typing import (
 )
 import aiodocker
 
+from fpr.docker.client import aiodocker_client
 import fpr.docker.log_reader as docker_log_reader
+import fpr.docker.volumes
 from fpr.models import GitRef, GitRefKind
 from fpr.pipelines.util import exc_to_str
 
@@ -62,9 +65,9 @@ class DockerRunException(Exception):
 class Exec:
     # from: https://github.com/hirokiky/aiodocker/blob/8a91b27cff7311398ca36f5453d94679fed99d11/aiodocker/execute.py
 
-    def __init__(self, exec_id, container: aiodocker.docker.DockerContainer):
-        self.exec_id = exec_id
-        self.container = container
+    def __init__(self, exec_id: str, container: aiodocker.docker.DockerContainer):
+        self.exec_id: str = exec_id
+        self.container: aiodocker.docker.DockerContainer = container
         self.start_result: Optional[bytes] = None
 
     @classmethod
@@ -74,9 +77,7 @@ class Exec:
         """ Create and return an instance of Exec
         """
         data = await container.docker._query_json(
-            "containers/{container._id}/exec".format(container=container),
-            method="POST",
-            data=kwargs,
+            f"containers/{container._id}/exec", method="POST", data=kwargs
         )
         return cls(data["Id"], container)
 
@@ -90,7 +91,7 @@ class Exec:
         # content-type of response will be "vnd.docker.raw-stream",
         # so it will cause error.
         response_cm = self.container.docker._query(
-            "exec/{exec_id}/start".format(exec_id=self.exec_id),
+            f"exec/{self.exec_id}/start",
             method="POST",
             headers={"content-type": "application/json"},
             data=json.dumps(kwargs),
@@ -101,20 +102,18 @@ class Exec:
             response.release()
             return result
 
-    async def resize(self, **kwargs):
+    async def resize(self: "Exec", **kwargs) -> None:
         await self.container.docker._query(
-            "exec/{exec_id}/resize".format(exec_id=self.exec_id),
-            method="POST",
-            params=kwargs,
+            f"exec/{self.exec_id}/resize", method="POST", params=kwargs
         )
 
-    async def inspect(self) -> DockerExecInspectResult:
+    async def inspect(self: "Exec") -> DockerExecInspectResult:
         data = await self.container.docker._query_json(
-            "exec/{exec_id}/json".format(exec_id=self.exec_id), method="GET"
+            f"exec/{self.exec_id}/json", method="GET"
         )
         return data
 
-    async def wait(self):
+    async def wait(self: "Exec") -> None:
         while True:
             resp = await self.inspect()
             log.debug("Exec wait resp:", resp)
@@ -140,20 +139,20 @@ async def _exec_create(self: aiodocker.containers.DockerContainer, **kwargs) -> 
     return await Exec.create(self, **kwargs)
 
 
-aiodocker.containers.DockerContainer.exec_create = _exec_create  # type: ignore
+aiodocker.containers.DockerContainer.exec_create = _exec_create
 
 
 async def _run(
-    self,
-    cmd,
-    attach_stdout=True,
-    attach_stderr=True,
-    detach=False,
-    tty=False,
-    working_dir=None,
+    self: aiodocker.containers.DockerContainer,
+    cmd: str,
+    attach_stdout: bool = True,
+    attach_stderr: bool = True,
+    detach: bool = False,
+    tty: bool = False,
+    working_dir: Optional[str] = None,
     # fpr specific args
-    wait=True,
-    check=True,
+    wait: bool = True,
+    check: bool = True,
     **kwargs,
 ) -> Exec:
     """Create and run an instance of exec (Instance of Exec). Optionally wait for it to finish and check its exit code
@@ -164,24 +163,20 @@ async def _run(
     if working_dir is not None:
         config["WorkingDir"] = working_dir
     container_log_name = self["Name"] if "Name" in self._container else self["Id"]
-    log.info(
-        "container {} in {} running {!r}".format(container_log_name, working_dir, cmd)
-    )
+    log.info(f"container {container_log_name} in {working_dir} running {cmd!r}")
     exec_ = await self.exec_create(**config)
 
     with tempfile.NamedTemporaryFile(
         mode="w+",
         encoding="utf-8",
-        prefix="fpr_container_{0[Id]}_exec_{1.exec_id}_stdout".format(self, exec_),
+        prefix=f"fpr_container_{self['Id']}_exec_{exec_.exec_id}_stdout",
         delete=False,
     ) as tmpout:
         exec_.start_result = await exec_.start(Detach=detach, Tty=tty)
         for line in exec_.decoded_start_result_stdout:
             tmpout.write(line + "\n")
         log.info(
-            "container {} in {} ran {} saved start result to {}".format(
-                container_log_name, working_dir, config, tmpout.name
-            )
+            f"container {container_log_name} in {working_dir} ran {config} saved start result to {tmpout.name}"
         )
     if wait:
         await exec_.wait()
@@ -189,51 +184,69 @@ async def _run(
         last_inspect = await exec_.inspect()
         if last_inspect["ExitCode"] != 0:
             raise DockerRunException(
-                "{} command {} failed with non-zero exit code {}".format(
-                    self._id, cmd, last_inspect["ExitCode"]
-                )
+                f"{self._id} command {cmd} failed with non-zero exit code {last_inspect['ExitCode']}"
             )
     return exec_
 
 
-aiodocker.containers.DockerContainer.run = _run  # type: ignore
+aiodocker.containers.DockerContainer.run = _run
 
 
 @contextlib.asynccontextmanager
-async def run(repository_tag, name, cmd=None, entrypoint=None, working_dir=None):
-    client = aiodocker.Docker()
-    config = dict(
-        Cmd=cmd,
-        Image=repository_tag,
-        LogConfig={"Type": "json-file"},
-        AttachStdout=True,
-        AttachStderr=True,
-        Tty=True,
-    )
-    if entrypoint:
-        config["Entrypoint"] = entrypoint
-    if working_dir:
-        config["WorkingDir"] = working_dir
-    log.info("starting image {} as {}".format(repository_tag, name))
-    log.debug("container {} starting {} with config {}".format(name, cmd, config))
-    container = await client.containers.run(config=config, name=name)
-    # fetch container info so we can include container name in logs
-    await container.show()
-    try:
-        yield container
-    except DockerRunException as e:
-        container_log_name = (
-            container["Name"] if "Name" in container._container else container["Id"]
-        )
-        log.error(
-            "{} error running docker command {}:\n{}".format(
-                container_log_name, cmd, exc_to_str()
+async def run(
+    repository_tag: str,
+    name: str,
+    cmd: str = None,
+    entrypoint: Optional[str] = None,
+    working_dir: Optional[str] = None,
+    volumes: Optional[List[fpr.docker.volumes.DockerVolumeConfig]] = None,
+) -> AsyncGenerator[aiodocker.docker.DockerContainer, None]:
+    async with aiodocker_client() as client:
+        volume_configs: List[
+            fpr.docker.volumes.DockerVolumeConfig
+        ] = volumes if volumes is not None else []
+        async with fpr.docker.volumes.ensure_many(log, client, volume_configs):
+            config: Dict[str, Any] = dict(
+                Cmd=cmd,
+                Image=repository_tag,
+                LogConfig={"Type": "json-file"},
+                AttachStdout=True,
+                AttachStderr=True,
+                Tty=True,
+                HostConfig={
+                    # "ContainerIDFile": "./"
+                    "Mounts": []
+                },
             )
-        )
-    finally:
-        await container.stop()
-        await container.delete()
-        await client.close()
+            if entrypoint:
+                config["Entrypoint"] = entrypoint
+            if working_dir:
+                config["WorkingDir"] = working_dir
+            if volumes:
+                config["Volumes"] = {cfg.mount_point: dict() for cfg in volume_configs}
+                config["HostConfig"]["Mounts"] = [
+                    dict(Target=cfg.mount_point, Source=cfg.name, Type="volume")
+                    for cfg in volume_configs
+                ]
+            log.info(f"starting image {repository_tag} as {name}")
+            log.debug(f"container {name} starting {cmd} with config {config}")
+            container = await client.containers.run(config=config, name=name)
+            # fetch container info so we can include container name in logs
+            await container.show()
+            try:
+                yield container
+            except DockerRunException as e:
+                container_log_name = (
+                    container["Name"]
+                    if "Name" in container._container
+                    else container["Id"]
+                )
+                log.error(
+                    f"{container_log_name} error running docker command {cmd}:\n{exc_to_str()}"
+                )
+            finally:
+                await container.stop()
+                await container.delete()
 
 
 @contextlib.contextmanager
@@ -267,38 +280,43 @@ def temp_dockerfile_tgz(fileobject: BinaryIO) -> Generator[IO, None, None]:
         f.close()
 
 
-@contextlib.contextmanager
-async def aiodocker_client():
-    client = aiodocker.Docker()
-    try:
-        yield client
-    finally:
-        await client.close()
+async def build(dockerfile: bytes, tag: str, pull: bool = False) -> str:
+    async with aiodocker_client() as client:
+        log.info(f"building image {tag}")
+        log.debug(f"building image {tag} with dockerfile:\n{dockerfile}")
+        with temp_dockerfile_tgz(BytesIO(dockerfile)) as tar_obj:
+            async for build_log_line in client.images.build(
+                fileobj=tar_obj,
+                encoding="utf-8",
+                rm=True,
+                tag=tag,
+                pull=pull,
+                stream=True,
+            ):
+                log.debug(f"building image {tag}: {build_log_line}")
 
-
-async def build(dockerfile: bytes, tag: str, pull: bool = False):
-    client = aiodocker.Docker()
-    log.info("building image {}".format(tag))
-    log.debug("building image {} with dockerfile:\n{}".format(tag, dockerfile))
-    with temp_dockerfile_tgz(BytesIO(dockerfile)) as tar_obj:
-        async for build_log_line in client.images.build(
-            fileobj=tar_obj, encoding="utf-8", rm=True, tag=tag, pull=pull, stream=True
-        ):
-            log.debug("building image {}: {}".format(tag, build_log_line))
-
-    image_info = await client.images.inspect(tag)
-    log.info("built docker image: {} {}".format(tag, image_info["Id"]))
-    await client.close()
+        image_info = await client.images.inspect(tag)
+        log.info(f"built docker image: {tag} {image_info['Id']}")
     return tag
 
 
 async def ensure_repo(
-    container: aiodocker.containers.DockerContainer, repo_url: str, working_dir="/"
+    container: aiodocker.containers.DockerContainer, repo_url: str, working_dir="/repo"
 ):
-    cmds = [
-        "rm -rf repo",
-        "git clone --depth=1 {repo_url} repo".format(repo_url=repo_url),
-    ]
+    test_repo_exec: Exec = await container.run(
+        f"test -d repo", wait=True, check=False, working_dir=working_dir
+    )
+    test_repo_exec_inspect_result = await test_repo_exec.inspect()
+    log.debug(f"test repo result: {test_repo_exec_inspect_result}")
+    if test_repo_exec_inspect_result["ExitCode"] == 0:
+        log.debug(
+            f"git repo found for: {repo_url} at {working_dir}; checking remote url and cleaning"
+        )
+        # TODO: make sure the repo remote matches repo_url
+        cmds = ["git remote get-url origin", "git clean -f -d -q"]
+        working_dir += "repo"
+    else:
+        cmds = ["rm -rf repo", f"git clone --depth=1 --origin origin {repo_url} repo"]
     for cmd in cmds:
         await container.run(cmd, wait=True, check=True, working_dir=working_dir)
 
@@ -309,7 +327,7 @@ async def fetch_branch(
     remote: str = "origin",
     working_dir: str = "/repo",
 ):
-    cmd = "git fetch {remote} {branch}".format(branch=branch, remote=remote)
+    cmd = f"git fetch {remote} {branch}"
     await container.run(cmd, wait=True, check=True, working_dir=working_dir)
 
 
@@ -320,7 +338,7 @@ async def fetch_commit(
     working_dir: str = "/repo",
 ):
     # per https://stackoverflow.com/a/30701724
-    cmd = "git fetch {remote} {commit}".format(commit=commit, remote=remote)
+    cmd = f"git fetch {remote} {commit}"
     await container.run(cmd, wait=True, check=True, working_dir=working_dir)
 
 
@@ -352,10 +370,7 @@ async def ensure_ref(container, ref: GitRef, working_dir="/repo"):
         await fetch_commit(container, commit=ref.value, working_dir=working_dir)
 
     await container.run(
-        "git checkout {ref}".format(ref=ref.value),
-        working_dir=working_dir,
-        wait=True,
-        check=True,
+        f"git checkout {ref.value}", working_dir=working_dir, wait=True, check=True
     )
 
 
@@ -429,53 +444,29 @@ async def cargo_metadata(
 
 
 async def find_files(
-    filename: str,
+    search_patterns: List[str],
     container: aiodocker.containers.DockerContainer,
     working_dir: str = "/repo",
 ) -> str:
-    cmd = "rg --no-ignore -g {} --files".format(filename)
+    cmd = "rg --no-ignore --files"
+    for search_pattern in search_patterns:
+        cmd += f" -g {search_pattern}"
     exec_ = await container.run(cmd, working_dir=working_dir, check=True)
-    log.info("{} result: {}".format(cmd, exec_.start_result))
+    log.info(f"{cmd} result: {exec_.start_result}")
 
     return exec_.decoded_start_result_stdout
 
 
 async def get_tags(
-    container: aiodocker.containers.DockerContainer, working_dir: str = "/repo"
+    container: aiodocker.containers.DockerContainer, working_dir: str = "/repos/repo"
 ) -> str:
     await fetch_tags(container, working_dir=working_dir)
     # sort tags from oldest to newest
     cmd = "git tag -l --sort=creatordate"
-    exec_ = await container.run(cmd, working_dir="/repo", check=True)
-    log.info("{} result: {}".format(cmd, exec_.start_result))
+    exec_ = await container.run(cmd, working_dir=working_dir, check=True)
+    log.info(f"{cmd} result: {exec_.start_result}")
 
     return exec_.decoded_start_result_stdout
-
-
-find_cargo_tomlfiles = functools.partial(find_files, "Cargo.toml")
-find_cargo_tomlfiles.__doc__ = (
-    """Finds the relative paths to Cargo.toml files in a repo using ripgrep"""
-)
-
-find_cargo_lockfiles = functools.partial(find_files, "Cargo.lock")
-find_cargo_lockfiles.__doc__ = """Find the relative paths to Cargo.lock files in a repo in one or
-    more ways:
-
-    git clone the repo in a container
-    TODO use searchfox.org (mozilla central only)
-    TODO using github search
-    """
-
-
-async def find_nodejs_files(
-    container: aiodocker.containers.DockerContainer, working_dir: str = "/repo"
-) -> AsyncGenerator[str, None]:
-    """Finds the relative paths to node.js dep and lock files in a repo
-    using ripgrep"""
-    for fn in ["package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock"]:
-        results = await find_files(fn, container, working_dir)
-        for result in results:
-            yield result
 
 
 async def nodejs_metadata(

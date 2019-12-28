@@ -66,7 +66,7 @@ clean:
 	docker container prune -f
 
 run-find-git-refs:
-	$(FPR_PYTHON) find_git_refs -i tests/fixtures/mozilla_services_channelserver_repo_url.jsonl
+	$(FPR_PYTHON) find_git_refs --keep-volumes -i tests/fixtures/mozilla_services_channelserver_repo_url.jsonl
 
 run-find-git-refs-and-save:
 	$(FPR_PYTHON) find_git_refs -i tests/fixtures/mozilla_services_channelserver_repo_url.jsonl -o output.jsonl
@@ -86,6 +86,9 @@ run-crate-graph-and-save:
 	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate_graph.jsonl -o /dev/null --node-key name_version --node-label name_package_source --dot-filename source-node-label.dot
 	$(FPR_PYTHON) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate_graph.jsonl -o /dev/null --node-key name_version --node-label name_metadata --dot-filename metadata-node-label.dot
 	./bin/write_dotfiles.sh < crate_graph.jsonl
+
+run-find-dep-files-and-save:
+	printf '{"org": "mozilla", "repo": "fxa", "ref": {"value": "v1.142.0", "kind": "tag"}, "repo_url": "https://github.com/mozilla/fxa.git"}' | $(FPR_PYTHON) -v find_dep_files --keep-volumes -o output.jsonl
 
 run-nodejs-metadata:
 	printf '{"org": "mozilla", "repo": "fxa", "ref": {"value": "v1.142.0", "kind": "tag"}, "repo_url": "https://github.com/mozilla/fxa.git"}' | $(FPR_PYTHON) nodejs_metadata

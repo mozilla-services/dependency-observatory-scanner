@@ -111,7 +111,11 @@ async def run_nodejs_metadata(args: argparse.Namespace, item: Tuple[OrgRepo, Git
 
         # cache of the tuple (nodejs_meta, nodejs_audit) output for dep file sha256sum
         meta_by_sha2sum: Dict[str, Tuple[str, str]] = {}
-        async for nodejs_file in containers.find_nodejs_files(c, working_dir="/repo"):
+        for nodejs_file in await containers.find_files(
+            ["package.json", "package-lock.json", "npm-shrinkwrap.json", "yarn.lock"],
+            c,
+            working_dir="/repo",
+        ):
             nodejs_file_sha256 = await containers.sha256sum(c, file_path=nodejs_file)
             nodejs_meta: Optional[str] = None
             audit_output: Optional[str] = None

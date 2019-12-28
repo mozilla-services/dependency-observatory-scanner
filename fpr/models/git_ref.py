@@ -1,6 +1,6 @@
 from dataclasses import asdict, dataclass
 import enum
-from typing import Dict, Tuple, Sequence
+from typing import Dict
 
 
 @enum.unique

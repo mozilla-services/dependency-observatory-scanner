@@ -93,7 +93,9 @@ async def run_cargo_audit(item: Tuple[OrgRepo, GitRef]):
         log.debug("{} stdout: {}".format(name, await c.log(stdout=True)))
         log.debug("{} stderr: {}".format(name, await c.log(stderr=True)))
 
-        cargo_lockfiles = await containers.find_cargo_lockfiles(c, working_dir="/repo")
+        cargo_lockfiles = await containers.find_files(
+            ["Cargo.lock"], c, working_dir="/repo"
+        )
         log.info("{} found Cargo.lock files: {}".format(c["Name"], cargo_lockfiles))
 
         results = []
