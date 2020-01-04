@@ -90,17 +90,19 @@ def main():
             )
             try:
                 serialized = pipeline.serializer(args, row)
+                save_to_tmpfile(
+                    f"{args.pipeline_name}_serialized_",
+                    file_ext=".json",
+                    item=serialized,
+                )
+                writer = getattr(pipeline, "writer")
+                writer(args.outfile, serialized)
+                if args.append_outfile:
+                    writer(args.append_outfile, serialized)
             except Exception as e:
                 log.error(
                     f"error serializing result for {args.pipeline_name} pipeline:\n{exc_to_str()}"
                 )
-            save_to_tmpfile(
-                f"{args.pipeline_name}_serialized_", file_ext=".json", item=serialized
-            )
-            writer = getattr(pipeline, "writer")
-            writer(args.outfile, serialized)
-            if args.append_outfile:
-                writer(args.append_outfile, serialized)
 
     try:
         asyncio.run(main(), debug=False)
