@@ -1,6 +1,6 @@
 
-IN_VENV := bash bin/in_venv.sh
-FPR_PYTHON := PYTHONPATH=$$PYTHONPATH:fpr/ $(IN_VENV) python fpr/run_pipeline.py
+IN_VENV := PYTHONPATH=$$PYTHONPATH:fpr/ bash bin/in_venv.sh
+FPR_PYTHON := $(IN_VENV) python fpr/run_pipeline.py
 
 build-image:
 	docker build -t fpr:build .
