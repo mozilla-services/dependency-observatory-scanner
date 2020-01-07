@@ -341,12 +341,6 @@ FIELDS: AbstractSet = set()
 
 
 def serialize(_: argparse.Namespace, result: Dict):
-    stdout = get_in(result, ["task", "stdout"])
-    if stdout:
-        try:
-            result["parsed_stdout"] = json.loads(stdout)
-        except json.decoder.JSONDecodeError as e:
-            log.debug(f"error parsing task stdout as JSON: {e}")
     return result
 
 
