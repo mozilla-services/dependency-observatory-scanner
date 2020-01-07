@@ -216,6 +216,7 @@ async def run_in_repo_at_ref(
                 task={
                     "name": task.name,
                     "command": task.command,
+                    "container_name": name,
                     "working_dir": working_dir,
                     "exit_code": last_inspect["ExitCode"],
                     "stdout": stdout,
