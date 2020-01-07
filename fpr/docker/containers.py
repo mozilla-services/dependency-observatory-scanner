@@ -412,15 +412,6 @@ get_ripgrep_version = functools.partial(
 get_rustc_version = functools.partial(
     run_container_cmd_no_args_return_first_line_or_none, "rustc --version"
 )
-get_node_version = functools.partial(
-    run_container_cmd_no_args_return_first_line_or_none, "node --version"
-)
-get_npm_version = functools.partial(
-    run_container_cmd_no_args_return_first_line_or_none, "npm --version"
-)
-get_yarn_version = functools.partial(
-    run_container_cmd_no_args_return_first_line_or_none, "yarn --version"
-)
 
 
 async def cargo_audit(
