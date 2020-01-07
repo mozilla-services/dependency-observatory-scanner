@@ -43,15 +43,6 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     parser = add_infile_and_outfile(pipeline_parser)
     parser = add_volume_arg(parser)
     parser.add_argument(
-        "-m",
-        "--manifest-path",
-        type=str,
-        required=False,
-        default=None,
-        help="Filter to only run npm install, list, and audit "
-        "for matching manifest file name and path",
-    )
-    parser.add_argument(
         "--dry-run",
         action="store_true",
         required=False,
