@@ -8,6 +8,10 @@ class OrgRepo:
     repo: str
 
     @property
+    def org_repo(self) -> str:
+        return f"{self.org}/{self.repo}"
+
+    @property
     def github_clone_url(self) -> str:
         return f"https://github.com/{self.org}/{self.repo}.git"
 
