@@ -11,7 +11,7 @@ from fpr.serialize_util import get_in, extract_fields, iter_jsonlines
 import fpr.docker.containers as containers
 import fpr.docker.volumes as volumes
 from fpr.models import GitRef, OrgRepo, Pipeline
-from fpr.models.pipeline import add_infile_and_outfile
+from fpr.models.pipeline import add_infile_and_outfile, add_volume_arg
 from fpr.models.language import dependency_file_patterns
 from fpr.pipelines.util import exc_to_str
 
@@ -59,13 +59,7 @@ async def build_container(args: FindDepFilesBuildArgs = None) -> str:
 
 def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser = add_infile_and_outfile(pipeline_parser)
-    parser.add_argument(
-        "--keep-volumes",
-        action="store_true",
-        default=False,
-        required=False,
-        help="Keep volumes and after cloning the repo. Defaults to False.",
-    )
+    parser = add_volume_arg(parser)
     parser.add_argument(
         "--glob",
         type=str,
@@ -103,14 +97,12 @@ async def run_find_dep_files(item: Tuple[OrgRepo, GitRef], args: argparse.Namesp
             c, org_repo.github_clone_url, working_dir="/repos/"
         )
         await containers.ensure_ref(c, git_ref, working_dir="/repos/repo")
-        # TODO: parallelize these four calls
-        branch = await containers.get_branch(c, working_dir="/repos/repo")
-        commit = await containers.get_commit(c, working_dir="/repos/repo")
-        tag = await containers.get_tag(c, working_dir="/repos/repo")
-        ripgrep_version = await containers.get_ripgrep_version(
-            c, working_dir="/repos/repo"
+        branch, commit, tag, ripgrep_version = await asyncio.gather(
+            containers.get_branch(c, working_dir="/repos/repo"),
+            containers.get_commit(c, working_dir="/repos/repo"),
+            containers.get_tag(c, working_dir="/repos/repo"),
+            containers.get_ripgrep_version(c, working_dir="/repos/repo"),
         )
-
         log.debug(f"{name} stdout: {await c.log(stdout=True)}")
         log.debug(f"{name} stderr: {await c.log(stderr=True)}")
 

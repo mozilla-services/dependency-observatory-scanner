@@ -11,7 +11,7 @@ from fpr.serialize_util import get_in, extract_fields, iter_jsonlines
 import fpr.docker.containers as containers
 import fpr.docker.volumes as volumes
 from fpr.models import GitRef, OrgRepo, Pipeline
-from fpr.models.pipeline import add_infile_and_outfile
+from fpr.models.pipeline import add_infile_and_outfile, add_volume_arg
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.find_git_refs")
@@ -59,6 +59,7 @@ async def build_container(args: FindGitRefsBuildArgs = None) -> str:
 
 def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser = add_infile_and_outfile(pipeline_parser)
+    parser = add_volume_arg(parser)
     parser.add_argument(
         "-t",
         "--tags",
@@ -66,13 +67,6 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
         default=False,
         required=False,
         help="Output metadata for each tag in the repo. Defaults to False.",
-    )
-    parser.add_argument(
-        "--keep-volumes",
-        action="store_true",
-        default=False,
-        required=False,
-        help="Keep volumes after cloning the repo. Defaults to False.",
     )
     return parser
 

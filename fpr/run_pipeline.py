@@ -74,46 +74,40 @@ def main():
     pipeline = next(p for p in pipelines if p.name == args.pipeline_name)
     if args.append_outfile:
         log.info(
-            "running pipeline {0.pipeline_name} on {0.infile.name} writing to "
-            "{0.outfile.name} and appending to {0.append_outfile.name}".format(args)
+            f"running pipeline {args.pipeline_name} on {args.infile.name} writing to "
+            f"{args.outfile.name} and appending to {args.append_outfile.name}"
         )
     else:
         log.info(
-            "running pipeline {0.pipeline_name} on {0.infile.name} writing to "
-            "{0.outfile.name}".format(args)
+            f"running pipeline {args.pipeline_name} on {args.infile.name} writing to "
+            f"{args.outfile.name}"
         )
 
     async def main():
         async for row in pipeline.runner(pipeline.reader(args.infile), args):
             save_to_tmpfile(
-                "{}_unserialized_".format(args.pipeline_name),
-                file_ext=".pickle",
-                item=row,
+                f"{args.pipeline_name}_unserialized_", file_ext=".pickle", item=row
             )
             try:
                 serialized = pipeline.serializer(args, row)
+                save_to_tmpfile(
+                    f"{args.pipeline_name}_serialized_",
+                    file_ext=".json",
+                    item=serialized,
+                )
+                writer = getattr(pipeline, "writer")
+                writer(args.outfile, serialized)
+                if args.append_outfile:
+                    writer(args.append_outfile, serialized)
             except Exception as e:
                 log.error(
-                    "error serializing result for {} pipeline:\n{}".format(
-                        args.pipeline_name, exc_to_str()
-                    )
+                    f"error serializing result for {args.pipeline_name} pipeline:\n{exc_to_str()}"
                 )
-            save_to_tmpfile(
-                "{}_serialized_".format(args.pipeline_name),
-                file_ext=".json",
-                item=serialized,
-            )
-            writer = getattr(pipeline, "writer")
-            writer(args.outfile, serialized)
-            if args.append_outfile:
-                writer(args.append_outfile, serialized)
 
     try:
         asyncio.run(main(), debug=False)
     except Exception as e:
-        log.error(
-            "error running {} pipeline:\n{}".format(args.pipeline_name, exc_to_str())
-        )
+        log.error(f"error running {args.pipeline_name} pipeline:\n{exc_to_str()}")
 
     log.info("pipeline finished")
     log.debug("main finished!")

@@ -1,3 +1,4 @@
+import asyncio
 import argparse
 import logging
 import sys
@@ -78,12 +79,14 @@ async def run_cargo_metadata(item: Tuple[OrgRepo, GitRef]):
     ) as c:
         await containers.ensure_repo(c, org_repo.github_clone_url)
         await containers.ensure_ref(c, git_ref, working_dir="/repo")
-        branch = await containers.get_branch(c)
-        commit = await containers.get_commit(c)
-        tag = await containers.get_tag(c)
-        cargo_version = await containers.get_cargo_version(c)
-        rustc_version = await containers.get_rustc_version(c)
-        ripgrep_version = await containers.get_ripgrep_version(c)
+        branch, commit, tag, ripgrep_version, cargo_version, rustc_version = await asyncio.gather(
+            containers.get_branch(c),
+            containers.get_commit(c),
+            containers.get_tag(c),
+            containers.get_ripgrep_version(c),
+            containers.get_cargo_version(c),
+            containers.get_rustc_version(c),
+        )
 
         log.debug("{} stdout: {}".format(name, await c.log(stdout=True)))
         log.debug("{} stderr: {}".format(name, await c.log(stderr=True)))
