@@ -212,10 +212,10 @@ async def run_in_repo_at_ref(
                 branch=branch,
                 commit=commit,
                 tag=tag,
-                working_dir=working_dir,
                 task={
                     "name": task.name,
                     "command": task.command,
+                    "working_dir": working_dir,
                     "exit_code": last_inspect["ExitCode"],
                     "stdout": stdout,
                 },
