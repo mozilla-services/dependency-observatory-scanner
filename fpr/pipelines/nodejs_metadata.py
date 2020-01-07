@@ -212,6 +212,7 @@ async def run_in_repo_at_ref(
                 branch=branch,
                 commit=commit,
                 tag=tag,
+                relative_path=str(path),
                 task={
                     "name": task.name,
                     "command": task.command,
