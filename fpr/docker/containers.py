@@ -163,7 +163,7 @@ async def _run(
     if working_dir is not None:
         config["WorkingDir"] = working_dir
     container_log_name = self["Name"] if "Name" in self._container else self["Id"]
-    log.info(f"container {container_log_name} in {working_dir} running {cmd!r}")
+    log.debug(f"container {container_log_name} in {working_dir} running {cmd!r}")
     exec_ = await self.exec_create(**config)
 
     with tempfile.NamedTemporaryFile(
@@ -175,7 +175,7 @@ async def _run(
         exec_.start_result = await exec_.start(Detach=detach, Tty=tty)
         for line in exec_.decoded_start_result_stdout:
             tmpout.write(line + "\n")
-        log.info(
+        log.debug(
             f"container {container_log_name} in {working_dir} ran {config} saved start result to {tmpout.name}"
         )
     if wait:
