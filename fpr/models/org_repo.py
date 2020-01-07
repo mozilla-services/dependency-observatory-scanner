@@ -9,7 +9,7 @@ class OrgRepo:
 
     @property
     def github_clone_url(self) -> str:
-        return "https://github.com/{0.org}/{0.repo}.git".format(self)
+        return f"https://github.com/{self.org}/{self.repo}.git"
 
     @staticmethod
     def from_org_repo(org_repo):
