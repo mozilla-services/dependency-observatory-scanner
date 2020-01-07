@@ -24,7 +24,7 @@ from fpr.rx_util import on_next_save_to_jsonl
 from fpr.serialize_util import get_in, extract_fields, iter_jsonlines, REPO_FIELDS
 import fpr.docker.containers as containers
 from fpr.models import GitRef, OrgRepo, Pipeline, SerializedNodeJSMetadata
-from fpr.models.pipeline import add_infile_and_outfile
+from fpr.models.pipeline import add_infile_and_outfile, add_volume_arg
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.nodejs_metadata")
@@ -37,6 +37,7 @@ them."""
 
 def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser = add_infile_and_outfile(pipeline_parser)
+    parser = add_volume_arg(parser)
     parser.add_argument(
         "-m",
         "--manifest-path",
