@@ -116,6 +116,7 @@ async def run_in_repo_at_ref(
     version_commands: typing.Mapping[str, str],
     dry_run: bool,
     cwd_files: AbstractSet[str],
+    file_rows: List[DependencyFile],
 ) -> AsyncGenerator[Dict[str, Any], None]:
     (org_repo, git_ref, path) = item
 
@@ -203,12 +204,13 @@ async def run_in_repo_at_ref(
                 branch=branch,
                 commit=commit,
                 tag=tag,
-                relative_path=str(path),
+                dep_files=file_rows,
                 task={
                     "name": task.name,
                     "command": task.command,
                     "container_name": name,
                     "working_dir": working_dir,
+                    "relative_path": str(path),
                     "exit_code": last_inspect["ExitCode"],
                     "stdout": stdout,
                 },
@@ -290,6 +292,7 @@ async def run_pipeline(
     ) in group_by_org_repo_ref_path(source):
         files = {fr[2].path.parts[-1] for fr in file_rows}
         file_hashes = sorted([fr[2].sha256 for fr in file_rows])
+        dep_files = [fr[2] for fr in file_rows]
 
         log.debug(f"in {dep_file_parent_key!r} with files {files}")
         if args.dir is not None:
@@ -321,6 +324,7 @@ async def run_pipeline(
                 version_commands,
                 args.dry_run,
                 files,
+                dep_files,
             ):
                 cache[cache_key].append(result)
                 yield result
