@@ -3,6 +3,7 @@ import asyncio
 from dataclasses import asdict, dataclass
 import functools
 import logging
+import pathlib
 from random import randrange
 from typing import Any, Tuple, Dict, Generator, AsyncGenerator
 
@@ -12,7 +13,7 @@ import fpr.docker.containers as containers
 import fpr.docker.volumes as volumes
 from fpr.models import GitRef, OrgRepo, Pipeline
 from fpr.models.pipeline import add_infile_and_outfile, add_volume_arg
-from fpr.models.language import dependency_file_patterns
+from fpr.models.language import dependency_file_patterns, DependencyFile
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.find_dep_files")
@@ -114,15 +115,19 @@ async def run_find_dep_files(
             yield dict(
                 org=org_repo.org,
                 repo=org_repo.repo,
+                ref=git_ref.to_dict(),
+                repo_url=org_repo.github_clone_url,
                 commit=commit,
                 branch=branch,
                 tag=tag,
-                ref=git_ref.to_dict(),
-                ripgrep_version=ripgrep_version,
-                dep_file_path=dep_file_path,
-                dep_file_sha256=await containers.sha256sum(
-                    c, dep_file_path, working_dir="/repos/repo"
-                ),
+                versions={"ripgrep": ripgrep_version},
+                dependency_file=DependencyFile(
+                    path=pathlib.Path(dep_file_path),
+                    sha256=await containers.sha256sum(
+                        c, dep_file_path, working_dir="/repos/repo"
+                    )
+                    or "",
+                ).to_dict(),
             )
 
 
