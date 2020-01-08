@@ -92,12 +92,11 @@ async def run_find_git_refs(org_repo: OrgRepo, args: argparse.Namespace):
         await containers.ensure_repo(
             c, org_repo.github_clone_url, working_dir="/repos/"
         )
-        tags = await containers.get_tags(c, working_dir="/repos/repo")
-
         log.debug(f"{name} stdout: {await c.log(stdout=True)}")
         log.debug(f"{name} stderr: {await c.log(stderr=True)}")
-        for tag in tags:
-            git_ref = GitRef.from_dict(dict(value=tag, kind="tag"))
+        async for tag, tag_ts in containers.get_tags(c, working_dir="/repos/repo"):
+            git_ref = GitRef.from_dict(dict(value=tag, kind="tag", timestamp=tag_ts))
+
             result = dict(
                 org=org_repo.org,
                 repo=org_repo.repo,
