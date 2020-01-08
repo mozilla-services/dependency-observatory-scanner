@@ -1,6 +1,6 @@
 
-IN_VENV := bash bin/in_venv.sh
-FPR_PYTHON := PYTHONPATH=$$PYTHONPATH:fpr/ $(IN_VENV) python fpr/run_pipeline.py
+IN_VENV := PYTHONPATH=$$PYTHONPATH:fpr/ bash bin/in_venv.sh
+FPR_PYTHON := $(IN_VENV) python fpr/run_pipeline.py
 
 build-image:
 	docker build -t fpr:build .
@@ -143,5 +143,8 @@ update-requirements:
 
 dump-test-fixture-pickle-files:
 	$(IN_VENV) python -m pickle tests/fixtures/*.pickle
+
+venv-shell:
+	$(IN_VENV) bash
 
 .PHONY: build-image dump-test-fixture-pickle-files run-image coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save run-crates-io-metadata-and-save run-github-metadata-and-save update-requirements show-dot integration-test run-find-git-refs run-find-git-refs-and-save publish-latest run-repo-analysis-in-image check-channelserver-repo-analysis run-diff-repo-analysis-in-image unit-test

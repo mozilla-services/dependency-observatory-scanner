@@ -43,20 +43,18 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     parser = add_infile_and_outfile(pipeline_parser)
     parser = add_volume_arg(parser)
     parser.add_argument(
-        "-m",
-        "--manifest-path",
-        type=str,
-        required=False,
-        default=None,
-        help="Filter to only run npm install, list, and audit "
-        "for matching manifest file name and path",
-    )
-    parser.add_argument(
         "--dry-run",
         action="store_true",
         required=False,
         default=False,
         help="Print commands we would run and their context, but don't run them.",
+    )
+    parser.add_argument(
+        "--git-clean",
+        action="store_true",
+        required=False,
+        default=True,
+        help="Run 'git clean -fd' for each ref to clear package manager caches. Defaults to true.",
     )
     parser.add_argument(
         "--use-cache",
@@ -125,6 +123,7 @@ async def run_in_repo_at_ref(
     version_commands: typing.Mapping[str, str],
     dry_run: bool,
     cwd_files: AbstractSet[str],
+    file_rows: List[DependencyFile],
 ) -> AsyncGenerator[Dict[str, Any], None]:
     (org_repo, git_ref, path) = item
 
@@ -143,7 +142,10 @@ async def run_in_repo_at_ref(
         ],
     ) as c:
         await containers.ensure_repo(
-            c, org_repo.github_clone_url, working_dir="/repos/"
+            c,
+            org_repo.github_clone_url,
+            git_clean=args.git_clean,
+            working_dir="/repos/",
         )
         await containers.ensure_ref(c, git_ref, working_dir="/repos/repo")
         branch, commit, tag, *version_results = await asyncio.gather(
@@ -212,10 +214,13 @@ async def run_in_repo_at_ref(
                 branch=branch,
                 commit=commit,
                 tag=tag,
-                working_dir=working_dir,
+                dep_files=file_rows,
                 task={
                     "name": task.name,
                     "command": task.command,
+                    "container_name": name,
+                    "working_dir": working_dir,
+                    "relative_path": str(path),
                     "exit_code": last_inspect["ExitCode"],
                     "stdout": stdout,
                 },
@@ -297,6 +302,7 @@ async def run_pipeline(
     ) in group_by_org_repo_ref_path(source):
         files = {fr[2].path.parts[-1] for fr in file_rows}
         file_hashes = sorted([fr[2].sha256 for fr in file_rows])
+        dep_files = [fr[2] for fr in file_rows]
 
         log.debug(f"in {dep_file_parent_key!r} with files {files}")
         if args.dir is not None:
@@ -328,6 +334,7 @@ async def run_pipeline(
                 version_commands,
                 args.dry_run,
                 files,
+                dep_files,
             ):
                 cache[cache_key].append(result)
                 yield result
@@ -341,12 +348,6 @@ FIELDS: AbstractSet = set()
 
 
 def serialize(_: argparse.Namespace, result: Dict):
-    stdout = get_in(result, ["task", "stdout"])
-    if stdout:
-        try:
-            result["parsed_stdout"] = json.loads(stdout)
-        except json.decoder.JSONDecodeError as e:
-            log.debug(f"error parsing task stdout as JSON: {e}")
     return result
 
 

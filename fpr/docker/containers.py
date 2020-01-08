@@ -302,8 +302,11 @@ async def build(dockerfile: bytes, tag: str, pull: bool = False) -> str:
 
 
 async def ensure_repo(
-    container: aiodocker.containers.DockerContainer, repo_url: str, working_dir="/repo"
-):
+    container: aiodocker.containers.DockerContainer,
+    repo_url: str,
+    git_clean=True,
+    working_dir="/repo",
+) -> None:
     test_repo_exec: Exec = await container.run(
         f"test -d repo", wait=True, check=False, working_dir=working_dir
     )
@@ -313,8 +316,10 @@ async def ensure_repo(
         log.debug(
             f"git repo found for: {repo_url} at {working_dir}; checking remote url and cleaning"
         )
-        # TODO: make sure the repo remote matches repo_url
-        cmds = ["git remote get-url origin", "git clean -f -d -q"]
+        # TODO: for multiple repos make sure the repo remote matches repo_url
+        cmds = ["git remote get-url origin"]
+        if git_clean:
+            cmds.append("git clean -f -d -q")
         working_dir += "repo"
     else:
         cmds = ["rm -rf repo", f"git clone --depth=1 --origin origin {repo_url} repo"]
