@@ -153,7 +153,7 @@ async def run_pipeline(
             async for dep_file in run_find_dep_files((org_repo, git_ref), args):
                 yield dep_file
         except Exception as e:
-            log.error(f"error running find_git_refs:\n{exc_to_str()}")
+            log.error(f"error running find_dep_files:\n{exc_to_str()}")
 
 
 FIELDS = {"org", "repo", "ref", "ripgrep_version", "dep_file_path", "dep_file_sha256"}
