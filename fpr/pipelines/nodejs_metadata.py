@@ -50,6 +50,13 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
         help="Print commands we would run and their context, but don't run them.",
     )
     parser.add_argument(
+        "--git-clean",
+        action="store_true",
+        required=False,
+        default=True,
+        help="Run 'git clean -fd' for each ref to clear package manager caches. Defaults to true.",
+    )
+    parser.add_argument(
         "--use-cache",
         action="store_true",
         required=False,
@@ -135,7 +142,10 @@ async def run_in_repo_at_ref(
         ],
     ) as c:
         await containers.ensure_repo(
-            c, org_repo.github_clone_url, working_dir="/repos/"
+            c,
+            org_repo.github_clone_url,
+            git_clean=args.git_clean,
+            working_dir="/repos/",
         )
         await containers.ensure_ref(c, git_ref, working_dir="/repos/repo")
         branch, commit, tag, *version_results = await asyncio.gather(
