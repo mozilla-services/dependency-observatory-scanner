@@ -396,10 +396,6 @@ async def run_pipeline(
 FIELDS: AbstractSet[str] = set()  # "crate", "categories", "keywords", "versions"}
 
 
-def serialize(args: argparse.Namespace, result: Dict) -> Dict[str, Any]:
-    return result
-
-
 pipeline = Pipeline(
     name="github_metadata",
     desc=__doc__,
@@ -407,6 +403,5 @@ pipeline = Pipeline(
     fields=FIELDS,
     reader=iter_jsonlines,
     runner=run_pipeline,
-    serializer=serialize,
     writer=on_next_save_to_jsonl,
 )
