@@ -319,7 +319,7 @@ async def ensure_repo(
         # TODO: for multiple repos make sure the repo remote matches repo_url
         cmds = ["git remote get-url origin"]
         if git_clean:
-            cmds.append("git clean -f -d -q")
+            cmds.append("git clean -f -d -x -q")
         working_dir += "repo"
     else:
         cmds = ["rm -rf repo", f"git clone --depth=1 --origin origin {repo_url} repo"]
