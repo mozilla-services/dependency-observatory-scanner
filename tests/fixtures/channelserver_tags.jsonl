@@ -1,6 +1,6 @@
-{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "v0.4.0", "kind": "tag"}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
-{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "v0.4.1", "kind": "tag"}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
-{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "0.6.0", "kind": "tag"}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
-{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "0.8.0", "kind": "tag"}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
-{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "0.8.1", "kind": "tag"}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
-{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "0.9.0", "kind": "tag"}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
+{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "v0.4.1", "kind": "tag", "timestamp": null}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
+{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "v0.4.0", "kind": "tag", "timestamp": null}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
+{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "0.9.0", "kind": "tag", "timestamp": null}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
+{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "0.8.1", "kind": "tag", "timestamp": null}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
+{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "0.8.0", "kind": "tag", "timestamp": null}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
+{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "0.6.0", "kind": "tag", "timestamp": null}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
