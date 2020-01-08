@@ -210,11 +210,15 @@ async def run_in_repo_at_ref(
             stdout = "".join(job_run.decoded_start_result_stdout)
 
             result: Dict[str, Any] = dict(
+                org=org_repo.org,
+                repo=org_repo.repo,
+                ref=git_ref.to_dict(),
+                repo_url=org_repo.github_clone_url,
                 versions=versions,
                 branch=branch,
                 commit=commit,
                 tag=tag,
-                dep_files=file_rows,
+                dependency_files=[fr.to_dict() for fr in file_rows],
                 task={
                     "name": task.name,
                     "command": task.command,
@@ -244,9 +248,7 @@ def group_by_org_repo_ref_path(
         (
             OrgRepo(item["org"], item["repo"]),
             GitRef.from_dict(item["ref"]),
-            DependencyFile(
-                path=pathlib.Path(item["dep_file_path"]), sha256=item["dep_file_sha256"]
-            ),
+            DependencyFile.from_dict(item["dependency_file"]),
         )
         for item in source
     ]

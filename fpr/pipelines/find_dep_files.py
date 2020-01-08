@@ -121,12 +121,14 @@ async def run_find_dep_files(
                 branch=branch,
                 tag=tag,
                 versions={"ripgrep": ripgrep_version},
-                dependency_file=DependencyFile(
-                    path=pathlib.Path(dep_file_path),
-                    sha256=await containers.sha256sum(
-                        c, dep_file_path, working_dir="/repos/repo"
+                dependency_file=DependencyFile.from_dict(
+                    dict(
+                        path=dep_file_path,
+                        sha256=await containers.sha256sum(
+                            c, dep_file_path, working_dir="/repos/repo"
+                        )
+                        or "",
                     )
-                    or "",
                 ).to_dict(),
             )
 
