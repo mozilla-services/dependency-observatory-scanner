@@ -72,14 +72,15 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     return parser
 
 
-async def run_find_dep_files(item: Tuple[OrgRepo, GitRef], args: argparse.Namespace):
+async def run_find_dep_files(
+    item: Tuple[OrgRepo, GitRef], args: argparse.Namespace
+) -> AsyncGenerator[Dict, None]:
     org_repo, git_ref = item
     log.debug(
         f"running find-dep-files on repo {org_repo.github_clone_url!r} ref {git_ref!r}"
     )
     name = f"dep-obs-find-dep-files-{org_repo.org}-{org_repo.repo}-{hex(randrange(1 << 32))[2:]}"
 
-    results = []
     async with containers.run(
         "dep-obs/find-dep-files:latest",
         name=name,
@@ -110,7 +111,7 @@ async def run_find_dep_files(item: Tuple[OrgRepo, GitRef], args: argparse.Namesp
             args.glob, c, working_dir="/repos/repo"
         ):
             log.info(f"{c['Name']} found dep file: {dep_file_path}")
-            result = dict(
+            yield dict(
                 org=org_repo.org,
                 repo=org_repo.repo,
                 commit=commit,
@@ -123,8 +124,6 @@ async def run_find_dep_files(item: Tuple[OrgRepo, GitRef], args: argparse.Namesp
                     c, dep_file_path, working_dir="/repos/repo"
                 ),
             )
-            results.append(result)
-    return results
 
 
 async def run_pipeline(
@@ -146,7 +145,7 @@ async def run_pipeline(
         )
         log.debug(f"finding dep files for {org_repo} {git_ref}")
         try:
-            for dep_file in await run_find_dep_files((org_repo, git_ref), args):
+            async for dep_file in run_find_dep_files((org_repo, git_ref), args):
                 yield dep_file
         except Exception as e:
             log.error(f"error running find_git_refs:\n{exc_to_str()}")
