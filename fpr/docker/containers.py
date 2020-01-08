@@ -20,6 +20,7 @@ from typing import (
     Union,
     Dict,
     Optional,
+    Tuple,
 )
 import aiodocker
 
@@ -450,14 +451,18 @@ async def find_files(
 
 async def get_tags(
     container: aiodocker.containers.DockerContainer, working_dir: str = "/repos/repo"
-) -> str:
+) -> AsyncGenerator[Tuple[str, Optional[str]], None]:
+    "get a repo tags and when they were tagged as a unix timestamp"
     await fetch_tags(container, working_dir=working_dir)
-    # sort tags from oldest to newest
-    cmd = "git tag -l --sort=creatordate"
+    # sort tags from newest to oldest tagging time
+    # https://git-scm.com/docs/git-for-each-ref/
+    cmd = 'git for-each-ref --sort=-taggerdate --format="%(refname:short)\t%(taggerdate:unix)" refs/tags'
     exec_ = await container.run(cmd, working_dir=working_dir, check=True)
-    log.info(f"{cmd} result: {exec_.start_result}")
-
-    return exec_.decoded_start_result_stdout
+    for line in exec_.decoded_start_result_stdout:
+        tag_name, ts = [part.strip('",') for part in line.split("\t", 1)]
+        if ts == "":
+            ts = None
+        yield (tag_name, ts)
 
 
 async def nodejs_metadata(
