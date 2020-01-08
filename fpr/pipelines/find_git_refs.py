@@ -130,10 +130,6 @@ async def run_pipeline(
             log.error(f"error running find_git_refs:\n{exc_to_str()}")
 
 
-def serialize(_: argparse.Namespace, result: Dict):
-    return result
-
-
 FIELDS = {"repo_url", "ref"}
 
 pipeline = Pipeline(
@@ -143,6 +139,5 @@ pipeline = Pipeline(
     argparser=parse_args,
     reader=iter_jsonlines,
     runner=run_pipeline,
-    serializer=serialize,
     writer=on_next_save_to_jsonl,
 )

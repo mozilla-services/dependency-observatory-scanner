@@ -347,10 +347,6 @@ async def run_pipeline(
 FIELDS: AbstractSet = set()
 
 
-def serialize(_: argparse.Namespace, result: Dict):
-    return result
-
-
 pipeline = Pipeline(
     # TODO: make generic over langs and package managers and rename
     name="nodejs_metadata",
@@ -359,6 +355,5 @@ pipeline = Pipeline(
     argparser=parse_args,
     reader=iter_jsonlines,
     runner=run_pipeline,
-    serializer=serialize,
     writer=on_next_save_to_jsonl,
 )

@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 import enum
 import functools
 import pathlib
@@ -24,6 +24,11 @@ class DependencyFile:
 
     # sha256 hex digest of the file
     sha256: str
+
+    def to_dict(self: "DependencyFile") -> Dict:
+        d = asdict(self)
+        d["path"] = str(self.path)
+        return d
 
 
 def always_true(_: AbstractSet[str]) -> bool:

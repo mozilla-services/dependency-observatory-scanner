@@ -3,6 +3,7 @@ import asyncio
 from dataclasses import asdict, dataclass
 import functools
 import logging
+import pathlib
 from random import randrange
 from typing import Any, Tuple, Dict, Generator, AsyncGenerator
 
@@ -12,7 +13,7 @@ import fpr.docker.containers as containers
 import fpr.docker.volumes as volumes
 from fpr.models import GitRef, OrgRepo, Pipeline
 from fpr.models.pipeline import add_infile_and_outfile, add_volume_arg
-from fpr.models.language import dependency_file_patterns
+from fpr.models.language import dependency_file_patterns, DependencyFile
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.find_dep_files")
@@ -72,14 +73,15 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     return parser
 
 
-async def run_find_dep_files(item: Tuple[OrgRepo, GitRef], args: argparse.Namespace):
+async def run_find_dep_files(
+    item: Tuple[OrgRepo, GitRef], args: argparse.Namespace
+) -> AsyncGenerator[Dict, None]:
     org_repo, git_ref = item
     log.debug(
         f"running find-dep-files on repo {org_repo.github_clone_url!r} ref {git_ref!r}"
     )
     name = f"dep-obs-find-dep-files-{org_repo.org}-{org_repo.repo}-{hex(randrange(1 << 32))[2:]}"
 
-    results = []
     async with containers.run(
         "dep-obs/find-dep-files:latest",
         name=name,
@@ -110,21 +112,23 @@ async def run_find_dep_files(item: Tuple[OrgRepo, GitRef], args: argparse.Namesp
             args.glob, c, working_dir="/repos/repo"
         ):
             log.info(f"{c['Name']} found dep file: {dep_file_path}")
-            result = dict(
+            yield dict(
                 org=org_repo.org,
                 repo=org_repo.repo,
+                ref=git_ref.to_dict(),
+                repo_url=org_repo.github_clone_url,
                 commit=commit,
                 branch=branch,
                 tag=tag,
-                ref=git_ref.to_dict(),
-                ripgrep_version=ripgrep_version,
-                dep_file_path=dep_file_path,
-                dep_file_sha256=await containers.sha256sum(
-                    c, dep_file_path, working_dir="/repos/repo"
-                ),
+                versions={"ripgrep": ripgrep_version},
+                dependency_file=DependencyFile(
+                    path=pathlib.Path(dep_file_path),
+                    sha256=await containers.sha256sum(
+                        c, dep_file_path, working_dir="/repos/repo"
+                    )
+                    or "",
+                ).to_dict(),
             )
-            results.append(result)
-    return results
 
 
 async def run_pipeline(
@@ -146,14 +150,10 @@ async def run_pipeline(
         )
         log.debug(f"finding dep files for {org_repo} {git_ref}")
         try:
-            for dep_file in await run_find_dep_files((org_repo, git_ref), args):
+            async for dep_file in run_find_dep_files((org_repo, git_ref), args):
                 yield dep_file
         except Exception as e:
-            log.error(f"error running find_git_refs:\n{exc_to_str()}")
-
-
-def serialize(_: argparse.Namespace, result: Dict):
-    return result
+            log.error(f"error running find_dep_files:\n{exc_to_str()}")
 
 
 FIELDS = {"org", "repo", "ref", "ripgrep_version", "dep_file_path", "dep_file_sha256"}
@@ -165,6 +165,5 @@ pipeline = Pipeline(
     argparser=parse_args,
     reader=iter_jsonlines,
     runner=run_pipeline,
-    serializer=serialize,
     writer=on_next_save_to_jsonl,
 )
