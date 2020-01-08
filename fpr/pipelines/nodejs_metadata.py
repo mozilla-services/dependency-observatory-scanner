@@ -343,15 +343,24 @@ async def run_pipeline(
             log.error(f"error running tasks {tasks!r}:\n{exc_to_str()}")
 
 
-# TODO: clarify input vs. output fields, improve validation, and specify field providers
-FIELDS: AbstractSet = set()
-
+# TODO: improve validation and specify field providers
+IN_FIELDS: Dict[str, Union[type, str, Dict[str, str]]] = {
+    "repo_url": str,
+    **asdict(
+        OrgRepo.from_github_repo_url(
+            "https://github.com/mozilla-services/syncstorage-rs.git"
+        )
+    ),
+    **{"ref": GitRef.from_dict(dict(value="dummy", kind="tag")).to_dict()},
+    **{"dependency_file": DependencyFile(path=pathlib.Path("./"), sha256="").to_dict()},
+}
+OUT_FIELDS = {**{k: v for k, v in IN_FIELDS.items() if k != "dependency_file"}}
 
 pipeline = Pipeline(
     # TODO: make generic over langs and package managers and rename
     name="nodejs_metadata",
     desc=__doc__,
-    fields=FIELDS,
+    fields=set(OUT_FIELDS.keys()),
     argparser=parse_args,
     reader=iter_jsonlines,
     runner=run_pipeline,

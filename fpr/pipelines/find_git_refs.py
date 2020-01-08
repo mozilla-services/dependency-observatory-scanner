@@ -4,7 +4,7 @@ from dataclasses import asdict, dataclass
 import functools
 import logging
 from random import randrange
-from typing import Tuple, Dict, Generator, AsyncGenerator
+from typing import Tuple, Dict, Generator, AsyncGenerator, Union
 
 from fpr.rx_util import on_next_save_to_jsonl
 from fpr.serialize_util import get_in, extract_fields, iter_jsonlines
@@ -130,12 +130,23 @@ async def run_pipeline(
             log.error(f"error running find_git_refs:\n{exc_to_str()}")
 
 
-FIELDS = {"repo_url", "ref"}
+# fields and types for the input and output JSON
+IN_FIELDS: Dict[str, type] = {"repo_url": str}
+OUT_FIELDS: Dict[str, Union[type, str, Dict[str, str]]] = {
+    **IN_FIELDS,
+    **asdict(
+        OrgRepo.from_github_repo_url(
+            "https://github.com/mozilla-services/syncstorage-rs.git"
+        )
+    ),
+    **{"ref": GitRef.from_dict(dict(value="dummy", kind="tag")).to_dict()},
+}
+
 
 pipeline = Pipeline(
     name="find_git_refs",
     desc=__doc__,
-    fields=FIELDS,
+    fields=set(OUT_FIELDS.keys()),
     argparser=parse_args,
     reader=iter_jsonlines,
     runner=run_pipeline,

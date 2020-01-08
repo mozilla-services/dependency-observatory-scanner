@@ -157,7 +157,7 @@ class Pipeline:
     # pipeline description
     desc: str
 
-    # top-level fields to serialize
+    # top-level fields to serialize for output
     fields: AbstractSet[str]
 
     reader: Callable
