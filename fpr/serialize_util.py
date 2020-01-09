@@ -39,6 +39,10 @@ def extract_fields(d: Dict, fields: Iterable[str]) -> Dict:
     return {field: d.get(field) for field in fields}
 
 
+def extract_nested_fields(d: Dict, fields: Dict[str, JSONPath]) -> Dict:
+    return {field: get_in(d, path, None) for field, path in fields.items()}
+
+
 def iter_jsonlines(
     f: Sequence,
 ) -> Generator[Union[Dict, Sequence, int, str, None], None, None]:
