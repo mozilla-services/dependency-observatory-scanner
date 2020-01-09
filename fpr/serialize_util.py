@@ -7,8 +7,7 @@ JSONPath = Sequence[JSONPathElement]
 
 
 def get_in(d: Dict, path: Iterable[JSONPathElement], default: Any = None):
-    if default is None:
-        sentinel = object()
+    sentinel = object()
     for path_part in path:
         if isinstance(path_part, str):
             if not hasattr(d, "get"):
