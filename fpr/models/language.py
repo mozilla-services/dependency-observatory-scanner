@@ -25,6 +25,10 @@ class DependencyFile:
     # sha256 hex digest of the file
     sha256: str
 
+    @staticmethod
+    def from_dict(d: Dict) -> "DependencyFile":
+        return DependencyFile(path=pathlib.Path(d["path"]), sha256=d["sha256"])
+
     def to_dict(self: "DependencyFile") -> Dict:
         d = asdict(self)
         d["path"] = str(self.path)

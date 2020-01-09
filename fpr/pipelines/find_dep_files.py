@@ -5,7 +5,7 @@ import functools
 import logging
 import pathlib
 from random import randrange
-from typing import Any, Tuple, Dict, Generator, AsyncGenerator
+from typing import Any, Tuple, Dict, Generator, AsyncGenerator, Union
 
 from fpr.rx_util import on_next_save_to_jsonl
 from fpr.serialize_util import get_in, extract_fields, iter_jsonlines
@@ -121,12 +121,14 @@ async def run_find_dep_files(
                 branch=branch,
                 tag=tag,
                 versions={"ripgrep": ripgrep_version},
-                dependency_file=DependencyFile(
-                    path=pathlib.Path(dep_file_path),
-                    sha256=await containers.sha256sum(
-                        c, dep_file_path, working_dir="/repos/repo"
+                dependency_file=DependencyFile.from_dict(
+                    dict(
+                        path=dep_file_path,
+                        sha256=await containers.sha256sum(
+                            c, dep_file_path, working_dir="/repos/repo"
+                        )
+                        or "",
                     )
-                    or "",
                 ).to_dict(),
             )
 
@@ -156,12 +158,25 @@ async def run_pipeline(
             log.error(f"error running find_dep_files:\n{exc_to_str()}")
 
 
-FIELDS = {"org", "repo", "ref", "ripgrep_version", "dep_file_path", "dep_file_sha256"}
+# fields and types for the input and output JSON
+IN_FIELDS: Dict[str, Union[type, str, Dict[str, str]]] = {
+    "repo_url": str,
+    **asdict(
+        OrgRepo.from_github_repo_url(
+            "https://github.com/mozilla-services/syncstorage-rs.git"
+        )
+    ),
+    **{"ref": GitRef.from_dict(dict(value="dummy", kind="tag")).to_dict()},
+}
+OUT_FIELDS: Dict[str, Union[type, str, Dict[str, str]]] = {
+    **IN_FIELDS,
+    **{"dependency_file": DependencyFile(path=pathlib.Path("./"), sha256="").to_dict()},
+}
 
 pipeline = Pipeline(
     name="find_dep_files",
     desc=__doc__,
-    fields=FIELDS,
+    fields=set(OUT_FIELDS.keys()),
     argparser=parse_args,
     reader=iter_jsonlines,
     runner=run_pipeline,

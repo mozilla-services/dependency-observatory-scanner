@@ -210,11 +210,15 @@ async def run_in_repo_at_ref(
             stdout = "".join(job_run.decoded_start_result_stdout)
 
             result: Dict[str, Any] = dict(
+                org=org_repo.org,
+                repo=org_repo.repo,
+                ref=git_ref.to_dict(),
+                repo_url=org_repo.github_clone_url,
                 versions=versions,
                 branch=branch,
                 commit=commit,
                 tag=tag,
-                dep_files=file_rows,
+                dependency_files=[fr.to_dict() for fr in file_rows],
                 task={
                     "name": task.name,
                     "command": task.command,
@@ -244,9 +248,7 @@ def group_by_org_repo_ref_path(
         (
             OrgRepo(item["org"], item["repo"]),
             GitRef.from_dict(item["ref"]),
-            DependencyFile(
-                path=pathlib.Path(item["dep_file_path"]), sha256=item["dep_file_sha256"]
-            ),
+            DependencyFile.from_dict(item["dependency_file"]),
         )
         for item in source
     ]
@@ -343,15 +345,24 @@ async def run_pipeline(
             log.error(f"error running tasks {tasks!r}:\n{exc_to_str()}")
 
 
-# TODO: clarify input vs. output fields, improve validation, and specify field providers
-FIELDS: AbstractSet = set()
-
+# TODO: improve validation and specify field providers
+IN_FIELDS: Dict[str, Union[type, str, Dict[str, str]]] = {
+    "repo_url": str,
+    **asdict(
+        OrgRepo.from_github_repo_url(
+            "https://github.com/mozilla-services/syncstorage-rs.git"
+        )
+    ),
+    **{"ref": GitRef.from_dict(dict(value="dummy", kind="tag")).to_dict()},
+    **{"dependency_file": DependencyFile(path=pathlib.Path("./"), sha256="").to_dict()},
+}
+OUT_FIELDS = {**{k: v for k, v in IN_FIELDS.items() if k != "dependency_file"}}
 
 pipeline = Pipeline(
     # TODO: make generic over langs and package managers and rename
     name="nodejs_metadata",
     desc=__doc__,
-    fields=FIELDS,
+    fields=set(OUT_FIELDS.keys()),
     argparser=parse_args,
     reader=iter_jsonlines,
     runner=run_pipeline,
