@@ -7,6 +7,7 @@ from fpr.pipelines.find_dep_files import pipeline as find_dep_files
 from fpr.pipelines.rust_changelog import pipeline as rust_changelog
 from fpr.pipelines.github_metadata import pipeline as github_metadata
 from fpr.pipelines.nodejs_metadata import pipeline as nodejs_metadata
+from fpr.pipelines.postprocess import pipeline as postprocess
 
 pipelines = [
     cargo_audit,
@@ -18,4 +19,5 @@ pipelines = [
     github_metadata,
     rust_changelog,
     nodejs_metadata,
+    postprocess,
 ]
