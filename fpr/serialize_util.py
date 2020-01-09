@@ -7,8 +7,7 @@ JSONPath = Sequence[JSONPathElement]
 
 
 def get_in(d: Dict, path: Iterable[JSONPathElement], default: Any = None):
-    if default is None:
-        sentinel = object()
+    sentinel = object()
     for path_part in path:
         if isinstance(path_part, str):
             if not hasattr(d, "get"):
@@ -37,6 +36,10 @@ RUST_FIELDS = {"cargo_version", "rustc_version"}
 def extract_fields(d: Dict, fields: Iterable[str]) -> Dict:
     "returns a new dict with top-level param fields extracted from param d"
     return {field: d.get(field) for field in fields}
+
+
+def extract_nested_fields(d: Dict, fields: Dict[str, JSONPath]) -> Dict:
+    return {field: get_in(d, path, None) for field, path in fields.items()}
 
 
 def iter_jsonlines(

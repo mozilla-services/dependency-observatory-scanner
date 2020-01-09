@@ -53,8 +53,9 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
         "--git-clean",
         action="store_true",
         required=False,
-        default=True,
-        help="Run 'git clean -fd' for each ref to clear package manager caches. Defaults to true.",
+        default=False,
+        help="Run 'git clean -fdx' for each ref to clear package manager caches. "
+        "Slower but better isolation. Defaults to false.",
     )
     parser.add_argument(
         "--use-cache",
