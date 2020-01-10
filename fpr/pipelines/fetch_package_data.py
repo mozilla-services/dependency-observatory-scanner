@@ -1,38 +1,13 @@
 import argparse
-import asyncio
-from collections import ChainMap
-from dataclasses import asdict, dataclass
-import functools
-import itertools
-import json
 import logging
 import pathlib
-from random import randrange
-import sys
-import time
-from typing import (
-    AbstractSet,
-    Any,
-    AnyStr,
-    AsyncGenerator,
-    Dict,
-    Generator,
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
-import typing
+from typing import Any, AsyncGenerator, Dict, Generator, List, Optional, Tuple, Union
 
 from fpr.rx_util import on_next_save_to_jsonl
-from fpr.serialize_util import get_in, extract_fields, iter_jsonlines, REPO_FIELDS
-import fpr.docker.containers as containers
-import fpr.docker.volumes as volumes
 from fpr.clients.npmsio import fetch_npmsio_scores
-from fpr.models import GitRef, OrgRepo, Pipeline, SerializedNodeJSMetadata
-from fpr.models.language import DependencyFile, languages, ContainerTask
-from fpr.models.pipeline import add_infile_and_outfile, add_volume_arg
+from fpr.models.pipeline import Pipeline, add_infile_and_outfile
 from fpr.pipelines.util import exc_to_str
+from fpr.serialize_util import iter_jsonlines
 
 
 NAME = "fetch_package_data"
