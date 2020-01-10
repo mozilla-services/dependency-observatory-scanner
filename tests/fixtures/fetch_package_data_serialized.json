@@ -1,0 +1,305 @@
+{
+  "analyzedAt": "2020-01-03T07:11:46.895Z",
+  "collected": {
+    "github": {
+      "commits": [
+        {
+          "count": 0,
+          "from": "2019-12-27T00:00:00.000Z",
+          "to": "2020-01-03T00:00:00.000Z"
+        },
+        {
+          "count": 0,
+          "from": "2019-12-04T00:00:00.000Z",
+          "to": "2020-01-03T00:00:00.000Z"
+        },
+        {
+          "count": 0,
+          "from": "2019-10-05T00:00:00.000Z",
+          "to": "2020-01-03T00:00:00.000Z"
+        },
+        {
+          "count": 8,
+          "from": "2019-07-07T00:00:00.000Z",
+          "to": "2020-01-03T00:00:00.000Z"
+        },
+        {
+          "count": 19,
+          "from": "2019-01-03T00:00:00.000Z",
+          "to": "2020-01-03T00:00:00.000Z"
+        }
+      ],
+      "contributors": [
+        {
+          "commitsCount": 60,
+          "username": "zkochan"
+        },
+        {
+          "commitsCount": 14,
+          "username": "isaacs"
+        },
+        {
+          "commitsCount": 13,
+          "username": "ForbesLindesay"
+        },
+        {
+          "commitsCount": 8,
+          "username": "ExE-Boss"
+        },
+        {
+          "commitsCount": 1,
+          "username": "bwrrp"
+        },
+        {
+          "commitsCount": 1,
+          "username": "copenhas"
+        },
+        {
+          "commitsCount": 1,
+          "username": "cspotcode"
+        },
+        {
+          "commitsCount": 1,
+          "username": "tats-u"
+        },
+        {
+          "commitsCount": 1,
+          "username": "thefourtheye"
+        }
+      ],
+      "forkOf": "npm/cmd-shim",
+      "forksCount": 4,
+      "issues": {
+        "count": 22,
+        "distribution": {
+          "10800": 2,
+          "212576400": 0,
+          "23619600": 2,
+          "2624400": 0,
+          "291600": 3,
+          "32400": 3,
+          "3600": 1,
+          "70858800": 3,
+          "7873200": 4,
+          "874800": 2,
+          "97200": 2
+        },
+        "isDisabled": false,
+        "openCount": 5
+      },
+      "starsCount": 3,
+      "statuses": [
+        {
+          "context": "continuous-integration/appveyor/branch",
+          "state": "success"
+        },
+        {
+          "context": "continuous-integration/travis-ci/push",
+          "state": "success"
+        }
+      ],
+      "subscribersCount": 3
+    },
+    "metadata": {
+      "author": {
+        "email": "zoltan.kochan@gmail.com",
+        "name": "Zoltan Kochan",
+        "url": "http://kochan.io",
+        "username": "zkochan"
+      },
+      "date": "2019-09-18T18:32:03.970Z",
+      "dependencies": {
+        "is-windows": "^1.0.2",
+        "make-dir": "^3.0.0"
+      },
+      "description": "Used in pnpm for command line application support",
+      "devDependencies": {
+        "@types/is-windows": "^0.2.0",
+        "@types/node": "^12.7.2",
+        "lodash": "^4.17.15",
+        "memory-fs": "^0.4.1",
+        "mock-fs": "^4.10.1",
+        "mos": "^1.3.1",
+        "mos-plugin-readme": "^1.0.4",
+        "standard": "^14.0.2",
+        "tape": "^4.11.0",
+        "tape-promise": "^4.0.0",
+        "typescript": "^3.5.3"
+      },
+      "hasSelectiveFiles": true,
+      "hasTestScript": true,
+      "license": "BSD-2-Clause",
+      "links": {
+        "bugs": "https://github.com/pnpm/cmd-shim/issues",
+        "homepage": "https://github.com/pnpm/cmd-shim#readme",
+        "npm": "https://www.npmjs.com/package/%40zkochan%2Fcmd-shim",
+        "repository": "https://github.com/pnpm/cmd-shim"
+      },
+      "maintainers": [
+        {
+          "email": "zoltan.kochan@gmail.com",
+          "username": "zkochan"
+        }
+      ],
+      "name": "@zkochan/cmd-shim",
+      "publisher": {
+        "email": "z@kochan.io",
+        "username": "zkochan"
+      },
+      "readme": "# @zkochan/cmd-shim\n\n> Used in pnpm for command line application support\n\n<!--@shields('travis', 'appveyor', 'npm')-->\n[![Build Status](https://img.shields.io/travis/pnpm/cmd-shim/master.svg)](https://travis-ci.org/pnpm/cmd-shim) [![Build Status on Windows](https://img.shields.io/appveyor/ci/zkochan/cmd-shim-8ah3a/master.svg)](https://ci.appveyor.com/project/zkochan/cmd-shim-8ah3a/branch/master) [![npm version](https://img.shields.io/npm/v/@zkochan/cmd-shim.svg)](https://www.npmjs.com/package/@zkochan/cmd-shim)\n<!--/@-->\n\nThe cmd-shim used in [pnpm](https://github.com/rstacruz/pnpm) to create executable scripts on Windows,\nsince symlinks are not suitable for this purpose there.\n\nOn Unix systems, you should use a symbolic link instead.\n\n## Installation\n\n```sh\nnpm install --save @zkochan/cmd-shim\n```\n\n## API\n\n### `cmdShim(src, to, opts?): Promise<void>`\n\nCreate a cmd shim at `to` for the command line program at `from`.\ne.g.\n\n```javascript\nconst cmdShim = require('@zkochan/cmd-shim')\ncmdShim(__dirname + '/cli.js', '/usr/bin/command-name')\n  .catch(err => console.error(err))\n```\n\n### `cmdShim.ifExists(src, to, opts?): Promise<void>`\n\nThe same as above, but will just continue if the file does not exist.\n\n#### Arguments:\n\n- `opts.preserveSymlinks` - _Boolean_ - if true, `--preserve-symlinks` is added to the options passed to NodeJS.\n- `opts.nodePath` - _String_ - sets the [NODE_PATH](https://nodejs.org/api/cli.html#cli_node_path_path) env variable.\n- `opts.createCmdFile` - _Boolean_ - is `true` on Windows by default. If true, creates a cmd file.\n- `opts.createPwshFile` - _Boolean_ - is `true` by default. If true, creates a powershell file.\n\n```javascript\nconst cmdShim = require('@zkochan/cmd-shim')\ncmdShim(__dirname + '/cli.js', '/usr/bin/command-name', { preserveSymlinks: true })\n  .catch(err => console.error(err))\n```\n\n## License\n\n[BSD-2-Clause](./LICENSE) \u00a9 [Zoltan Kochan](http://kochan.io)",
+      "releases": [
+        {
+          "count": 0,
+          "from": "2019-12-04T00:00:00.000Z",
+          "to": "2020-01-03T00:00:00.000Z"
+        },
+        {
+          "count": 0,
+          "from": "2019-10-05T00:00:00.000Z",
+          "to": "2020-01-03T00:00:00.000Z"
+        },
+        {
+          "count": 3,
+          "from": "2019-07-07T00:00:00.000Z",
+          "to": "2020-01-03T00:00:00.000Z"
+        },
+        {
+          "count": 4,
+          "from": "2019-01-03T00:00:00.000Z",
+          "to": "2020-01-03T00:00:00.000Z"
+        },
+        {
+          "count": 7,
+          "from": "2018-01-03T00:00:00.000Z",
+          "to": "2020-01-03T00:00:00.000Z"
+        }
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/pnpm/cmd-shim.git"
+      },
+      "scope": "zkochan",
+      "version": "4.2.0"
+    },
+    "npm": {
+      "dependentsCount": 9,
+      "downloads": [
+        {
+          "count": 56009,
+          "from": "2020-01-02T00:00:00.000Z",
+          "to": "2020-01-03T00:00:00.000Z"
+        },
+        {
+          "count": 238453,
+          "from": "2019-12-27T00:00:00.000Z",
+          "to": "2020-01-03T00:00:00.000Z"
+        },
+        {
+          "count": 1627606,
+          "from": "2019-12-04T00:00:00.000Z",
+          "to": "2020-01-03T00:00:00.000Z"
+        },
+        {
+          "count": 5149829,
+          "from": "2019-10-05T00:00:00.000Z",
+          "to": "2020-01-03T00:00:00.000Z"
+        },
+        {
+          "count": 8027160,
+          "from": "2019-07-07T00:00:00.000Z",
+          "to": "2020-01-03T00:00:00.000Z"
+        },
+        {
+          "count": 8303495,
+          "from": "2019-01-03T00:00:00.000Z",
+          "to": "2020-01-03T00:00:00.000Z"
+        }
+      ],
+      "starsCount": 0
+    },
+    "source": {
+      "badges": [
+        {
+          "info": {
+            "modifiers": {
+              "branch": "master"
+            },
+            "service": "travis",
+            "type": "build"
+          },
+          "urls": {
+            "content": "https://img.shields.io/travis/pnpm/cmd-shim/master.json",
+            "original": "https://img.shields.io/travis/pnpm/cmd-shim/master.svg",
+            "service": "https://api.travis-ci.org/pnpm/cmd-shim.svg?branch=master",
+            "shields": "https://img.shields.io/travis/pnpm/cmd-shim/master.svg"
+          }
+        },
+        {
+          "info": {
+            "modifiers": {
+              "branch": "master"
+            },
+            "service": "appveyor",
+            "type": "build"
+          },
+          "urls": {
+            "content": "https://img.shields.io/appveyor/ci/zkochan/cmd-shim-8ah3a/master.json",
+            "original": "https://img.shields.io/appveyor/ci/zkochan/cmd-shim-8ah3a/master.svg",
+            "service": "https://ci.appveyor.com/api/projects/status/zkochan/cmd-shim-8ah3a/branch/master",
+            "shields": "https://img.shields.io/appveyor/ci/zkochan/cmd-shim-8ah3a/master.svg"
+          }
+        },
+        {
+          "info": {
+            "modifiers": {
+              "type": "v"
+            },
+            "service": "npm",
+            "type": "version"
+          },
+          "urls": {
+            "content": "https://img.shields.io/npm/v/@zkochan/cmd-shim.json",
+            "original": "https://img.shields.io/npm/v/@zkochan/cmd-shim.svg",
+            "shields": "https://img.shields.io/npm/v/@zkochan/cmd-shim.svg"
+          }
+        }
+      ],
+      "files": {
+        "readmeSize": 1922,
+        "testsSize": 23152
+      },
+      "linters": [
+        "editorconfig",
+        "standard"
+      ]
+    }
+  },
+  "evaluation": {
+    "maintenance": {
+      "commitsFrequency": 0.9,
+      "issuesDistribution": 0.9,
+      "openIssues": 0.9545454545454546,
+      "releasesFrequency": 0.9
+    },
+    "popularity": {
+      "communityInterest": 19,
+      "dependentsCount": 9,
+      "downloadsAcceleration": 13337.56598173516,
+      "downloadsCount": 1716609.6666666667
+    },
+    "quality": {
+      "branding": 0.44999999999999996,
+      "carefulness": 0.9199999999999999,
+      "health": 1,
+      "tests": 0.85
+    }
+  },
+  "score": {
+    "detail": {
+      "maintenance": 0.999882577575109,
+      "popularity": 0.3091822015311992,
+      "quality": 0.9679885965460946
+    },
+    "final": 0.7485692516510362
+  }
+}

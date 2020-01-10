@@ -65,6 +65,10 @@ clean:
 	docker stop $(shell docker ps -f "name=dep-obs-" -f "status=running" --format "{{.ID}}") || true
 	docker container prune -f
 
+run-fetch-package-data-and-save:
+	printf '{"name":"123done"}\n{"name":"abab"}\n{"name":"abatar"}' | $(FPR_PYTHON) fetch_package_data --dry-run fetch_npmsio_scores
+	printf '{"name":"123done"}\n{"name":"abab"}\n{"name":"abatar"}' | $(FPR_PYTHON) fetch_package_data fetch_npmsio_scores -o output.jsonl
+
 run-find-git-refs:
 	$(FPR_PYTHON) find_git_refs --keep-volumes -i tests/fixtures/mozilla_services_channelserver_repo_url.jsonl
 
