@@ -29,7 +29,11 @@ def test_serialize_returns_audit_result(pipeline):
         "{}_serialized.json".format(pipeline.name), json.load
     )
 
-    default_args = pipeline.argparser(argparse.ArgumentParser()).parse_args(args=[])
+    args = []
+    if pipeline.name == "fetch_package_data":
+        args += ["fetch_npmsio_scores"]
+
+    default_args = pipeline.argparser(argparse.ArgumentParser()).parse_args(args)
     serialized = pipeline.serializer(default_args, unserialized)
     for field in sorted(pipeline.fields):
         assert field in serialized
