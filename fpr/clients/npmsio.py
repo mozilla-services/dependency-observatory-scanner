@@ -1,21 +1,24 @@
+import argparse
 import asyncio
-import aiohttp
+import logging
 import itertools
 from typing import Any, AsyncGenerator, Dict, Iterable, Optional
-import logging
+
+import aiohttp
 
 log = logging.getLogger(f"fpr.clients.npmsio")
 log.setLevel(logging.WARN)
 
 
-def aiohttp_session():
+def aiohttp_session(args: argparse.Namespace) -> aiohttp.ClientSession:
     return aiohttp.ClientSession(
-        connector=aiohttp.TCPConnector(limit=4),
         headers={
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "User-Agent": "Mozilla-Dependency-Observatory/g-k",
+            "User-Agent": args.user_agent,
         },
+        timeout=aiohttp.ClientTimeout(total=args.total_timeout),
+        connector=aiohttp.TCPConnector(limit=args.max_connections),
         raise_for_status=True,
     )
 
@@ -44,14 +47,14 @@ def grouper(iterable: Iterable[Any], n: int, fillvalue: Any = None):
 
 
 async def fetch_npmsio_scores(
-    package_names: Iterable[str], pkgs_per_request: int = 100, dry_run: bool = False
+    args: argparse.Namespace, package_names: Iterable[str], pkgs_per_request: int = 100
 ) -> AsyncGenerator[Dict[str, Dict], None]:
     """
     Fetches npms.io score and analysis for one or more node package names
 
     Uses: https://api-docs.npms.io/#api-Package-GetMultiPackageInfo
     """
-    async with aiohttp_session() as s:
+    async with aiohttp_session(args) as s:
         group_results = await asyncio.gather(
             *[
                 async_query(
@@ -61,7 +64,7 @@ async def fetch_npmsio_scores(
                         for package_name in group
                         if package_name is not None
                     ],
-                    dry_run,
+                    args.dry_run,
                 )
                 for group in grouper(package_names, pkgs_per_request)
                 if group is not None

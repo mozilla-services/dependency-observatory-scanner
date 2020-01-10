@@ -5,7 +5,7 @@ from typing import Any, AsyncGenerator, Dict, Generator, List, Optional, Tuple, 
 
 from fpr.rx_util import on_next_save_to_jsonl
 from fpr.clients.npmsio import fetch_npmsio_scores
-from fpr.models.pipeline import Pipeline, add_infile_and_outfile
+from fpr.models.pipeline import Pipeline, add_infile_and_outfile, add_aiohttp_args
 from fpr.pipelines.util import exc_to_str
 from fpr.serialize_util import iter_jsonlines
 
@@ -19,6 +19,7 @@ __doc__ = """Fetches additional data about a dependency."""
 
 def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser = add_infile_and_outfile(pipeline_parser)
+    parser = add_aiohttp_args(parser)
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -58,9 +59,7 @@ async def run_pipeline(
             f"fetching npmsio scores for {len(package_names)} package names in batches of {args.package_batch_size}"
         )
         async for package_result in fetch_npmsio_scores(
-            package_names,
-            pkgs_per_request=args.package_batch_size,
-            dry_run=args.dry_run,
+            args, package_names, pkgs_per_request=args.package_batch_size
         ):
             yield package_result
     else:
