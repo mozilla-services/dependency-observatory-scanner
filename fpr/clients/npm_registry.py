@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import aiohttp
 import backoff
+import math
 from typing import Any, AsyncGenerator, Dict, Iterable, Optional
 import logging
 
@@ -61,11 +62,14 @@ def is_not_found_exception(err: Exception) -> bool:
 
 
 async def fetch_npm_registry_metadata(
-    args: argparse.Namespace, package_names: Iterable[str], total: int = None
+    args: argparse.Namespace, package_names: Iterable[str], total_packages: int = None
 ) -> AsyncGenerator[Dict[str, Dict], None]:
     """
     Fetches npm registry metadata for one or more node package names
     """
+    total_groups: Optional[int] = None
+    if total_packages:
+        total_groups = math.ceil(total_packages / args.package_batch_size)
     async with aiohttp_session(args) as s:
         async_query_with_backoff = backoff.on_exception(
             backoff.expo,
@@ -76,7 +80,7 @@ async def fetch_npm_registry_metadata(
         )(async_query)
 
         for i, group in enumerate(grouper(package_names, args.package_batch_size)):
-            log.info(f"fetching group {i} of {total}")
+            log.info(f"fetching group {i} of {total_groups}")
             group_results = await asyncio.gather(
                 *[
                     async_query_with_backoff(s, package_name, args.dry_run)
