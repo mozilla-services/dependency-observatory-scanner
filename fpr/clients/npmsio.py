@@ -47,7 +47,7 @@ def grouper(iterable: Iterable[Any], n: int, fillvalue: Any = None):
 
 
 async def fetch_npmsio_scores(
-    args: argparse.Namespace, package_names: Iterable[str], pkgs_per_request: int = 100
+    args: argparse.Namespace, package_names: Iterable[str]
 ) -> AsyncGenerator[Dict[str, Dict], None]:
     """
     Fetches npms.io score and analysis for one or more node package names
@@ -66,7 +66,7 @@ async def fetch_npmsio_scores(
                     ],
                     args.dry_run,
                 )
-                for group in grouper(package_names, pkgs_per_request)
+                for group in grouper(package_names, args.package_batch_size)
                 if group is not None
             ]
         )

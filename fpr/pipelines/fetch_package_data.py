@@ -58,9 +58,7 @@ async def run_pipeline(
         log.info(
             f"fetching npmsio scores for {len(package_names)} package names in batches of {args.package_batch_size}"
         )
-        async for package_result in fetch_npmsio_scores(
-            args, package_names, pkgs_per_request=args.package_batch_size
-        ):
+        async for package_result in fetch_npmsio_scores(args, package_names):
             yield package_result
     else:
         raise NotImplementedError(f"unrecognized task {args.package_task}")
