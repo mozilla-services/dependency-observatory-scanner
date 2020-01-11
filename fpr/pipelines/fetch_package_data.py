@@ -88,9 +88,7 @@ async def run_pipeline(
         else:
             raise NotImplementedError(f"unrecognized task {args.package_task}")
     except Exception as e:
-        log.error(
-            f"error running {pipeline.name} {args.package_task} :\n{exc_to_str()}"
-        )
+        log.error(f"error running {pipeline.name} {args.package_task}:\n{exc_to_str()}")
 
 
 # TODO: improve validation and specify field providers
