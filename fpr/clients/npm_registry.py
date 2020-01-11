@@ -7,7 +7,7 @@ import logging
 from fpr.serialize_util import grouper
 
 log = logging.getLogger(f"fpr.clients.npm_registry")
-log.setLevel(logging.WARN)
+log.setLevel(logging.DEBUG)
 
 
 def aiohttp_session(args: argparse.Namespace) -> aiohttp.ClientSession:
