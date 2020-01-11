@@ -75,14 +75,22 @@ async def run_pipeline(
     log.info(
         f"fetching {args.package_task} for {len(package_names)} package names in batches of {args.package_batch_size}"
     )
-    if args.package_task == "fetch_npmsio_scores":
-        async for package_result in fetch_npmsio_scores(args, package_names):
-            yield package_result
-    elif args.package_task == "fetch_npm_registry_metadata":
-        async for package_result in fetch_npm_registry_metadata(args, package_names):
-            yield package_result
-    else:
-        raise NotImplementedError(f"unrecognized task {args.package_task}")
+
+    try:
+        if args.package_task == "fetch_npmsio_scores":
+            async for package_result in fetch_npmsio_scores(args, package_names):
+                yield package_result
+        elif args.package_task == "fetch_npm_registry_metadata":
+            async for package_result in fetch_npm_registry_metadata(
+                args, package_names, len(package_names)
+            ):
+                yield package_result
+        else:
+            raise NotImplementedError(f"unrecognized task {args.package_task}")
+    except Exception as e:
+        log.error(
+            f"error running {pipeline.name} {args.package_task} :\n{exc_to_str()}"
+        )
 
 
 # TODO: improve validation and specify field providers
