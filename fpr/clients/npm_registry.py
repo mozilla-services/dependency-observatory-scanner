@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import aiohttp
+import backoff
 from typing import Any, AsyncGenerator, Dict, Iterable, Optional
 import logging
 
@@ -48,30 +49,37 @@ async def async_query(
         log.warn(f"in dry run mode: skipping GET {url}")
         return response_json
 
-    try:
-        log.debug(f"GET {url}")
-        response = await session.get(url)
-        response_json = await response.json()
-        return response_json
-    except aiohttp.ClientResponseError as err:
-        if err.status == 404:
-            log.warn(f"{url} not found: {err}")
-            return None
-        raise err
+    log.debug(f"GET {url}")
+    response = await session.get(url)
+    response_json = await response.json()
+    return response_json
+
+
+def is_not_found_exception(err: Exception) -> bool:
+    is_aiohttp_404 = isinstance(err, aiohttp.ClientResponseError) and err.status == 404
+    return is_aiohttp_404
 
 
 async def fetch_npm_registry_metadata(
-    args: argparse.Namespace, package_names: Iterable[str]
+    args: argparse.Namespace, package_names: Iterable[str], total: int = None
 ) -> AsyncGenerator[Dict[str, Dict], None]:
     """
     Fetches npm registry metadata for one or more node package names
     """
     async with aiohttp_session(args) as s:
+        async_query_with_backoff = backoff.on_exception(
+            backoff.expo,
+            (aiohttp.ClientResponseError, aiohttp.ClientError, asyncio.TimeoutError),
+            max_tries=args.max_retries,
+            giveup=is_not_found_exception,
+            logger=log,
+        )(async_query)
+
         for i, group in enumerate(grouper(package_names, args.package_batch_size)):
-            log.info(f"fetching group {i}")
+            log.info(f"fetching group {i} of {total}")
             group_results = await asyncio.gather(
                 *[
-                    async_query(s, package_name, args.dry_run)
+                    async_query_with_backoff(s, package_name, args.dry_run)
                     for package_name in group
                     if package_name is not None
                 ]

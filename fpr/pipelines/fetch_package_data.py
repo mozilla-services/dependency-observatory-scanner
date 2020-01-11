@@ -23,6 +23,13 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     parser = add_infile_and_outfile(pipeline_parser)
     parser = add_aiohttp_args(parser)
     parser.add_argument(
+        "--max-retries",
+        help="max times to retry a query with jitter and exponential backoff (defaults to 12)"
+        "Ignores 404s errors",
+        type=int,
+        default=12,
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         required=False,
