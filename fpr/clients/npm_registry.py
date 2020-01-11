@@ -6,6 +6,7 @@ import math
 from typing import Any, AsyncGenerator, Dict, Iterable, Optional
 import logging
 
+from fpr.pipelines.util import exc_to_str
 from fpr.serialize_util import grouper
 
 log = logging.getLogger(f"fpr.clients.npm_registry")
@@ -51,9 +52,16 @@ async def async_query(
         return response_json
 
     log.debug(f"GET {url}")
-    response = await session.get(url)
-    response_json = await response.json()
-    return response_json
+    try:
+        response = await session.get(url)
+        response_json = await response.json()
+        return response_json
+    except aiohttp.ClientResponseError as err:
+        if is_not_found_exception(err):
+            log.info(f"got 404 for package {package_name}")
+            log.debug(f"{url} not found: {err}")
+            return None
+        raise err
 
 
 def is_not_found_exception(err: Exception) -> bool:
@@ -81,13 +89,18 @@ async def fetch_npm_registry_metadata(
 
         for i, group in enumerate(grouper(package_names, args.package_batch_size)):
             log.info(f"fetching group {i} of {total_groups}")
-            group_results = await asyncio.gather(
-                *[
-                    async_query_with_backoff(s, package_name, args.dry_run)
-                    for package_name in group
-                    if package_name is not None
-                ]
-            )
-            for result in group_results:
-                if result is not None:
-                    yield result
+            try:
+                group_results = await asyncio.gather(
+                    *[
+                        async_query_with_backoff(s, package_name, args.dry_run)
+                        for package_name in group
+                        if package_name is not None
+                    ]
+                )
+                for result in group_results:
+                    if result is not None:
+                        yield result
+            except Exception as err:
+                log.error(
+                    f"error fetching group {i} for package names {group}: {err}:\n{exc_to_str()}"
+                )
