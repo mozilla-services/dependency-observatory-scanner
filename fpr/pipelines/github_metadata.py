@@ -190,13 +190,7 @@ async def quiz_executor_and_schema(
 ) -> Tuple[quiz.execution.async_executor, quiz.Schema]:
     async_executor = quiz.async_executor(
         url="https://api.github.com/graphql",
-        auth=snug.header_adder(
-            {
-                "Authorization": "bearer {auth_token}".format(
-                    auth_token=args.github_auth_token
-                )
-            }
-        ),
+        auth=snug.header_adder({"Authorization": f"Bearer {args.github_auth_token}"}),
         client=session,
     )
     result = await async_executor(quiz.INTROSPECTION_QUERY)
@@ -235,9 +229,6 @@ async def worker(
         if shutdown.is_set():
             log.debug(f"{name} shutting down")
             break
-
-        # response = await run_graphql(schema, executor, rate_limit_graphql(), name)
-        # log.debug(f"fetched rate limits {response.json}")
 
         try:
             request: Request = await asyncio.wait_for(

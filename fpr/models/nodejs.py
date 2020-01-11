@@ -19,6 +19,8 @@ class NPMPackage:
     """
     NPMPackage represents a resolved npm package dependency (as from
     `npm list`)
+
+    https://github.com/npm/registry/blob/master/docs/responses/package-metadata.md
     """
 
     # the package name from .dependencies.<pkg-name-key>[.dependencies[<pkg-name-key>]*

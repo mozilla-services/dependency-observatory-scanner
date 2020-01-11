@@ -1,21 +1,25 @@
+import argparse
 import asyncio
-import aiohttp
-import itertools
-from typing import Any, AsyncGenerator, Dict, Iterable, Optional
 import logging
+from typing import Any, AsyncGenerator, Dict, Iterable, Optional
+
+import aiohttp
+
+from fpr.serialize_util import grouper
 
 log = logging.getLogger(f"fpr.clients.npmsio")
 log.setLevel(logging.WARN)
 
 
-def aiohttp_session():
+def aiohttp_session(args: argparse.Namespace) -> aiohttp.ClientSession:
     return aiohttp.ClientSession(
-        connector=aiohttp.TCPConnector(limit=4),
         headers={
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "User-Agent": "Mozilla-Dependency-Observatory/g-k",
+            "User-Agent": args.user_agent,
         },
+        timeout=aiohttp.ClientTimeout(total=args.total_timeout),
+        connector=aiohttp.TCPConnector(limit=args.max_connections),
         raise_for_status=True,
     )
 
@@ -35,23 +39,15 @@ async def async_query(
     return response_json
 
 
-def grouper(iterable: Iterable[Any], n: int, fillvalue: Any = None):
-    "Collect data into fixed-length chunks or blocks"
-    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
-    # from https://docs.python.org/3/library/itertools.html#itertools-recipes
-    args = [iter(iterable)] * n
-    return itertools.zip_longest(*args, fillvalue=fillvalue)
-
-
 async def fetch_npmsio_scores(
-    package_names: Iterable[str], pkgs_per_request: int = 100, dry_run: bool = False
+    args: argparse.Namespace, package_names: Iterable[str]
 ) -> AsyncGenerator[Dict[str, Dict], None]:
     """
     Fetches npms.io score and analysis for one or more node package names
 
     Uses: https://api-docs.npms.io/#api-Package-GetMultiPackageInfo
     """
-    async with aiohttp_session() as s:
+    async with aiohttp_session(args) as s:
         group_results = await asyncio.gather(
             *[
                 async_query(
@@ -61,9 +57,9 @@ async def fetch_npmsio_scores(
                         for package_name in group
                         if package_name is not None
                     ],
-                    dry_run,
+                    args.dry_run,
                 )
-                for group in grouper(package_names, pkgs_per_request)
+                for group in grouper(package_names, args.package_batch_size)
                 if group is not None
             ]
         )

@@ -68,6 +68,8 @@ clean:
 run-fetch-package-data-and-save:
 	printf '{"name":"123done"}\n{"name":"abab"}\n{"name":"abatar"}' | $(FPR_PYTHON) fetch_package_data --dry-run fetch_npmsio_scores
 	printf '{"name":"123done"}\n{"name":"abab"}\n{"name":"abatar"}' | $(FPR_PYTHON) fetch_package_data fetch_npmsio_scores -o output.jsonl
+	printf '{"name":"123done"}\n{"name":"abab"}\n{"name":"abatar"}' | $(FPR_PYTHON) fetch_package_data --dry-run fetch_npm_registry_metadata
+	printf '{"name":"123done"}\n{"name":"abab"}\n{"name":"abatar"}' | $(FPR_PYTHON) fetch_package_data fetch_npm_registry_metadata -o output.jsonl
 
 run-find-git-refs:
 	$(FPR_PYTHON) find_git_refs --keep-volumes -i tests/fixtures/mozilla_services_channelserver_repo_url.jsonl

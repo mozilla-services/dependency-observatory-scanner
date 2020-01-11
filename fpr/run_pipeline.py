@@ -65,7 +65,8 @@ def main():
     if args.quiet:
         log.removeHandler(ch)
 
-    debug_args = {k: v for (k, v) in vars(args).items() if k != "github_auth_token"}
+    _scrub_arg_names = {"github_auth_token", "npm_auth_token"}
+    debug_args = {k: v for (k, v) in vars(args).items() if k not in _scrub_arg_names}
     log.debug(f"args: {debug_args}")
 
     loop = asyncio.get_event_loop()
