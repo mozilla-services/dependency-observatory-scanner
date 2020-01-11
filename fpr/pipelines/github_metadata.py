@@ -236,9 +236,6 @@ async def worker(
             log.debug(f"{name} shutting down")
             break
 
-        # response = await run_graphql(schema, executor, rate_limit_graphql(), name)
-        # log.debug(f"fetched rate limits {response.json}")
-
         try:
             request: Request = await asyncio.wait_for(
                 to_run.get(), queue_wait_timeout_seconds
