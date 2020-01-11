@@ -5,6 +5,7 @@ from typing import Any, AsyncGenerator, Dict, Generator, List, Optional, Tuple, 
 
 from fpr.rx_util import on_next_save_to_jsonl
 from fpr.clients.npmsio import fetch_npmsio_scores
+from fpr.clients.npm_registry import fetch_npm_registry_metadata
 from fpr.models.pipeline import Pipeline, add_infile_and_outfile, add_aiohttp_args
 from fpr.pipelines.util import exc_to_str
 from fpr.serialize_util import iter_jsonlines
@@ -30,7 +31,7 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     parser.add_argument(
         dest="package_task",
         type=str,
-        choices=["fetch_npmsio_scores"],
+        choices=["fetch_npmsio_scores", "fetch_npm_registry_metadata"],
         default="fetch_npmsio_scores",
         help="Task to run on each package. Defaults to 'fetch_npmsio_scores'",
     )
@@ -39,9 +40,13 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
         type=int,
         required=False,
         default=50,
-        help="Number of packages to fetch data for. Defaults to 50.",
+        help="Number of packages per fetch_npmsio_scores request. Defaults to 50.",
     )
     return parser
+
+
+def is_dict_with_name(package: Any) -> bool:
+    return isinstance(package, dict) and "name" in package
 
 
 async def run_pipeline(
@@ -49,16 +54,17 @@ async def run_pipeline(
 ) -> AsyncGenerator[Dict, None]:
     log.info(f"{pipeline.name} pipeline started with task {args.package_task}")
 
+    packages = [package for package in source]
+    assert all(is_dict_with_name(package) for package in packages)
+    package_names = [package["name"] for package in packages]
+    log.info(
+        f"fetching {args.package_task} for {len(package_names)} package names in batches of {args.package_batch_size}"
+    )
     if args.package_task == "fetch_npmsio_scores":
-        packages = [package for package in source]
-        assert all(
-            isinstance(package, dict) and "name" in package for package in packages
-        )
-        package_names = [package["name"] for package in packages]
-        log.info(
-            f"fetching npmsio scores for {len(package_names)} package names in batches of {args.package_batch_size}"
-        )
         async for package_result in fetch_npmsio_scores(args, package_names):
+            yield package_result
+    elif args.package_task == "fetch_npm_registry_metadata":
+        async for package_result in fetch_npm_registry_metadata(args, package_names):
             yield package_result
     else:
         raise NotImplementedError(f"unrecognized task {args.package_task}")
