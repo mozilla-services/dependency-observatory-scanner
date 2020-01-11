@@ -1,3 +1,4 @@
+import os
 import argparse
 import logging
 import pathlib
@@ -41,6 +42,12 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
         required=False,
         default=50,
         help="Number of packages per fetch_npmsio_scores request. Defaults to 50.",
+    )
+    parser.add_argument(
+        "--npm-auth-token",
+        default=os.environ.get("NPM_PAT", None),
+        help="An npm registry access token for fetch_npm_registry_metadata."
+        " Defaults NPM_PAT env var. Should be read-only.",
     )
     return parser
 
