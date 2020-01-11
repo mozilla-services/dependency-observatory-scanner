@@ -1,10 +1,11 @@
 import argparse
 import asyncio
 import logging
-import itertools
 from typing import Any, AsyncGenerator, Dict, Iterable, Optional
 
 import aiohttp
+
+from fpr.serialize_util import grouper
 
 log = logging.getLogger(f"fpr.clients.npmsio")
 log.setLevel(logging.WARN)
@@ -36,14 +37,6 @@ async def async_query(
         response_json = await response.json()
     log.debug(f"got response json {response_json!r}")
     return response_json
-
-
-def grouper(iterable: Iterable[Any], n: int, fillvalue: Any = None):
-    "Collect data into fixed-length chunks or blocks"
-    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
-    # from https://docs.python.org/3/library/itertools.html#itertools-recipes
-    args = [iter(iterable)] * n
-    return itertools.zip_longest(*args, fillvalue=fillvalue)
 
 
 async def fetch_npmsio_scores(

@@ -1,9 +1,10 @@
 import argparse
 import asyncio
 import aiohttp
-import itertools
 from typing import Any, AsyncGenerator, Dict, Iterable, Optional
 import logging
+
+from fpr.serialize_util import grouper
 
 log = logging.getLogger(f"fpr.clients.npm_registry")
 log.setLevel(logging.WARN)
@@ -66,13 +67,15 @@ async def fetch_npm_registry_metadata(
     Fetches npm registry metadata for one or more node package names
     """
     async with aiohttp_session(args) as s:
-        results = await asyncio.gather(
-            *[
-                async_query(s, package_name, args.dry_run)
-                for package_name in package_names
-                if package_name is not None
-            ]
-        )
-        for result in results:
-            if result is not None:
-                yield result
+        for i, group in enumerate(grouper(package_names, args.package_batch_size)):
+            log.info(f"fetching group {i}")
+            group_results = await asyncio.gather(
+                *[
+                    async_query(s, package_name, args.dry_run)
+                    for package_name in group
+                    if package_name is not None
+                ]
+            )
+            for result in group_results:
+                if result is not None:
+                    yield result

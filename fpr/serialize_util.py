@@ -1,4 +1,5 @@
 import argparse
+import itertools
 import json
 from typing import Any, Dict, Iterable, Set, Sequence, List, Union, Generator
 
@@ -52,3 +53,11 @@ def iter_jsonlines(
 
 def identity_serializer(_: argparse.Namespace, result: Dict) -> Dict:
     return result
+
+
+def grouper(iterable: Iterable[Any], n: int, fillvalue: Any = None):
+    "Collect data into fixed-length chunks or blocks"
+    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
+    # from https://docs.python.org/3/library/itertools.html#itertools-recipes
+    args = [iter(iterable)] * n
+    return itertools.zip_longest(*args, fillvalue=fillvalue)

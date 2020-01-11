@@ -41,7 +41,8 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
         type=int,
         required=False,
         default=50,
-        help="Number of packages per fetch_npmsio_scores request. Defaults to 50.",
+        help="Number of packages per fetch_npmsio_scores request or"
+        " concurrent fetch_npm_registry_metadata requests to run. Defaults to 50.",
     )
     parser.add_argument(
         "--npm-auth-token",
