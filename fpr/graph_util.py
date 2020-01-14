@@ -1,9 +1,10 @@
 import argparse
 import logging
-from typing import AbstractSet, Any, Dict, List, Tuple, TypeVar, Sequence, Set, Union
+from typing import AbstractSet, Any, Dict, Iterable, List, Tuple, TypeVar, Set, Union
 
 import networkx as nx
 
+from fpr.models.nodejs import NPMPackage
 from fpr.models.rust import RustCrate, RustPackageID, RustPackage
 
 T = TypeVar("T")
@@ -39,6 +40,16 @@ GROUP_ATTRS = {
     # 'manifest_path':
     # 'source_repository':
 }
+
+
+def npm_packages_to_networkx_digraph(packages: Iterable[NPMPackage]) -> nx.DiGraph:
+    g = nx.DiGraph()
+    for package in packages:
+        node_id = package.package_id
+        g.add_node(node_id, label=node_id)
+        for dep_id in package.dependencies:
+            g.add_edge(node_id, dep_id)
+    return g
 
 
 def rust_crates_and_packages_to_networkx_digraph(
