@@ -124,13 +124,16 @@ async def run_pipeline(
         )
 
         if task_name == "list_metadata":
+            deps = [dep for dep in flatten_deps(parsed_stdout)]
             list_results = {"problems": get_in(parsed_stdout, ["problems"], [])}
-            list_results["dependencies"] = deps = [
-                asdict(dep) for dep in flatten_deps(parsed_stdout)
-            ]
+            list_results["dependencies"] = [asdict(dep) for dep in deps]
             list_results["dependencies_count"] = len(deps)
             list_results["problems_count"] = len(list_results["problems"])
 
+            list_results["root"] = deps[-1] if len(deps) else None
+            list_results["direct_dependencies_count"] = (
+                len(deps[-1].dependencies) if len(deps) else None
+            )
             result.update(list_results)
             log.info(
                 f"wrote {result['task']['name']} {result['org']}/{result['repo']} {result['task']['relative_path']}"
