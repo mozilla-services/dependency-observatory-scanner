@@ -1,10 +1,12 @@
 import argparse
 import logging
-from typing import Dict, Tuple, Set, Any
+from typing import AbstractSet, Any, Dict, List, Tuple, TypeVar, Sequence, Set, Union
 
 import networkx as nx
 
 from fpr.models.rust import RustCrate, RustPackageID, RustPackage
+
+T = TypeVar("T")
 
 log = logging.getLogger("fpr.models.graph_util")
 
@@ -97,7 +99,9 @@ def has_changes(result: Dict) -> bool:
     return False
 
 
-def get_new_removed_and_new_total(lset, rset) -> Tuple[Set[Any], Set[Any], int]:
+def get_new_removed_and_new_total(
+    lset: AbstractSet[T], rset: AbstractSet[T]
+) -> Tuple[AbstractSet[T], AbstractSet[T], int]:
     new = rset - lset
     removed = lset - rset
     new_total = len(rset)
