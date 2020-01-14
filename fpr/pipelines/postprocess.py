@@ -25,6 +25,7 @@ from typing import (
 import typing
 
 from fpr.rx_util import on_next_save_to_jsonl
+from fpr.graph_util import npm_packages_to_networkx_digraph, get_graph_stats
 from fpr.serialize_util import (
     get_in,
     extract_fields,
@@ -125,6 +126,10 @@ async def run_pipeline(
 
         if task_name == "list_metadata":
             deps = [dep for dep in flatten_deps(parsed_stdout)]
+            result["graph_stats"] = get_graph_stats(
+                npm_packages_to_networkx_digraph(deps)
+            )
+
             list_results = {"problems": get_in(parsed_stdout, ["problems"], [])}
             list_results["dependencies"] = [asdict(dep) for dep in deps]
             list_results["dependencies_count"] = len(deps)
@@ -139,6 +144,7 @@ async def run_pipeline(
                 f"wrote {result['task']['name']} {result['org']}/{result['repo']} {result['task']['relative_path']}"
                 f" {result['ref']['value']} w/"
                 f" {result['dependencies_count']} deps and {result['problems_count']} problems"
+                f" {result['graph_stats']}"
             )
         elif task_name == "audit":
             # has format:
