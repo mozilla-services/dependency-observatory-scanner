@@ -1,10 +1,13 @@
 import argparse
 import logging
-from typing import Dict, Tuple, Set, Any
+from typing import AbstractSet, Any, Dict, Iterable, List, Tuple, TypeVar, Set, Union
 
 import networkx as nx
 
+from fpr.models.nodejs import NPMPackage
 from fpr.models.rust import RustCrate, RustPackageID, RustPackage
+
+T = TypeVar("T")
 
 log = logging.getLogger("fpr.models.graph_util")
 
@@ -37,6 +40,16 @@ GROUP_ATTRS = {
     # 'manifest_path':
     # 'source_repository':
 }
+
+
+def npm_packages_to_networkx_digraph(packages: Iterable[NPMPackage]) -> nx.DiGraph:
+    g = nx.DiGraph()
+    for package in packages:
+        node_id = package.package_id
+        g.add_node(node_id, label=node_id)
+        for dep_id in package.dependencies:
+            g.add_edge(node_id, dep_id)
+    return g
 
 
 def rust_crates_and_packages_to_networkx_digraph(
@@ -97,8 +110,37 @@ def has_changes(result: Dict) -> bool:
     return False
 
 
-def get_new_removed_and_new_total(lset, rset) -> Tuple[Set[Any], Set[Any], int]:
+def get_new_removed_and_new_total(
+    lset: AbstractSet[T], rset: AbstractSet[T]
+) -> Tuple[AbstractSet[T], AbstractSet[T], int]:
     new = rset - lset
     removed = lset - rset
     new_total = len(rset)
     return new, removed, new_total
+
+
+def get_graph_stats(g: nx.DiGraph) -> Dict[str, Union[int, List[int], List[str]]]:
+    stats = dict(
+        node_count=g.number_of_nodes(),
+        edge_count=g.number_of_edges(),
+        # zero (no edges) to one (complete / all nodes directly linked to each other)
+        density=nx.density(g),
+        # list index is the degree count, value is the number of nodes with that degree (# of adjacent nodes)
+        degree_histograph=nx.classes.function.degree_histogram(g),  # List[int]
+        # longest/deepest path through the DAG
+        longest_path=nx.algorithms.dag.dag_longest_path(g),  # List[str]
+    )
+    stats["longest_path_length"] = len(stats["longest_path"])
+
+    # number of edges pointing to a node
+    stats["average_in_degree"] = sum(d for n, d in g.in_degree()) / float(
+        stats["node_count"]
+    )
+
+    # number of edges a node points to
+    stats["average_out_degree"] = sum(d for n, d in g.out_degree()) / float(
+        stats["node_count"]
+    )
+    # NB: avg in and out degrees should be equal
+
+    return stats
