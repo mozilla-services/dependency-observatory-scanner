@@ -4,6 +4,8 @@ import functools
 import pathlib
 from typing import AbstractSet, Any, Callable, Dict, List
 
+from fpr.models.docker_image import DockerImage, DockerImageName
+
 
 @enum.unique
 class DependencyFileKind(enum.Enum):
@@ -77,6 +79,9 @@ class Language:
 
     # commands for listing the language compiler or runtime version
     version_commands: Dict[str, str]
+
+    # docker images to build and run tasks in
+    images: Dict[str, DockerImage]
 
 
 dependency_file_patterns: Dict[str, DependencyFilePattern] = {
@@ -226,6 +231,28 @@ package_managers: Dict[str, PackageManager] = {
 }
 package_manager_names = [pm.name for pm in package_managers.values()]
 
+
+docker_images: Dict[str, DockerImage] = {
+    "dep-obs/node-10:latest": DockerImage(
+        base=DockerImageName(None, "node", "10"),
+        local=DockerImageName("dep-obs", "node-10", "latest"),
+        dockerfile_template="""FROM {base.repo_name}:{base.tag}
+RUN apt-get -y update && apt-get install -y git
+CMD ["node"]
+""",
+    ),
+    "dep-obs/rust-1:latest": DockerImage(
+        base=DockerImageName(None, "rust", "1"),
+        local=DockerImageName("dep-obs", "rust-1", "latest"),
+        dockerfile_template="""FROM {base.repo_name}:{base.tag}
+RUN apt-get -y update && apt-get install -y git
+RUN cargo install cargo-audit
+CMD ["rustc"]
+""",
+    ),
+}
+docker_image_names = list(docker_images.keys())
+
 languages: Dict[str, Language] = {
     l.name: l
     for l in [
@@ -233,6 +260,7 @@ languages: Dict[str, Language] = {
             name="rust",
             package_managers={pm.name: pm for pm in [package_managers["cargo"]]},
             version_commands={"rustc": "rustc --version"},
+            images={"dep-obs/rust-1:latest": docker_images["dep-obs/rust-1:latest"]},
         ),
         Language(
             name="nodejs",
@@ -241,6 +269,7 @@ languages: Dict[str, Language] = {
                 for pm in [package_managers["npm"], package_managers["yarn"]]
             },
             version_commands={"node": "node --version"},
+            images={"dep-obs/node-10:latest": docker_images["dep-obs/node-10:latest"]},
         ),
     ]
 }
