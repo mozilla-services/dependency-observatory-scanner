@@ -29,7 +29,14 @@ from fpr.serialize_util import get_in, extract_fields, iter_jsonlines, REPO_FIEL
 import fpr.docker.containers as containers
 import fpr.docker.volumes as volumes
 from fpr.models import GitRef, OrgRepo, Pipeline, SerializedNodeJSMetadata
-from fpr.models.language import DependencyFile, languages, ContainerTask
+from fpr.models.language import (
+    ContainerTask,
+    DependencyFile,
+    languages,
+    language_names,
+    package_managers,
+    package_manager_names,
+)
 from fpr.models.pipeline import add_infile_and_outfile, add_volume_arg
 from fpr.pipelines.util import exc_to_str
 
@@ -73,6 +80,24 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
         default=None,
         help="Only run against matching directory. "
         "e.g. './' for root directory or './packages/fxa-js-client/' for a subdirectory",
+    )
+    parser.add_argument(
+        "--language",
+        type=str,
+        action="append",
+        required=False,
+        choices=language_names,
+        default=[],
+        help="Package managers to run commands for. Defaults to all of them.",
+    )
+    parser.add_argument(
+        "--package-manager",
+        type=str,
+        action="append",
+        required=False,
+        choices=package_manager_names,
+        default=[],
+        help="Package managers to run commands for. Defaults to all of them.",
     )
     parser.add_argument(
         "--repo-task",
@@ -286,6 +311,22 @@ async def run_pipeline(
         log.error(
             f"error occurred building the nodejs metadata image: {e}\n{exc_to_str()}"
         )
+
+    enabled_languages = args.language or language_names
+    if not args.language:
+        log.info(f"languages not specified using all of {enabled_languages}")
+
+    enabled_package_managers = args.package_manager or package_manager_names
+    if not args.package_manager:
+        log.info(
+            f"package managers not specified using all of {enabled_package_managers}"
+        )
+
+    for language_name, package_manager_name in itertools.product(
+        enabled_languages, enabled_package_managers
+    ):
+        log.info(f"would run tasks for {language_name} {package_manager_name}")
+
 
     version_commands = ChainMap(
         languages["nodejs"].version_commands,
