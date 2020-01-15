@@ -224,7 +224,7 @@ package_managers: Dict[str, PackageManager] = {
         ),
     ]
 }
-
+package_manager_names = [pm.name for pm in package_managers.values()]
 
 languages: Dict[str, Language] = {
     l.name: l
@@ -244,3 +244,4 @@ languages: Dict[str, Language] = {
         ),
     ]
 }
+language_names = [l.name for l in languages.values()]
