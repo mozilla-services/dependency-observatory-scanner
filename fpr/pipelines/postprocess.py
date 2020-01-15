@@ -135,7 +135,7 @@ async def run_pipeline(
             list_results["dependencies_count"] = len(deps)
             list_results["problems_count"] = len(list_results["problems"])
 
-            list_results["root"] = deps[-1] if len(deps) else None
+            list_results["root"] = asdict(deps[-1]) if len(deps) else None
             list_results["direct_dependencies_count"] = (
                 len(deps[-1].dependencies) if len(deps) else None
             )
