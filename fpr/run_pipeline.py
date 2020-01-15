@@ -79,16 +79,13 @@ def main():
     asyncio.set_event_loop(loop)
 
     pipeline = next(p for p in pipelines if p.name == args.pipeline_name)
+    log_line = (
+        f"running pipeline {args.pipeline_name} on {args.infile.name} writing to "
+        f"{args.outfile.name}"
+    )
     if args.append_outfile:
-        log.info(
-            f"running pipeline {args.pipeline_name} on {args.infile.name} writing to "
-            f"{args.outfile.name} and appending to {args.append_outfile.name}"
-        )
-    else:
-        log.info(
-            f"running pipeline {args.pipeline_name} on {args.infile.name} writing to "
-            f"{args.outfile.name}"
-        )
+        log_line += f"and appending to {args.append_outfile.name}"
+    log.info(log_line)
 
     async def main():
         async for row in pipeline.runner(pipeline.reader(args.infile), args):
