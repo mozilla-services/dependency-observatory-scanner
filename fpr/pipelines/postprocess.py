@@ -126,8 +126,10 @@ async def run_pipeline(
 
         if task_name == "list_metadata":
             deps = [dep for dep in flatten_deps(parsed_stdout)]
-            result["graph_stats"] = get_graph_stats(
-                npm_packages_to_networkx_digraph(deps)
+            result["graph_stats"] = (
+                get_graph_stats(npm_packages_to_networkx_digraph(deps))
+                if deps
+                else dict()
             )
 
             list_results = {"problems": get_in(parsed_stdout, ["problems"], [])}
