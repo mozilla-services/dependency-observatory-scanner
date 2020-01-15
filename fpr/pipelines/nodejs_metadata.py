@@ -1,7 +1,7 @@
 import argparse
 import asyncio
 from collections import ChainMap
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 import functools
 import itertools
 import json
@@ -17,6 +17,7 @@ from typing import (
     AsyncGenerator,
     Dict,
     Generator,
+    Iterable,
     List,
     Optional,
     Tuple,
@@ -32,18 +33,22 @@ from fpr.models import GitRef, OrgRepo, Pipeline, SerializedNodeJSMetadata
 from fpr.models.language import (
     ContainerTask,
     DependencyFile,
-    languages,
+    DockerImage,
+    Language,
+    PackageManager,
+    docker_images,
+    docker_image_names,
     language_names,
-    package_managers,
+    languages,
     package_manager_names,
+    package_managers,
 )
 from fpr.models.pipeline import add_infile_and_outfile, add_volume_arg
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.nodejs_metadata")
 
-__doc__ = """Runs specified install, list_metadata, and audit tasks on a git
-ref for the provided dep. files."""
+__doc__ = """Runs tasks on a checked out git ref with dep. files"""
 
 
 def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -74,6 +79,20 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
         "node.js install hook scripts).",
     )
     parser.add_argument(
+        "--docker-pull",
+        action="store_true",
+        required=False,
+        default=False,
+        help="Pull base docker images before building them. Default to False.",
+    )
+    parser.add_argument(
+        "--docker-build",
+        action="store_true",
+        required=False,
+        default=False,
+        help="Build docker images. Default to False.",
+    )
+    parser.add_argument(
         "--dir",
         type=str,
         required=False,
@@ -100,6 +119,15 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
         help="Package managers to run commands for. Defaults to all of them.",
     )
     parser.add_argument(
+        "--docker-image",
+        type=str,
+        action="append",
+        required=False,
+        choices=docker_image_names,
+        default=[],
+        help="Docker images to run commands in. Defaults to all of them.",
+    )
+    parser.add_argument(
         "--repo-task",
         type=str,
         action="append",
@@ -111,37 +139,6 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     return parser
 
 
-@dataclass
-class NodeJSMetadataBuildArgs:
-    base_image_name: str = "node"
-    base_image_tag: str = "10"
-
-    _DOCKERFILE = """
-FROM {0.base_image}
-RUN apt-get -y update && apt-get install -y git
-CMD ["node"]
-"""
-
-    repo_tag = "dep-obs/nodejs-metadata"
-
-    @property
-    def base_image(self) -> str:
-        return f"{self.base_image_name}:{self.base_image_tag}"
-
-    @property
-    def dockerfile(self) -> bytes:
-        return NodeJSMetadataBuildArgs._DOCKERFILE.format(self).encode("utf-8")
-
-
-async def build_container(args: NodeJSMetadataBuildArgs = None) -> str:
-    # NB: can shell out to docker build if this doesn't work
-    if args is None:
-        args = NodeJSMetadataBuildArgs()
-    await containers.build(args.dockerfile, args.repo_tag, pull=True)
-    log.info(f"successfully built and tagged image {args.repo_tag}")
-    return args.repo_tag
-
-
 async def run_in_repo_at_ref(
     args: argparse.Namespace,
     item: Tuple[OrgRepo, GitRef, pathlib.Path],
@@ -150,12 +147,13 @@ async def run_in_repo_at_ref(
     dry_run: bool,
     cwd_files: AbstractSet[str],
     file_rows: List[DependencyFile],
+    image: DockerImage,
 ) -> AsyncGenerator[Dict[str, Any], None]:
     (org_repo, git_ref, path) = item
 
     name = f"dep-obs-nodejs-metadata-{org_repo.org}-{org_repo.repo}-{hex(randrange(1 << 32))[2:]}"
     async with containers.run(
-        "dep-obs/nodejs-metadata:latest",
+        image.local.repo_name_tag,
         name=name,
         cmd="/bin/bash",
         volumes=[
@@ -233,7 +231,7 @@ async def run_in_repo_at_ref(
                 )
                 break
 
-            stdout = "".join(job_run.decoded_start_result_stdout)
+            stdout = "\n".join(job_run.decoded_start_result_stdout)
 
             result: Dict[str, Any] = dict(
                 org=org_repo.org,
@@ -299,47 +297,89 @@ def group_by_org_repo_ref_path(
             yield (org_repo_key, ref_value_key, dep_file_parent_key), file_rows
 
 
-async def run_pipeline(
-    source: Generator[Dict[str, Any], None, None], args: argparse.Namespace
-) -> AsyncGenerator[Dict, None]:
-    log.info(f"{pipeline.name} pipeline started")
-
-    # TODO: build images for each lang version, etc? (configure with CLI args?)
-    try:
-        await build_container()
-    except Exception as e:
-        log.error(
-            f"error occurred building the nodejs metadata image: {e}\n{exc_to_str()}"
-        )
-
+def iter_task_envs(
+    args: argparse.Namespace
+) -> Generator[
+    Tuple[Language, PackageManager, DockerImage, ChainMap, List[ContainerTask]],
+    None,
+    None,
+]:
     enabled_languages = args.language or language_names
     if not args.language:
-        log.info(f"languages not specified using all of {enabled_languages}")
+        log.debug(f"languages not specified using all of {enabled_languages}")
 
     enabled_package_managers = args.package_manager or package_manager_names
     if not args.package_manager:
-        log.info(
+        log.debug(
             f"package managers not specified using all of {enabled_package_managers}"
         )
 
-    for language_name, package_manager_name in itertools.product(
-        enabled_languages, enabled_package_managers
+    enabled_image_names = args.docker_image or docker_image_names
+    if not args.docker_image:
+        log.debug(
+            f"docker image names not specified using all of {enabled_image_names}"
+        )
+
+    for language_name, package_manager_name, image_name in itertools.product(
+        enabled_languages, enabled_package_managers, enabled_image_names
     ):
-        log.info(f"would run tasks for {language_name} {package_manager_name}")
+        if language_name not in languages:
+            continue
+        language = languages[language_name]
+        if package_manager_name not in language.package_managers:
+            continue
+        package_manager = language.package_managers[package_manager_name]
+        if image_name not in language.images:
+            continue
+        image = language.images[image_name]
+
+        version_commands = ChainMap(
+            language.version_commands,
+            *[pm.version_commands for pm in language.package_managers.values()],
+        )
+        tasks: List[ContainerTask] = [
+            package_manager.tasks[task_name] for task_name in args.repo_task
+        ]
+        yield language, package_manager, image, version_commands, tasks
 
 
-    version_commands = ChainMap(
-        languages["nodejs"].version_commands,
-        *[pm.version_commands for pm in languages["nodejs"].package_managers.values()],
+async def build_images(
+    args: argparse.Namespace, image_keys: Iterable[str]
+) -> Iterable[str]:
+    images = [docker_images[image_key] for image_key in image_keys]
+
+    log.info(
+        f"building images: {[image.base.repo_name_tag + ' as ' + image.local.repo_name_tag for image in images]}"
     )
-    tasks: List[ContainerTask] = [
-        languages["nodejs"].package_managers["npm"].tasks[task_name]
-        for task_name in args.repo_task
-    ]
+    try:
+        built_image_tags: Iterable[str] = await asyncio.gather(
+            *[
+                containers.build(
+                    image.dockerfile_bytes, image.local.repo_name, pull=args.docker_pull
+                )
+                for image in images
+            ]
+        )
+        log.info(f"successfully built and tagged images {built_image_tags}")
+        return built_image_tags
+    except Exception as err:
+        log.error(f"error occurred building images: {err}\n{exc_to_str()}")
+        raise err
 
-    # cache of results by org/repo, dep files dir path, and dep file sha256
-    # sums
-    cache: Dict[Tuple[str, pathlib.Path, str], List[Dict]] = {}
+
+async def run_pipeline(
+    source: Generator[Dict[str, Any], None, None], args: argparse.Namespace
+) -> AsyncGenerator[Dict, None]:
+    log.info(f"{pipeline.name} pipeline started with args {args}")
+    task_envs = list(iter_task_envs(args))
+    if args.docker_build:
+        await build_images(
+            args, {image.local.repo_name_tag for (_, _, image, _, _) in task_envs}
+        )
+
+    # cache of results by lang name, package manager name,
+    # image.local.repo_name_tag, org/repo, dep files dir path, dep file sha256s
+    cache: Dict[Tuple[str, str, str, str, pathlib.Path, str], List[Dict]] = {}
     for (
         (org_repo_key, ref_value_key, dep_file_parent_key),
         file_rows,
@@ -347,6 +387,8 @@ async def run_pipeline(
         files = {fr[2].path.parts[-1] for fr in file_rows}
         file_hashes = sorted([fr[2].sha256 for fr in file_rows])
         dep_files = [fr[2] for fr in file_rows]
+
+        org_repo, git_ref = file_rows[0][0:2]
 
         log.debug(f"in {dep_file_parent_key!r} with files {files}")
         if args.dir is not None:
@@ -360,31 +402,49 @@ async def run_pipeline(
                     f"matching folder {dep_file_parent_key!r} for glob {args.dir!r}"
                 )
 
-        # TODO: use caching decorator
-        cache_key = (org_repo_key, dep_file_parent_key, "-".join(file_hashes))
-        if args.use_cache and cache_key in cache:
-            log.debug(f"using cached result for {cache_key}")
-            for cached_result in cache[cache_key]:
-                cached_result["data_source"] = "in_memory_cache"
-                yield cached_result
-            continue
+        for lang, pm, image, version_commands, tasks in task_envs:
+            if args.dry_run:
+                log.info(
+                    f"for {lang.name} {pm.name} would run in {image.local.repo_name_tag}"
+                    f" {org_repo_key} {git_ref.kind.name} {git_ref.value} {dep_file_parent_key}"
+                    f" {list(version_commands.values())} concurrently then"
+                    f" {[t.command for t in tasks]} "
+                )
+                continue
 
-        cache[cache_key] = []
-        try:
-            async for result in run_in_repo_at_ref(
-                args,
-                (file_rows[0][0], file_rows[0][1], dep_file_parent_key),
-                tasks,
-                version_commands,
-                args.dry_run,
-                files,
-                dep_files,
-            ):
-                cache[cache_key].append(result)
-                yield result
-            log.debug(f"saved cached result for {cache_key}")
-        except Exception as e:
-            log.error(f"error running tasks {tasks!r}:\n{exc_to_str()}")
+            # TODO: use caching decorator
+            cache_key = (
+                lang.name,
+                pm.name,
+                image.local.repo_name_tag,
+                org_repo_key,
+                dep_file_parent_key,
+                "-".join(file_hashes),
+            )
+            if args.use_cache and cache_key in cache:
+                log.debug(f"using cached result for {cache_key}")
+                for cached_result in cache[cache_key]:
+                    cached_result["data_source"] = "in_memory_cache"
+                    yield cached_result
+                continue
+
+            cache[cache_key] = []
+            try:
+                async for result in run_in_repo_at_ref(
+                    args,
+                    (org_repo, git_ref, dep_file_parent_key),
+                    tasks,
+                    version_commands,
+                    args.dry_run,
+                    files,
+                    dep_files,
+                    image,
+                ):
+                    cache[cache_key].append(result)
+                    yield result
+                log.debug(f"saved cached result for {cache_key}")
+            except Exception as e:
+                log.error(f"error running tasks {tasks!r}:\n{exc_to_str()}")
 
 
 # TODO: improve validation and specify field providers
