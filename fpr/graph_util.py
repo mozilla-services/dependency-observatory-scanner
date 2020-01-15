@@ -119,7 +119,7 @@ def get_new_removed_and_new_total(
     return new, removed, new_total
 
 
-def get_graph_stats(g: nx.DiGraph) -> Dict[str, Union[int, List[int], List[str]]]:
+def get_graph_stats(g: nx.DiGraph) -> Dict[str, Union[int, bool, List[int], List[str]]]:
     stats = dict(
         node_count=g.number_of_nodes(),
         edge_count=g.number_of_edges(),
@@ -127,10 +127,13 @@ def get_graph_stats(g: nx.DiGraph) -> Dict[str, Union[int, List[int], List[str]]
         density=nx.density(g),
         # list index is the degree count, value is the number of nodes with that degree (# of adjacent nodes)
         degree_histograph=nx.classes.function.degree_histogram(g),  # List[int]
-        # longest/deepest path through the DAG
-        longest_path=nx.algorithms.dag.dag_longest_path(g),  # List[str]
+        is_dag=nx.algorithms.dag.is_directed_acyclic_graph(g),  # bool
     )
-    stats["longest_path_length"] = len(stats["longest_path"])
+
+    if stats["is_dag"]:
+        # longest/deepest path through the DAG
+        stats["longest_path"] = nx.algorithms.dag.dag_longest_path(g)  # List[str]
+        stats["longest_path_length"] = len(stats["longest_path"])
 
     # number of edges pointing to a node
     stats["average_in_degree"] = sum(d for n, d in g.in_degree()) / float(
