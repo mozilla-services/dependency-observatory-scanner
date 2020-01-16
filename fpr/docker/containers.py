@@ -456,18 +456,23 @@ async def find_files(
 
 async def get_tags(
     container: aiodocker.containers.DockerContainer, working_dir: str = "/repos/repo"
-) -> AsyncGenerator[Tuple[str, Optional[str]], None]:
+) -> AsyncGenerator[Tuple[str, Optional[str], Optional[str]], None]:
     "get a repo tags and when they were tagged as a unix timestamp"
     await fetch_tags(container, working_dir=working_dir)
     # sort tags from newest to oldest tagging time
     # https://git-scm.com/docs/git-for-each-ref/
-    cmd = 'git for-each-ref --sort=-taggerdate --format="%(refname:short)\t%(taggerdate:unix)" refs/tags'
+    cmd = (
+        "git for-each-ref --sort=-taggerdate"
+        ' --format="%(refname:short)\t%(taggerdate:unix)\t%(creatordate:unix)" refs/tags'
+    )
     exec_ = await container.run(cmd, working_dir=working_dir, check=True)
     for line in exec_.decoded_start_result_stdout:
-        tag_name, ts = [part.strip('",') for part in line.split("\t", 1)]
-        if ts == "":
-            ts = None
-        yield (tag_name, ts)
+        tag_name, tag_ts, commit_ts = [part.strip('",') for part in line.split("\t", 2)]
+        if tag_ts == "":
+            tag_ts = None
+        if commit_ts == "":
+            commit_ts = None
+        yield (tag_name, tag_ts, commit_ts)
 
 
 async def nodejs_metadata(

@@ -94,8 +94,12 @@ async def run_find_git_refs(org_repo: OrgRepo, args: argparse.Namespace):
         )
         log.debug(f"{name} stdout: {await c.log(stdout=True)}")
         log.debug(f"{name} stderr: {await c.log(stderr=True)}")
-        async for tag, tag_ts in containers.get_tags(c, working_dir="/repos/repo"):
-            git_ref = GitRef.from_dict(dict(value=tag, kind="tag", timestamp=tag_ts))
+        async for tag, tag_ts, commit_ts in containers.get_tags(
+            c, working_dir="/repos/repo"
+        ):
+            git_ref = GitRef.from_dict(
+                dict(value=tag, kind="tag", tag_ts=tag_ts, commit_ts=commit_ts)
+            )
 
             result = dict(
                 org=org_repo.org,
