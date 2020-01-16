@@ -1,6 +1,6 @@
-{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "v0.4.1", "kind": "tag", "timestamp": null}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
-{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "v0.4.0", "kind": "tag", "timestamp": null}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
-{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "0.9.0", "kind": "tag", "timestamp": null}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
-{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "0.8.1", "kind": "tag", "timestamp": null}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
-{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "0.8.0", "kind": "tag", "timestamp": null}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
-{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "0.6.0", "kind": "tag", "timestamp": null}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
+{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "v0.4.1", "kind": "tag", "tag_ts": null, "commit_ts": "1540422492"}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
+{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "v0.4.0", "kind": "tag", "tag_ts": null, "commit_ts": "1540415824"}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
+{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "0.9.0", "kind": "tag", "tag_ts": null, "commit_ts": "1545152809"}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
+{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "0.8.1", "kind": "tag", "tag_ts": null, "commit_ts": "1542399069"}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
+{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "0.8.0", "kind": "tag", "tag_ts": null, "commit_ts": "1542232701"}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
+{"org": "mozilla-services", "repo": "channelserver", "ref": {"value": "0.6.0", "kind": "tag", "tag_ts": null, "commit_ts": "1541180437"}, "repo_url": "https://github.com/mozilla-services/channelserver.git"}
