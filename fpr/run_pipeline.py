@@ -45,6 +45,12 @@ def parse_args():
         default=False,
         help="don't log anything to the console",
     )
+    parser.add_argument(
+        "--save-to-tmpfile",
+        action="store_true",
+        default=False,
+        help="Save unserialized and serizalized results to temp files. Defaults to False.",
+    )
 
     subparsers = parser.add_subparsers(help="available pipelines", dest="pipeline_name")
     for pipeline in pipelines:
@@ -73,29 +79,29 @@ def main():
     asyncio.set_event_loop(loop)
 
     pipeline = next(p for p in pipelines if p.name == args.pipeline_name)
+    log_line = (
+        f"running pipeline {args.pipeline_name} on {args.infile.name} writing to "
+        f"{args.outfile.name}"
+    )
     if args.append_outfile:
-        log.info(
-            f"running pipeline {args.pipeline_name} on {args.infile.name} writing to "
-            f"{args.outfile.name} and appending to {args.append_outfile.name}"
-        )
-    else:
-        log.info(
-            f"running pipeline {args.pipeline_name} on {args.infile.name} writing to "
-            f"{args.outfile.name}"
-        )
+        log_line += f"and appending to {args.append_outfile.name}"
+    log.info(log_line)
 
     async def main():
         async for row in pipeline.runner(pipeline.reader(args.infile), args):
-            save_to_tmpfile(
-                f"{args.pipeline_name}_unserialized_", file_ext=".pickle", item=row
-            )
+            if args.save_to_tmpfile:
+                save_to_tmpfile(
+                    f"{args.pipeline_name}_unserialized_", file_ext=".pickle", item=row
+                )
+
             try:
                 serialized = pipeline.serializer(args, row)
-                save_to_tmpfile(
-                    f"{args.pipeline_name}_serialized_",
-                    file_ext=".json",
-                    item=serialized,
-                )
+                if args.save_to_tmpfile:
+                    save_to_tmpfile(
+                        f"{args.pipeline_name}_serialized_",
+                        file_ext=".json",
+                        item=serialized,
+                    )
                 writer = getattr(pipeline, "writer")
                 writer(args.outfile, serialized)
                 if args.append_outfile:

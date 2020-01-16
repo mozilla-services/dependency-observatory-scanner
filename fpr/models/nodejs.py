@@ -32,12 +32,12 @@ class NPMPackage:
 
     # URL (git, http, local file) of where the package was fetched
     # https://registry.npmjs.org/y18n/-/y18n-4.0.0.tgz (like a crate "source")
-    resolved: Optional[str]
+    resolved: Optional[str] = None
 
     # .from field e.g.
     # "webpack-dev-middleware@3.7.2"
     # "git://github.com/zaach/node-XMLHttpRequest.git#onerror"
-    from_field: Optional[str]
+    from_field: Optional[str] = None
 
     # only returned from `npm ls --long` output
     #
@@ -67,6 +67,29 @@ class NPMPackage:
         if self.integrity:
             pkg_id += f":{self.integrity}"
         return pkg_id
+
+    @staticmethod
+    def from_yarn_tree_line(d: Dict) -> "NPMPackage":
+        """
+        "yarn list --json" returns JSON lines like
+        {type: "tree",
+         data: {'name': 'domutils@1.1.6',
+                'children': [{'name': 'domelementtype@1','color': 'dim', 'shadow': True}
+               ],
+               'hint': None, 'color': None, 'depth': 0
+               }
+         }
+
+        NB: child name might not be fully resolved e.g. be @1, @~1.0.0, or ^4.0.0
+
+        Returns an NPMPackage from that data dict.
+        """
+        name, *version = d["name"].rsplit("@", 1)
+        return NPMPackage(
+            name=name,
+            version=version[0] if version else None,
+            dependencies=[c["name"] for c in d["children"]],
+        )
 
 
 def is_valid_node_list_output_top_level(
