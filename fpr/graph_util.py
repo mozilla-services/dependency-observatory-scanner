@@ -134,6 +134,8 @@ def get_graph_stats(g: nx.DiGraph) -> Dict[str, Union[int, bool, List[int], List
         # longest/deepest path through the DAG
         stats["longest_path"] = nx.algorithms.dag.dag_longest_path(g)  # List[str]
         stats["longest_path_length"] = len(stats["longest_path"])
+    else:
+        stats["cycle"] = list(nx.find_cycle(g))
 
     # number of edges pointing to a node
     stats["average_in_degree"] = sum(d for n, d in g.in_degree()) / float(

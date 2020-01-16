@@ -169,6 +169,9 @@ package_managers: Dict[str, PackageManager] = {
                     command="npm audit --json",
                     has_files_check=has_npm_manifest_with_any_lockfile,
                 ),
+                "pack": ContainerTask(
+                    name="pack", command="npm pack .", has_files_check=has_package_json
+                ),
             },
             version_commands={"npm": "npm --version"},
         ),
@@ -195,6 +198,9 @@ package_managers: Dict[str, PackageManager] = {
                     command="yarn audit --json --frozen-lockfile",
                     has_files_check=has_package_json_and_yarn_lock,
                 ),
+                "pack": ContainerTask(
+                    name="pack", command="yarn pack .", has_files_check=has_package_json
+                ),
             },
             version_commands={"yarn": "yarn --version"},
         ),
@@ -220,6 +226,12 @@ package_managers: Dict[str, PackageManager] = {
                     name="audit",
                     command="cargo audit --json",
                     has_files_check=lambda files: ("Cargo.lock" in files),
+                ),
+                "pack": ContainerTask(
+                    name="pack",
+                    # creates target/package/<package name>-<pkg version>.crate
+                    command="cargo build",  # or -p <package name>
+                    has_files_check=lambda files: ("Cargo.toml" in files),
                 ),
             },
             version_commands={

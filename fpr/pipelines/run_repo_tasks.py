@@ -29,7 +29,7 @@ from fpr.rx_util import on_next_save_to_jsonl
 from fpr.serialize_util import get_in, extract_fields, iter_jsonlines, REPO_FIELDS
 import fpr.docker.containers as containers
 import fpr.docker.volumes as volumes
-from fpr.models import GitRef, OrgRepo, Pipeline, SerializedNodeJSMetadata
+from fpr.models import GitRef, OrgRepo, Pipeline
 from fpr.models.language import (
     ContainerTask,
     DependencyFile,
@@ -46,7 +46,7 @@ from fpr.models.language import (
 from fpr.models.pipeline import add_infile_and_outfile, add_volume_arg
 from fpr.pipelines.util import exc_to_str
 
-log = logging.getLogger("fpr.pipelines.nodejs_metadata")
+log = logging.getLogger("fpr.pipelines.run_repo_tasks")
 
 __doc__ = """Runs tasks on a checked out git ref with dep. files"""
 
@@ -461,8 +461,7 @@ IN_FIELDS: Dict[str, Union[type, str, Dict[str, str]]] = {
 OUT_FIELDS = {**{k: v for k, v in IN_FIELDS.items() if k != "dependency_file"}}
 
 pipeline = Pipeline(
-    # TODO: make generic over langs and package managers and rename
-    name="nodejs_metadata",
+    name="run_repo_tasks",
     desc=__doc__,
     fields=set(OUT_FIELDS.keys()),
     argparser=parse_args,

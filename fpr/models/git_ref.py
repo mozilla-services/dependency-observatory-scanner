@@ -14,7 +14,8 @@ class GitRefKind(enum.Enum):
 class GitRef:
     value: str
     kind: GitRefKind
-    timestamp: Optional[str] = None
+    tag_ts: Optional[str] = None
+    commit_ts: Optional[str] = None
 
     @staticmethod
     def from_dict(d: Dict) -> "GitRef":
@@ -24,7 +25,8 @@ class GitRef:
         return GitRef(
             value=d["value"],
             kind=GitRefKind[d["kind"].upper()],
-            timestamp=d.get("timestamp", None),
+            tag_ts=d.get("tag_ts", None),
+            commit_ts=d.get("commit_ts", None),
         )
 
     def to_dict(self: "GitRef") -> Dict:
