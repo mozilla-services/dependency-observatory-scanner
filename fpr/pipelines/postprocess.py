@@ -34,7 +34,7 @@ from fpr.serialize_util import (
     iter_jsonlines,
     REPO_FIELDS,
 )
-from fpr.models import GitRef, OrgRepo, Pipeline, SerializedNodeJSMetadata
+from fpr.models import GitRef, OrgRepo, Pipeline
 from fpr.models.language import (
     DependencyFile,
     languages,

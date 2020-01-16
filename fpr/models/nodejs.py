@@ -9,8 +9,6 @@ from fpr.serialize_util import extract_fields, get_in, JSONPath, JSONPathElement
 
 log = logging.getLogger("fpr.models.nodejs")
 
-
-SerializedNodeJSMetadata = Dict
 NPMPackageID = str
 
 

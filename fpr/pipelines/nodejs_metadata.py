@@ -29,7 +29,7 @@ from fpr.rx_util import on_next_save_to_jsonl
 from fpr.serialize_util import get_in, extract_fields, iter_jsonlines, REPO_FIELDS
 import fpr.docker.containers as containers
 import fpr.docker.volumes as volumes
-from fpr.models import GitRef, OrgRepo, Pipeline, SerializedNodeJSMetadata
+from fpr.models import GitRef, OrgRepo, Pipeline
 from fpr.models.language import (
     ContainerTask,
     DependencyFile,
