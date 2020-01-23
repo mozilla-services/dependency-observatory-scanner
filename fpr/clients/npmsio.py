@@ -6,6 +6,7 @@ from typing import Any, AsyncGenerator, Dict, Iterable, Optional
 import aiohttp
 
 from fpr.serialize_util import grouper
+from fpr.models.package_meta_result import Result
 
 log = logging.getLogger(f"fpr.clients.npmsio")
 log.setLevel(logging.WARN)
@@ -40,8 +41,8 @@ async def async_query(
 
 
 async def fetch_npmsio_scores(
-    args: argparse.Namespace, package_names: Iterable[str]
-) -> AsyncGenerator[Dict[str, Dict], None]:
+    args: argparse.Namespace, package_names: Iterable[str], total_packages: int = None
+) -> AsyncGenerator[Result[Dict[str, Dict]], None]:
     """
     Fetches npms.io score and analysis for one or more node package names
 
