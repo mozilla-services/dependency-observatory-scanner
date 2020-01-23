@@ -111,9 +111,6 @@ run-cargo-metadata:
 run-cargo-metadata-and-save:
 	$(FPR) cargo_metadata -i tests/fixtures/mozilla_services_channelserver_branch.jsonl -o output.jsonl
 
-run-crates-io-metadata-and-save:
-	$(FPR) crates_io_metadata --db crates_io_metadata.db -i tests/fixtures/channelserver_tags_metadata.jsonl -o output.jsonl
-
 run-github-metadata-and-save:
 	printf "{\"repo_url\": \"https://github.com/mozilla/extension-workshop.git\"}" | $(FPR) github_metadata -i - -o output.jsonl --github-query-type=REPO_DEP_MANIFESTS --github-repo-dep-manifests-page-size=1 --github-query-type=REPO_DEP_MANIFEST_DEPS --github-repo-dep-manifest-deps-page-size=50 --github-query-type=REPO_VULN_ALERTS --github-repo-vuln-alerts-page-size=1 --github-query-type=REPO_VULN_ALERT_VULNS --github-repo-vuln-alert-vulns-page-size=1 --github-query-type=REPO_LANGS --github-repo-langs-page-size=50
 
@@ -121,8 +118,7 @@ run-cargo-metadata-fxa-and-save:
 	$(FPR) cargo_metadata -i tests/fixtures/mozilla_services_fxa_branch.jsonl -o output.jsonl
 
 run-rust-changelog:
-	# run run-crates-io-metadata-and-save to have crates.io metadata available
-	$(FPR) rust_changelog --db crates_io_metadata.db -i tests/fixtures/channelserver_tags_metadata.jsonl
+	$(FPR) rust_changelog -i tests/fixtures/channelserver_tags_metadata.jsonl
 
 run-rust-changelog-and-save:
 	$(FPR) rust_changelog -i tests/fixtures/channelserver_tags_metadata.jsonl -o output.jsonl
@@ -137,4 +133,4 @@ dump-test-fixture-pickle-files:
 venv-shell:
 	$(IN_VENV) bash
 
-.PHONY: build-image dump-test-fixture-pickle-files coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save run-crates-io-metadata-and-save run-github-metadata-and-save update-requirements show-dot unit-test
+.PHONY: build-image dump-test-fixture-pickle-files coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save run-github-metadata-and-save update-requirements show-dot unit-test
