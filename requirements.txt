@@ -4,5 +4,6 @@ aiodocker
 aiohttp
 backoff
 networkx
+psycopg2
 pydot
 quiz
