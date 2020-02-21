@@ -1,7 +1,9 @@
 -i https://pypi.org/simple
+SQLAlchemy
 aiodocker
 aiohttp
 backoff
 networkx
+psycopg2
 pydot
 quiz

@@ -1,19 +1,34 @@
-FROM python:3.8-slim-buster
+FROM python:3.8-slim-buster as builder
+ENV PYTHONUNBUFFERED 1
+ENV DEV 0
 
-# TODO: figure out perms to not run as root
-# RUN addgroup --gid 10001 app \
-#     && \
-#     adduser --gid 10001 --uid 10001 \
-#     --home /app --shell /sbin/nologin \
-#     --disabled-password app
-RUN mkdir -p /app
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
+	apt-get upgrade -y && \
+	apt-get install --no-install-recommends -y build-essential libpq-dev
+
+RUN mkdir -p /tmp/build
+WORKDIR /tmp/build
+
+COPY ./bin/install.sh .
+COPY requirements.txt.lock .
+COPY dev-requirements.txt.lock .
+
+RUN ./install.sh
+
+FROM python:3.8-slim-buster as runtime
+ENV PYTHONUNBUFFERED 1
+ENV PYTHONPATH="/app/fpr/:${PYTHONPATH}"
+ENV PATH="/app/venv/bin:$PATH"
+
+RUN mkdir -p /app/fpr
+
+COPY --from=builder /tmp/build/venv /app/venv
+
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
+	apt-get upgrade -y && \
+	apt-get install --no-install-recommends -y libpq-dev
+
 WORKDIR /app
+COPY fpr/ fpr/
 
-COPY requirements.txt.lock /app/
-RUN pip install -r requirements.txt.lock
-
-COPY . .
-
-ENV PYTHONPATH="fpr/:${PYTHONPATH}"
-# USER app
 CMD [ "python", "fpr/run_pipeline.py", "--help" ]
