@@ -456,7 +456,7 @@ async def run_pipeline(
                     elif task_data["name"] == "audit":
                         insert_package_audit(session, task_data)
                     else:
-                        log.debug(f"skipping unrecognized task {task_data['name']}")
+                        log.warning(f"skipping unrecognized task {task_data['name']}")
         elif args.input_type == "dep_meta_npm_reg":
             insert_npm_registry_data(session, source)
         elif args.input_type == "dep_meta_npmsio":
