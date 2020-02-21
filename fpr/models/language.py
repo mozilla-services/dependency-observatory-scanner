@@ -171,7 +171,7 @@ package_managers: Dict[str, PackageManager] = {
                 "audit": ContainerTask(
                     name="audit",
                     command="npm audit --json",
-                    has_files_check=has_npm_manifest_with_any_lockfile,
+                    has_files_check=has_package_json,  # has_npm_manifest_with_any_lockfile,
                 ),
                 "pack": ContainerTask(
                     name="pack", command="npm pack .", has_files_check=has_package_json
