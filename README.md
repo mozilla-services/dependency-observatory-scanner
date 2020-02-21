@@ -15,10 +15,17 @@ $ echo '{"repo_url": "https://github.com/mozilla-services/channelserver"}' | doc
 
 ### Local Development
 
+#### Requirements
+
+* docker >=18.06.3
+* python 3.8 and pip
+* system packages to build psycopg2 (e.g. `build-essential libpq-dev` on debian buster)
+
+
 ```console
 $ git clone https://github.com/mozilla-services/find-package-rugaru.git
 $ cd find-package-rugaru
-$ make install # or install-dev to install dev deps requires python 3.8 and pip
+$ make install
 $ cat tests/fixtures/mozilla_services_channelserver_branch.jsonl
 {"repo_url": "https://github.com/mozilla-services/channelserver", "ref": {"value": "master", "kind": "branch"}}
 $ PYTHONPATH=$PYTHONPATH:fpr/ ./bin/in_venv.sh python fpr/run_pipeline.py cargo_metadata -i tests/fixtures/mozilla_services_channelserver_branch.jsonl --outfile=output.jsonl
