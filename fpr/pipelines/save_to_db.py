@@ -449,7 +449,7 @@ async def run_pipeline(
     with create_session(engine) as session:
         if args.input_type == "postprocessed_repo_task":
             for line in source:
-                for task_data in line["tasks"].values():
+                for task_data in line["tasks"]:
                     if task_data["name"] == "list_metadata":
                         insert_package_graph(session, task_data)
                     elif task_data["name"] == "audit":
