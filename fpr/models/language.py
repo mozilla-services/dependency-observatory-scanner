@@ -246,7 +246,7 @@ package_manager_names = [pm.name for pm in package_managers.values()]
 
 docker_images: Dict[str, DockerImage] = {
     "dep-obs/node-10:latest": DockerImage(
-        base=DockerImageName(None, "node", "10"),
+        base=DockerImageName(None, "node", "10-buster-slim"),
         local=DockerImageName("dep-obs", "node-10", "latest"),
         dockerfile_template="""FROM {base.repo_name}:{base.tag}
 RUN apt-get -y update && apt-get install -y git
