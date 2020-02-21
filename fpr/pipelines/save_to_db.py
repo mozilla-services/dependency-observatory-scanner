@@ -174,6 +174,7 @@ def insert_package_graph(session: sqlalchemy.orm.Session, task_data: Dict) -> No
             package_manager_version=None,
         )
     )
+    session.commit()
 
 
 def insert_package_audit(session: sqlalchemy.orm.Session, task_data: Dict) -> None:
