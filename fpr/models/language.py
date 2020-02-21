@@ -149,10 +149,14 @@ package_managers: Dict[str, PackageManager] = {
             ],
             ignore_patterns=["node_modules/"],
             tasks={
-                # "npm install" updates package-lock.json or
-                # npm-shrinkwrap.json, which we want to avoid
                 "install": ContainerTask(
                     name="install",
+                    command="npm install --save=true",
+                    # NB: create or update package-lock.json or npm-shrinkwrap.json
+                    has_files_check=has_package_json,
+                ),
+                "ci": ContainerTask(
+                    name="ci",
                     command="npm ci",
                     # ci errors for missing package-lock.json or npm-shrinkwrap.json
                     # and does not update the files
