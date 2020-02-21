@@ -78,6 +78,37 @@ run-crate-graph:
 	$(FPR) -q crate_graph -i tests/fixtures/cargo_metadata_serialized.json | jq -r '.crate_graph_pdot' | dot -Tsvg > fpr-graph.svg
 	$(IN_VENV) python -m webbrowser fpr-graph.svg
 
+start-db:
+	docker run --name dep-obs-postgres -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -e POSTGRES_DB=dependency_observatory -d postgres:12
+
+stop-db:
+	docker stop dep-obs-postgres
+
+clean-db:
+	docker rm -f dep-obs-postgres
+
+db-shell:
+	PGPASSWORD=postgres psql -U postgres -h localhost -p 5432 dependency_observatory
+
+dump-db:
+	mkdir -p "dep_obs_dump_$(shell date --utc +%F)/"
+	PGPASSWORD=postgres pg_dump -j $(shell nproc --all) -U postgres -h localhost -p 5432 -Fd dependency_observatory -f "dep_obs_dump_$(shell date --utc +%F)/"
+
+DATA_DIR := ./data
+
+run-repo-tasks:
+	cat $(DATA_DIR)/tc/03_tasks.jsonl | $(FPR) postprocess --repo-task list_metadata --repo-task audit > $(DATA_DIR)/tc/04_deps_vulns.jsonl
+	cat $(DATA_DIR)/fxa/03_tasks.jsonl | $(FPR) postprocess --repo-task list_metadata --repo-task audit > $(DATA_DIR)/fxa/04_deps_vulns.jsonl
+
+run-save-to-db:
+	cat $(DATA_DIR)/00_org_repo_urls.jsonl | $(FPR) save_to_db --create-tables --input-type repo_url
+	cat $(DATA_DIR)/01_org_repo_urls_refs.jsonl | $(FPR) save_to_db --create-tables --input-type git_ref
+	cat $(DATA_DIR)/fxa/02_dep_files.jsonl $(DATA_DIR)/tc/02_dep_files.jsonl | $(FPR) save_to_db --create-tables --input-type dep_file
+	cat $(DATA_DIR)/fxa/03_tasks.jsonl $(DATA_DIR)/tc/03_tasks.jsonl | $(FPR) save_to_db --create-tables --input-type repo_task
+	cat $(DATA_DIR)/fxa/04_deps_vulns.jsonl $(DATA_DIR)/tc/04_deps_vulns.jsonl | $(FPR) save_to_db --create-views --create-tables --input-type postprocessed_repo_task
+	cat $(DATA_DIR)/fxa/06_npm_registry_metadata.jsonl $(DATA_DIR)/tc/06_npm_registry_metadata.jsonl | $(FPR) save_to_db --create-tables --input-type dep_meta_npm_reg
+	cat $(DATA_DIR)/fxa/06_npmsio_scores.jsonl $(DATA_DIR)/tc/06_npmsio_scores.jsonl | $(FPR) save_to_db --create-tables --input-type dep_meta_npmsio
+
 run-crate-graph-and-save:
 	$(FPR) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -o crate_graph.jsonl --dot-filename default.dot
 	$(FPR) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate_graph.jsonl -o /dev/null --node-key name --node-label name_authors --filter dpc --filter serde --dot-filename serde_authors_filtered.dot
