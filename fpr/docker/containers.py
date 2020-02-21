@@ -359,7 +359,9 @@ async def fetch_tag(
     )
 
 
-async def ensure_ref(container, ref: GitRef, working_dir="/repo"):
+async def ensure_ref(
+    container: aiodocker.containers.DockerContainer, ref: GitRef, working_dir="/repo"
+):
     if ref.kind == GitRefKind.TAG:
         await fetch_tag(container, tag_name=ref.value, working_dir=working_dir)
     elif ref.kind == GitRefKind.BRANCH:
