@@ -8,3 +8,5 @@ venv/
 *.org
 bin/*
 venv/
+data/
+*.sql
