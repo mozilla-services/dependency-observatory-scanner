@@ -19,6 +19,7 @@ $ echo '{"repo_url": "https://github.com/mozilla-services/channelserver"}' | doc
 
 * docker >=18.06.3
 * python 3.8 and pip
+* [jq](https://stedolan.github.io/jq/)
 * system packages to build psycopg2 (e.g. `build-essential libpq-dev` on debian buster)
 
 
