@@ -5,11 +5,7 @@ from typing import AbstractSet, Dict, AsyncGenerator, Generator, Optional
 
 import aiohttp
 
-from fpr.models.rust import (
-    RustPackageID,
-    SerializedCargoMetadata,
-    cargo_metadata_to_rust_crates,
-)
+from fpr.models.rust import RustPackageID, Dict, cargo_metadata_to_rust_crates
 from fpr.models.package_meta_result import Result
 
 
@@ -56,7 +52,7 @@ async def async_query(
 
 
 async def fetch_cratesio_metadata(
-    args: argparse.Namespace, source: Generator[SerializedCargoMetadata, None, None]
+    args: argparse.Namespace, source: Generator[Dict, None, None]
 ) -> AsyncGenerator[Dict, None]:
     log.info("pipeline crates_io_metadata started")
     rust_crate_ids: Generator[RustPackageID, None, None] = (

@@ -8,9 +8,6 @@ from fpr.serialize_util import extract_fields, get_in
 log = logging.getLogger("fpr.models.rust")
 
 
-SerializedCargoMetadata = Dict
-
-
 @dataclass
 class RustPackageID:
     """RustPackageID represents a Crate name, version, and url
@@ -232,9 +229,7 @@ class RustPackage:
     repository: Optional[str] = field(default=None)
 
 
-def cargo_metadata_to_rust_crates(
-    cargo_meta_out: SerializedCargoMetadata,
-) -> Dict[str, RustCrate]:
+def cargo_metadata_to_rust_crates(cargo_meta_out: Dict,) -> Dict[str, RustCrate]:
     assert (
         get_in(cargo_meta_out, ["metadata", "version"]) == 1
     ), "cargo metadata format was not version 1"
@@ -249,7 +244,7 @@ def cargo_metadata_to_rust_crates(
 
 
 def cargo_metadata_to_rust_crate_and_packages(
-    cargo_meta_out: SerializedCargoMetadata,
+    cargo_meta_out: Dict,
 ) -> Tuple[Dict[str, RustCrate], Dict[str, RustPackage]]:
     log.debug(
         "running crate-graph on {0[cargo_tomlfile_path]} in {0[org]}/{0[repo]} at {0[commit]} ".format(
