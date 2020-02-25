@@ -30,7 +30,9 @@ from fpr.rx_util import on_next_save_to_jsonl
 from fpr.serialize_util import get_in, extract_fields, iter_jsonlines, REPO_FIELDS
 import fpr.docker.containers as containers
 import fpr.docker.volumes as volumes
-from fpr.models import GitRef, OrgRepo, Pipeline
+from fpr.models.pipeline import Pipeline
+from fpr.models.org_repo import OrgRepo
+from fpr.models.git_ref import GitRef
 from fpr.models.language import (
     ContainerTask,
     DependencyFile,

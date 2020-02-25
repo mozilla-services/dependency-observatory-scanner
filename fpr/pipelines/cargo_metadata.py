@@ -19,7 +19,9 @@ from fpr.serialize_util import (
     RUST_FIELDS,
 )
 import fpr.docker.containers as containers
-from fpr.models import GitRef, OrgRepo, Pipeline, SerializedCargoMetadata
+from fpr.models.pipeline import Pipeline
+from fpr.models.org_repo import OrgRepo
+from fpr.models.git_ref import GitRef
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.cargo_metadata")
@@ -167,7 +169,7 @@ async def run_pipeline(
             log.error("error running cargo metadata:\n{}".format(exc_to_str()))
 
 
-def serialize_cargo_metadata_output(metadata_output: AnyStr) -> SerializedCargoMetadata:
+def serialize_cargo_metadata_output(metadata_output: AnyStr) -> Dict:
     metadata_json = json.loads(metadata_output)
     result = {}
 

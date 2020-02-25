@@ -27,7 +27,9 @@ from fpr.serialize_util import (
     RUST_FIELDS,
 )
 import fpr.docker.containers as containers
-from fpr.models import GitRef, OrgRepo, Pipeline, SerializedCargoMetadata
+from fpr.models.pipeline import Pipeline
+from fpr.models.org_repo import OrgRepo
+from fpr.models.git_ref import GitRef
 from fpr.models.rust import cargo_metadata_to_rust_crate_and_packages
 from fpr.graph_util import (
     rust_crates_and_packages_to_networkx_digraph,
@@ -72,9 +74,7 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
 
 
 def compare_rust_cargo_files(
-    args: argparse.Namespace,
-    lmeta: SerializedCargoMetadata,
-    rmeta: SerializedCargoMetadata,
+    args: argparse.Namespace, lmeta: Dict, rmeta: Dict
 ) -> Dict[str, Any]:
     assert lmeta is not None and rmeta is not None
     log.debug(
@@ -120,8 +120,8 @@ def compare_rust_cargo_files(
 
 def run_compare_rust_commits(
     args: argparse.Namespace,
-    lcommit_meta: Dict[str, SerializedCargoMetadata],
-    rcommit_meta: Dict[str, SerializedCargoMetadata],
+    lcommit_meta: Dict[str, Dict],
+    rcommit_meta: Dict[str, Dict],
 ) -> Dict[str, Any]:
     # TODO: report new, removed, and changed Cargo.toml manifest files
     # either the key is in both commits or just the left commit (removed) or just the right (added)
