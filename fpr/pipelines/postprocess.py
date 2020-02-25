@@ -74,9 +74,6 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     return parser
 
 
-# want: (repo, ref/tag, dep_files w/ hashes, deps, [dep. stats or vuln. stats] (join for final analysis))
-
-
 def parse_stdout_as_json(stdout: Optional[str]) -> Optional[Dict]:
     if stdout is None:
         return None
@@ -257,6 +254,77 @@ def parse_yarn_task(task_name: str, task_result: Dict) -> Optional[Dict]:
         raise NotImplementedError()
 
 
+def parse_cargo_list_metadata(parsed_stdout: Dict):
+    if parsed_stdout.get("version", None) != 1:
+        log.warning(
+            f"unsupported cargo metadata version {parsed_stdout.get('version', None)}"
+        )
+
+    updates = extract_nested_fields(
+        parsed_stdout,
+        {
+            # also workspace_root
+            "root": ["resolve", "root"],  # str of pkg id; nullable
+            "dependencies": ["resolve", "nodes"],  # array
+            # rust specific
+            "packages": ["packages"],  # additional data parsed from the Cargo.toml file
+            "target_directory": ["target_directory"],  # file path in the container
+            "workspace_root": ["workspace_root"],  # file path in the container
+            "workspace_members": ["workspace_memebers"],  # list strs pkg ids
+        },
+    )
+    # id: str, features: Seq[str], deps[{}]
+    NODE_FIELDS = {"id", "features", "deps"}
+    updates["dependencies"] = [
+        extract_fields(node, NODE_FIELDS) for node in updates["dependencies"]
+    ]
+    updates["dependencies_count"] = len(updates["dependencies"])
+    return updates
+
+
+def parse_cargo_audit(parsed_stdout: Dict) -> Dict:
+    return extract_nested_fields(
+        parsed_stdout,
+        {
+            "dependencies_count": ["lockfile", "dependency-count"],
+            "vulnerabilities_count": ["vulnerabilities", "count"],
+            "advisories": ["vulnerabilities", "list"],
+            "warnings": ["warnings"],  # list informational/low sev advisories
+        },
+    )
+
+
+def parse_cargo_task(task_name: str, task_result: Dict) -> Optional[Dict]:
+    parsed_stdout = parse_stdout_as_json(get_in(task_result, ["stdout"], None))
+    if parsed_stdout is None:
+        log.warn("got non-JSON stdout for cargo task")
+        return None
+
+    if task_name == "list_metadata":
+        return parse_cargo_list_metadata(parsed_stdout)
+    elif task_name == "audit":
+        return parse_cargo_audit(parsed_stdout)
+    elif task_name == "install":
+        return None
+    else:
+        raise NotImplementedError()
+
+
+def parse_command(
+    task_name: str, task_command: str, task_data: Dict, line: Dict
+) -> Optional[Dict]:
+    for package_manager_name, package_manager in package_managers.items():
+        if any(task_command == task.command for task in package_manager.tasks.values()):
+            if package_manager_name == "npm":
+                return parse_npm_task(task_name, task_data)
+            elif package_manager_name == "yarn":
+                return parse_yarn_task(task_name, line)
+            elif package_manager_name == "cargo":
+                return parse_cargo_task(task_name, task_data)
+    log.warning(f"unrecognized command {task_command}")
+    return None
+
+
 async def run_pipeline(
     source: Generator[Dict[str, Any], None, None], args: argparse.Namespace
 ) -> AsyncGenerator[Dict, None]:
@@ -284,6 +352,8 @@ async def run_pipeline(
             if task_name not in args.repo_task:
                 continue
 
+            task_command = get_in(task_data, ["command"], None)
+
             task_result = extract_fields(
                 task_data,
                 [
@@ -296,20 +366,7 @@ async def run_pipeline(
                 ],
             )
 
-            task_command = get_in(task_data, ["command"], None)
-            if any(
-                task_command == task.command
-                for task in package_managers["npm"].tasks.values()
-            ):
-                updates = parse_npm_task(task_name, task_data)
-            elif any(
-                task_command == task.command
-                for task in package_managers["yarn"].tasks.values()
-            ):
-                updates = parse_yarn_task(task_name, line)
-            else:
-                continue
-
+            updates = parse_command(task_name, task_command, task_data, line)
             if updates:
                 if task_name == "list_metadata":
                     log.info(
@@ -333,7 +390,6 @@ FIELDS: AbstractSet = set()
 
 
 pipeline = Pipeline(
-    # TODO: make generic over langs and package managers and rename
     name=NAME,
     desc=__doc__,
     fields=FIELDS,
