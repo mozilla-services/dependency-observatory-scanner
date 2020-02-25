@@ -22,21 +22,20 @@ IMAGE_NAME=${IMAGE_NAME:-"mozilla/dependencyscan:latest"}
 if [[ ${package_version:=""} = "" ]]; then
     echo "analyzing all versions of ${package_name}"
     printf '{"name":"%s"}\n' "$package_name" \
-                | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v  fetch_package_data fetch_npm_registry_metadata | tee "reg_meta.jsonl" \
+    | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v  fetch_package_data fetch_npm_registry_metadata | tee "package_npm_registry_meta.jsonl" \
     | jq -c '.versions[] | {package_name: .name, package_version: .version, org: (.repository.url | sub("git://github.com/"; "") | sub(".git"; "") | split("/") | first), repo:  (.repository.url | sub("git://github.com/"; "") | sub(".git"; "") | split("/") | last), repo_url: (.repository.url| sub("git"; "https")), ref: {kind: "commit", value: .gitHead}}' \
-    | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v  find_dep_files --keep-volumes | tee "dep_files.jsonl" \
-    | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v  run_repo_tasks --keep-volumes --language nodejs --package-manager npm --dir './' --repo-task install --repo-task list_metadata --repo-task audit | tee "tasks.jsonl" \
-    | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v  postprocess --repo-task list_metadata --repo-task audit | tee postprocessed_tasks.jsonl \
+    | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v  find_dep_files --keep-volumes | tee "package_dep_files.jsonl" \
+    | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v  run_repo_tasks --keep-volumes --language nodejs --package-manager npm --dir './' --repo-task install --repo-task list_metadata --repo-task audit | tee "package_repo_tasks.jsonl" \
+    | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v  postprocess --repo-task list_metadata --repo-task audit | tee "postprocessed_package_repo_tasks.jsonl" \
     | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock --net=host "${IMAGE_NAME}" python fpr/run_pipeline.py -v  save_to_db --input-type postprocessed_repo_task
 else
     echo "analyzing ${package_name}@${package_version}"
     printf '{"name":"%s"}\n' "$package_name" \
-                | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v  fetch_package_data fetch_npm_registry_metadata | tee "reg_meta.jsonl" \
+    | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v  fetch_package_data fetch_npm_registry_metadata | tee "package_npm_registry_meta.jsonl" \
     | jq -c '.versions[] | {package_name: .name, package_version: .version, org: (.repository.url | sub("git://github.com/"; "") | sub(".git"; "") | split("/") | first), repo:  (.repository.url | sub("git://github.com/"; "") | sub(".git"; "") | split("/") | last), repo_url: (.repository.url| sub("git"; "https")), ref: {kind: "commit", value: .gitHead}}' \
     | jq -c "select(.package_version == \"${package_version}\")" \
-    | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v  find_dep_files --keep-volumes | tee "dep_files.jsonl" \
-    | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v  run_repo_tasks --keep-volumes --language nodejs --package-manager npm --dir './' --repo-task install --repo-task list_metadata --repo-task audit | tee "tasks.jsonl" \
-        | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v  postprocess --repo-task list_metadata --repo-task audit | tee postprocessed_tasks.jsonl \
-    cat postprocessed_tasks.jsonl \
+    | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v  find_dep_files --keep-volumes | tee "package_dep_files.jsonl" \
+    | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v  run_repo_tasks --keep-volumes --language nodejs --package-manager npm --dir './' --repo-task install --repo-task list_metadata --repo-task audit | tee "package_repo_tasks.jsonl" \
+    | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v  postprocess --repo-task list_metadata --repo-task audit | tee "postprocessed_package_repo_tasks.jsonl" \
     | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock --net=host "${IMAGE_NAME}" python fpr/run_pipeline.py -v  save_to_db --input-type postprocessed_repo_task
 fi
