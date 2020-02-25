@@ -13,10 +13,7 @@ build-image:
 	docker build -t fpr:build .
 
 rust-changelog:
-	printf '{"repo_url": "https://github.com/mozilla-services/channelserver"}' | \
-		$(FPR) find_git_refs | tee channelserver_tags.jsonl | \
-		$(FPR) cargo_metadata | tee channelserver_tags_metadata.jsonl | \
-		$(FPR) rust_changelog | tee channelserver_changelog.jsonl
+	IMAGE_NAME="fpr:build" ./bin/analyze_repo.sh https://github.com/mozilla-services/channelserver
 
 check-rust-changelog:
 	test -f channelserver_tags.jsonl
