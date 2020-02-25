@@ -16,10 +16,10 @@ rust-changelog:
 	IMAGE_NAME="fpr:build" ./bin/analyze_repo.sh https://github.com/mozilla-services/channelserver
 
 check-rust-changelog:
-	test -f channelserver_tags.jsonl
-	diff channelserver_tags.jsonl tests/fixtures/channelserver_tags.jsonl
-	test -f channelserver_tags_metadata.jsonl
-	test -f channelserver_changelog.jsonl
+	test -f repo_tags.jsonl
+	diff repo_tags.jsonl tests/fixtures/channelserver_tags.jsonl
+	test -f repo_tasks.jsonl
+	test -f repo_changelog.jsonl
 
 rust-changelog-from-diff:
 	printf "{\"org\": \"mozilla-services\", \"repo\": \"syncstorage-rs\", \"ref\": {\"value\": \"master\", \"kind\": \"branch\"}, \"repo_url\": \"https://github.com/mozilla-services/syncstorage-rs.git\"}\n{\"org\": \"mozilla-services\", \"repo\": \"syncstorage-rs\", \"ref\": {\"value\": \"5a3e3967e90d65ca0d7a17b0466a3385898c3b6b\", \"kind\": \"commit\"}, \"repo_url\": \"https://github.com/mozilla-services/syncstorage-rs.git\"}\n" | \
