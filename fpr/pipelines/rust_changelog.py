@@ -19,13 +19,7 @@ from typing import (
 )
 
 from fpr.rx_util import on_next_save_to_jsonl
-from fpr.serialize_util import (
-    get_in,
-    extract_fields,
-    iter_jsonlines,
-    REPO_FIELDS,
-    RUST_FIELDS,
-)
+from fpr.serialize_util import get_in, extract_fields, iter_jsonlines, REPO_FIELDS
 import fpr.docker.containers as containers
 from fpr.models.pipeline import Pipeline
 from fpr.models.org_repo import OrgRepo
@@ -166,9 +160,7 @@ async def run_pipeline(
 
 
 # TODO: rename to output fields
-FIELDS: AbstractSet[
-    str
-] = set()  # RUST_FIELDS | REPO_FIELDS | {"cargo_tomlfile_path", "ripgrep_version"}
+FIELDS: AbstractSet[str] = set()
 
 
 def serialize(_: argparse.Namespace, result: Dict):
