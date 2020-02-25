@@ -441,7 +441,7 @@ async def find_files(
 ) -> str:
     cmd = "rg --no-ignore --files"
     for search_pattern in search_patterns:
-        cmd += f" -g {search_pattern}"
+        cmd += f" --iglob {search_pattern}"
     exec_ = await container.run(cmd, working_dir=working_dir, check=True)
     log.info(f"{cmd} result: {exec_.start_result}")
 
