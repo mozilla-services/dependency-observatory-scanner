@@ -19,7 +19,9 @@ from fpr.serialize_util import (
     RUST_FIELDS,
 )
 import fpr.docker.containers as containers
-from fpr.models import GitRef, OrgRepo, Pipeline
+from fpr.models.pipeline import Pipeline
+from fpr.models.org_repo import OrgRepo
+from fpr.models.git_ref import GitRef
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.cargo_metadata")

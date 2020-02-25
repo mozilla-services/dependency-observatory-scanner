@@ -14,8 +14,13 @@ import pydot
 
 from fpr.rx_util import on_next_save_to_jsonl
 from fpr.graph_util import rust_crates_and_packages_to_networkx_digraph
-from fpr.models import Pipeline, RustCrate, RustPackageID, RustPackage
-from fpr.models.rust import cargo_metadata_to_rust_crate_and_packages
+from fpr.models.pipeline import Pipeline
+from fpr.models.rust import (
+    RustCrate,
+    RustPackageID,
+    RustPackage,
+    cargo_metadata_to_rust_crate_and_packages,
+)
 from fpr.models.pipeline import (
     add_infile_and_outfile,
     add_graphviz_graph_args,

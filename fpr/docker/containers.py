@@ -27,7 +27,7 @@ import aiodocker
 from fpr.docker.client import aiodocker_client
 import fpr.docker.log_reader as docker_log_reader
 import fpr.docker.volumes
-from fpr.models import GitRef, GitRefKind
+from fpr.models.git_ref import GitRef, GitRefKind
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.containers")

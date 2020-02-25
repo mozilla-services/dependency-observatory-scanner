@@ -27,7 +27,8 @@ import quiz
 from fpr.rx_util import on_next_save_to_jsonl
 from fpr.serialize_util import iter_jsonlines
 from fpr.quiz_util import raw_result_to_dict
-from fpr.models import OrgRepo, Pipeline
+from fpr.models.pipeline import Pipeline
+from fpr.models.org_repo import OrgRepo
 from fpr.models.github import (
     ResourceKind,
     Request,
