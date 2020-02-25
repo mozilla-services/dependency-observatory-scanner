@@ -357,9 +357,6 @@ def iter_task_envs(
 async def build_images(
     docker_pull: bool, images: Iterable[DockerImage]
 ) -> Iterable[str]:
-    log.info(
-        f"building images: {[image.base.repo_name_tag + ' as ' + image.local.repo_name_tag for image in images]}"
-    )
     try:
         built_image_tags: Iterable[str] = await asyncio.gather(
             *[
@@ -369,7 +366,6 @@ async def build_images(
                 for image in images
             ]
         )
-        log.info(f"successfully built and tagged images {built_image_tags}")
         return built_image_tags
     except Exception as err:
         log.error(f"error occurred building images: {err}\n{exc_to_str()}")
@@ -385,9 +381,14 @@ async def run_pipeline(
         image_keys: AbstractSet[str] = {
             image.local.repo_name_tag for (_, _, image, _, _) in task_envs
         }
-        await build_images(
-            args.docker_pull, [docker_images[image_key] for image_key in image_keys]
+        images: Iterable[DockerImage] = [
+            docker_images[image_key] for image_key in image_keys
+        ]
+        log.info(
+            f"building images: {[image.base.repo_name_tag + ' as ' + image.local.repo_name_tag for image in images]}"
         )
+        built_image_tags: Iterable[str] = await build_images(args.docker_pull, images)
+        log.info(f"successfully built and tagged images {built_image_tags}")
 
     # cache of results by lang name, package manager name,
     # image.local.repo_name_tag, org/repo, dep files dir path, dep file sha256s
