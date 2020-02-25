@@ -253,7 +253,7 @@ docker_images: Dict[str, DockerImage] = {
         base=DockerImageName(None, "node", "10-buster-slim"),
         local=DockerImageName("dep-obs", "node-10", "latest"),
         dockerfile_template="""FROM {base.repo_name}:{base.tag}
-RUN apt-get -y update && apt-get install -y git
+RUN apt-get -y update && apt-get install -y git ripgrep
 CMD ["node"]
 """,
     ),
@@ -261,7 +261,7 @@ CMD ["node"]
         base=DockerImageName(None, "rust", "1-buster-slim"),
         local=DockerImageName("dep-obs", "rust-1", "latest"),
         dockerfile_template="""FROM {base.repo_name}:{base.tag}
-RUN apt-get -y update && apt-get install -y git
+RUN apt-get -y update && apt-get install -y git ripgrep
 RUN cargo install cargo-audit
 CMD ["rustc"]
 """,
