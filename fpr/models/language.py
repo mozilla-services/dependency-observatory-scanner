@@ -259,6 +259,7 @@ CMD ["bash", "-c"]
 
 docker_images: Dict[str, DockerImage] = {
     "dep-obs/find-git-refs": _buster_slim_base,
+    "dep-obs/find-dep-files": _buster_slim_base,
     "dep-obs/node-10:latest": DockerImage(
         base=DockerImageName(None, "node", "10-buster-slim"),
         local=DockerImageName("dep-obs", "node-10", "latest"),
