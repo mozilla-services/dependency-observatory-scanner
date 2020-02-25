@@ -354,9 +354,9 @@ def iter_task_envs(
         yield language, package_manager, image, version_commands, tasks
 
 
-async def build_images(docker_pull: bool, image_keys: Iterable[str]) -> Iterable[str]:
-    images = [docker_images[image_key] for image_key in image_keys]
-
+async def build_images(
+    docker_pull: bool, images: Iterable[DockerImage]
+) -> Iterable[str]:
     log.info(
         f"building images: {[image.base.repo_name_tag + ' as ' + image.local.repo_name_tag for image in images]}"
     )
@@ -382,9 +382,11 @@ async def run_pipeline(
     log.info(f"{pipeline.name} pipeline started with args {args}")
     task_envs = list(iter_task_envs(args))
     if args.docker_build:
+        image_keys: AbstractSet[str] = {
+            image.local.repo_name_tag for (_, _, image, _, _) in task_envs
+        }
         await build_images(
-            args.docker_pull,
-            {image.local.repo_name_tag for (_, _, image, _, _) in task_envs},
+            args.docker_pull, [docker_images[image_key] for image_key in image_keys]
         )
 
     # cache of results by lang name, package manager name,
