@@ -17,7 +17,8 @@ package_version=$2  # e.g. 19.1.1
 #
 IMAGE_NAME=${IMAGE_NAME:-"mozilla/dependencyscan:latest"}
 
-# optionally add --docker-pull --docker-build --save-to-tmpfile to run_repo_tasks step below
+# optionally add --docker-pull --docker-build --save-to-tmpfile to
+# find_git_refs, find_dep_files, run_repo_tasks steps below
 
 if [[ ${package_version:=""} = "" ]]; then
     echo "analyzing all versions of ${package_name}"

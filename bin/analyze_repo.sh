@@ -14,6 +14,9 @@ repo_url=$1  # e.g.
 #
 IMAGE_NAME=${IMAGE_NAME:-"mozilla/dependencyscan:latest"}
 
+# optionally add --docker-pull --docker-build --save-to-tmpfile to
+# find_git_refs, find_dep_files, run_repo_tasks steps below
+
 echo "analyzing tags of ${repo_url}"
 printf '{"repo_url": "%s"}\n' "${repo_url}" \
 	| docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v find_git_refs | tee "repo_tags.jsonl" \
