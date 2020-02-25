@@ -91,21 +91,6 @@ dump-db:
 	mkdir -p "dep_obs_dump_$(shell date --utc +%F)/"
 	PGPASSWORD=postgres pg_dump -j $(shell nproc --all) -U postgres -h localhost -p 5432 -Fd dependency_observatory -f "dep_obs_dump_$(shell date --utc +%F)/"
 
-DATA_DIR := ./data
-
-run-repo-tasks:
-	cat $(DATA_DIR)/tc/03_tasks.jsonl | $(FPR) postprocess --repo-task list_metadata --repo-task audit > $(DATA_DIR)/tc/04_deps_vulns.jsonl
-	cat $(DATA_DIR)/fxa/03_tasks.jsonl | $(FPR) postprocess --repo-task list_metadata --repo-task audit > $(DATA_DIR)/fxa/04_deps_vulns.jsonl
-
-run-save-to-db:
-	cat $(DATA_DIR)/00_org_repo_urls.jsonl | $(FPR) save_to_db --create-tables --input-type repo_url
-	cat $(DATA_DIR)/01_org_repo_urls_refs.jsonl | $(FPR) save_to_db --create-tables --input-type git_ref
-	cat $(DATA_DIR)/fxa/02_dep_files.jsonl $(DATA_DIR)/tc/02_dep_files.jsonl | $(FPR) save_to_db --create-tables --input-type dep_file
-	cat $(DATA_DIR)/fxa/03_tasks.jsonl $(DATA_DIR)/tc/03_tasks.jsonl | $(FPR) save_to_db --create-tables --input-type repo_task
-	cat $(DATA_DIR)/fxa/04_deps_vulns.jsonl $(DATA_DIR)/tc/04_deps_vulns.jsonl | $(FPR) save_to_db --create-views --create-tables --input-type postprocessed_repo_task
-	cat $(DATA_DIR)/fxa/06_npm_registry_metadata.jsonl $(DATA_DIR)/tc/06_npm_registry_metadata.jsonl | $(FPR) save_to_db --create-tables --input-type dep_meta_npm_reg
-	cat $(DATA_DIR)/fxa/06_npmsio_scores.jsonl $(DATA_DIR)/tc/06_npmsio_scores.jsonl | $(FPR) save_to_db --create-tables --input-type dep_meta_npmsio
-
 run-crate-graph-and-save:
 	$(FPR) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -o crate_graph.jsonl --dot-filename default.dot
 	$(FPR) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate_graph.jsonl -o /dev/null --node-key name --node-label name_authors --filter dpc --filter serde --dot-filename serde_authors_filtered.dot
@@ -125,31 +110,8 @@ show-dot:
 clean-graph:
 	rm -f *.dot *.svg crate_graph.jsonl
 
-run-cargo-audit:
-	$(FPR) cargo_audit -i tests/fixtures/mozilla_services_channelserver_branch.jsonl
-	$(FPR) cargo_audit -i tests/fixtures/mozilla_services_channelserver_tag.jsonl
-	$(FPR) cargo_audit -i tests/fixtures/mozilla_services_channelserver_commit.jsonl
-
-run-cargo-audit-and-save:
-	$(FPR) cargo_audit -i tests/fixtures/mozilla_services_channelserver_branch.jsonl -o output.jsonl
-
-run-cargo-metadata:
-	$(FPR) cargo_metadata -i tests/fixtures/mozilla_services_channelserver_branch.jsonl
-
-run-cargo-metadata-and-save:
-	$(FPR) cargo_metadata -i tests/fixtures/mozilla_services_channelserver_branch.jsonl -o output.jsonl
-
 run-github-metadata-and-save:
 	printf "{\"repo_url\": \"https://github.com/mozilla/extension-workshop.git\"}" | $(FPR) github_metadata -i - -o output.jsonl --github-query-type=REPO_DEP_MANIFESTS --github-repo-dep-manifests-page-size=1 --github-query-type=REPO_DEP_MANIFEST_DEPS --github-repo-dep-manifest-deps-page-size=50 --github-query-type=REPO_VULN_ALERTS --github-repo-vuln-alerts-page-size=1 --github-query-type=REPO_VULN_ALERT_VULNS --github-repo-vuln-alert-vulns-page-size=1 --github-query-type=REPO_LANGS --github-repo-langs-page-size=50
-
-run-cargo-metadata-fxa-and-save:
-	$(FPR) cargo_metadata -i tests/fixtures/mozilla_services_fxa_branch.jsonl -o output.jsonl
-
-run-rust-changelog:
-	$(FPR) rust_changelog -i tests/fixtures/channelserver_tags_metadata.jsonl
-
-run-rust-changelog-and-save:
-	$(FPR) rust_changelog -i tests/fixtures/channelserver_tags_metadata.jsonl -o output.jsonl
 
 # NB: assuming package names don't include spaces
 update-requirements:
@@ -161,4 +123,4 @@ dump-test-fixture-pickle-files:
 venv-shell:
 	$(IN_VENV) bash
 
-.PHONY: build-image dump-test-fixture-pickle-files coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-crate-graph run-crate-graph-and-save run-cargo-audit run-cargo-audit-and-save run-cargo-metadata run-cargo-metadata-and-save run-github-metadata-and-save update-requirements show-dot unit-test
+.PHONY: build-image dump-test-fixture-pickle-files coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-github-metadata-and-save update-requirements show-dot unit-test
