@@ -405,17 +405,6 @@ get_ripgrep_version = functools.partial(
 )
 
 
-async def cargo_metadata(
-    container: aiodocker.containers.DockerContainer, working_dir: str = "/repo"
-) -> str:
-    exec_ = await container.run(
-        "cargo metadata --format-version 1 --locked",
-        working_dir=working_dir,
-        check=True,
-    )
-    return exec_.decoded_start_result_stdout[0]
-
-
 async def find_files(
     search_patterns: List[str],
     container: aiodocker.containers.DockerContainer,
