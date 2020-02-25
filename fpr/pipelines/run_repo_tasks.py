@@ -354,9 +354,7 @@ def iter_task_envs(
         yield language, package_manager, image, version_commands, tasks
 
 
-async def build_images(
-    args: argparse.Namespace, image_keys: Iterable[str]
-) -> Iterable[str]:
+async def build_images(docker_pull: bool, image_keys: Iterable[str]) -> Iterable[str]:
     images = [docker_images[image_key] for image_key in image_keys]
 
     log.info(
@@ -366,7 +364,7 @@ async def build_images(
         built_image_tags: Iterable[str] = await asyncio.gather(
             *[
                 containers.build(
-                    image.dockerfile_bytes, image.local.repo_name, pull=args.docker_pull
+                    image.dockerfile_bytes, image.local.repo_name, pull=docker_pull
                 )
                 for image in images
             ]
@@ -385,7 +383,8 @@ async def run_pipeline(
     task_envs = list(iter_task_envs(args))
     if args.docker_build:
         await build_images(
-            args, {image.local.repo_name_tag for (_, _, image, _, _) in task_envs}
+            args.docker_pull,
+            {image.local.repo_name_tag for (_, _, image, _, _) in task_envs},
         )
 
     # cache of results by lang name, package manager name,
