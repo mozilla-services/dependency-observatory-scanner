@@ -1,19 +1,21 @@
 import argparse
 import asyncio
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 import functools
 import logging
 from random import randrange
-from typing import Tuple, Dict, Generator, AsyncGenerator, Union
+from typing import Tuple, Dict, Generator, AsyncGenerator, Union, Iterable
 
 from fpr.rx_util import on_next_save_to_jsonl
 from fpr.serialize_util import get_in, extract_fields, iter_jsonlines
 import fpr.docker.containers as containers
+from fpr.docker.images import build_images
 import fpr.docker.volumes as volumes
 from fpr.models.pipeline import Pipeline
 from fpr.models.org_repo import OrgRepo
 from fpr.models.git_ref import GitRef
-from fpr.models.pipeline import add_infile_and_outfile, add_volume_args
+from fpr.models.language import DockerImage, docker_images
+from fpr.models.pipeline import add_infile_and_outfile, add_docker_args, add_volume_args
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.find_git_refs")
@@ -26,41 +28,9 @@ TODO: find branches
 """
 
 
-@dataclass
-class FindGitRefsBuildArgs:
-    base_image_name: str = "debian"
-    base_image_tag: str = "buster-slim"
-
-    # NB: for buster variants a ripgrep package is available
-    _DOCKERFILE = """
-FROM {0.base_image}
-RUN apt-get -y update && apt-get install -y git
-CMD ["bash", "-c"]
-"""
-
-    repo_tag = "dep-obs/find-git-refs"
-
-    @property
-    def base_image(self) -> str:
-        return f"{self.base_image_name}:{self.base_image_tag}"
-
-    @property
-    def dockerfile(self) -> bytes:
-        return FindGitRefsBuildArgs._DOCKERFILE.format(self).encode("utf-8")
-
-
-async def build_container(args: FindGitRefsBuildArgs = None) -> str:
-    # NB: can shell out to docker build if this doesn't work
-    if args is None:
-        args = FindGitRefsBuildArgs()
-
-    await containers.build(args.dockerfile, args.repo_tag, pull=True)
-    log.info(f"image built and successfully tagged {args.repo_tag}")
-    return args.repo_tag
-
-
 def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser = add_infile_and_outfile(pipeline_parser)
+    parser = add_docker_args(parser)
     parser = add_volume_args(parser)
     parser.add_argument(
         "-t",
@@ -121,13 +91,14 @@ async def run_find_git_refs(org_repo: OrgRepo, args: argparse.Namespace):
 async def run_pipeline(
     source: Generator[Dict[str, str], None, None], args: argparse.Namespace
 ) -> AsyncGenerator[OrgRepo, None]:
-    log.info("pipeline started")
-    try:
-        await build_container()
-    except Exception as e:
-        log.error(
-            f"error occurred building the find git refs image: {e}\n{exc_to_str()}"
+    log.info("pipeline find_git_refs started")
+    if args.docker_build:
+        images: Iterable[DockerImage] = [docker_images["dep-obs/find-git-refs"]]
+        log.info(
+            f"building images: {[image.base.repo_name_tag + ' as ' + image.local.repo_name_tag for image in images]}"
         )
+        built_image_tags: Iterable[str] = await build_images(args.docker_pull, images)
+        log.info(f"successfully built and tagged images {built_image_tags}")
 
     for i, item in enumerate(source):
         row = (i, OrgRepo.from_github_repo_url(item["repo_url"]))
