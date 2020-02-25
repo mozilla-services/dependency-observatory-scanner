@@ -405,15 +405,6 @@ get_ripgrep_version = functools.partial(
 )
 
 
-async def cargo_audit(
-    container: aiodocker.containers.DockerContainer, working_dir: str = "/repo"
-) -> str:
-    exec_ = await container.run(
-        "cargo audit --json", working_dir=working_dir, check=False, wait=True
-    )
-    return exec_.decoded_start_result_stdout[0]
-
-
 async def cargo_metadata(
     container: aiodocker.containers.DockerContainer, working_dir: str = "/repo"
 ) -> str:
