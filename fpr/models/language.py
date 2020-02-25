@@ -224,7 +224,7 @@ package_managers: Dict[str, PackageManager] = {
                 "list_metadata": ContainerTask(
                     name="list_metadata",
                     command="cargo metadata --format-version 1 --locked",
-                    has_files_check=lambda files: ("Cargo.lock" in files),
+                    has_files_check=lambda files: ("Cargo.toml" in files),
                 ),
                 "audit": ContainerTask(
                     name="audit",
