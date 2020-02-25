@@ -46,7 +46,7 @@ from fpr.models.language import (
     package_manager_names,
     package_managers,
 )
-from fpr.models.pipeline import add_infile_and_outfile, add_volume_args
+from fpr.models.pipeline import add_infile_and_outfile, add_docker_args, add_volume_args
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.run_repo_tasks")
@@ -56,6 +56,7 @@ __doc__ = """Runs tasks on a checked out git ref with dep. files"""
 
 def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser = add_infile_and_outfile(pipeline_parser)
+    parser = add_docker_args(parser)
     parser = add_volume_args(parser)
     parser.add_argument(
         "--dry-run",
@@ -80,20 +81,6 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
         help="Cache and results for the same repo, and dep file directory and SHA2"
         "sums for multiple git refs (NB: ignores changes to non-dep files e.g. to "
         "node.js install hook scripts).",
-    )
-    parser.add_argument(
-        "--docker-pull",
-        action="store_true",
-        required=False,
-        default=False,
-        help="Pull base docker images before building them. Default to False.",
-    )
-    parser.add_argument(
-        "--docker-build",
-        action="store_true",
-        required=False,
-        default=False,
-        help="Build docker images. Default to False.",
     )
     parser.add_argument(
         "--dir",
