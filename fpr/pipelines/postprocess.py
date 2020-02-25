@@ -222,9 +222,9 @@ def parse_yarn_audit(parsed_stdout: Sequence[Dict]) -> Optional[Dict]:
     return updates
 
 
-def parse_npm_task(task_name: str, line: Dict) -> Optional[Dict]:
+def parse_npm_task(task_name: str, task_result: Dict) -> Optional[Dict]:
     # TODO: reuse cached results for each set of dep files w/ hashes and task name
-    parsed_stdout = parse_stdout_as_json(get_in(line, ["task", "stdout"], None))
+    parsed_stdout = parse_stdout_as_json(get_in(task_result, ["stdout"], None))
     if parsed_stdout is None:
         log.warn("got non-JSON stdout for npm")
         return None
@@ -239,8 +239,8 @@ def parse_npm_task(task_name: str, line: Dict) -> Optional[Dict]:
         raise NotImplementedError()
 
 
-def parse_yarn_task(task_name: str, line: Dict) -> Optional[Dict]:
-    parsed_stdout = parse_stdout_as_jsonlines(get_in(line, ["task", "stdout"], None))
+def parse_yarn_task(task_name: str, task_result: Dict) -> Optional[Dict]:
+    parsed_stdout = parse_stdout_as_jsonlines(get_in(task_result, ["stdout"], None))
     if parsed_stdout is None:
         log.warn("got non-JSON lines stdout for yarn")
         return None
@@ -261,11 +261,6 @@ async def run_pipeline(
     log.info(f"{pipeline.name} pipeline started")
 
     for i, line in enumerate(source):
-        # filter for node list_metadata output to parse and flatten deps
-        task_name = get_in(line, ["task", "name"], None)
-        if task_name not in args.repo_task:
-            continue
-
         result = extract_fields(
             line,
             [
@@ -279,48 +274,57 @@ async def run_pipeline(
                 "dependency_files",
             ],
         )
-        result["task"] = extract_fields(
-            line["task"],
-            [
-                "command",
-                "container_name",
-                "exit_code",
-                "name",
-                "relative_path",
-                "working_dir",
-            ],
-        )
+        result["tasks"] = []
 
-        task_command = get_in(line, ["task", "command"], None)
-        if any(
-            task_command == task.command
-            for task in package_managers["npm"].tasks.values()
-        ):
-            updates = parse_npm_task(task_name, line)
-        elif any(
-            task_command == task.command
-            for task in package_managers["yarn"].tasks.values()
-        ):
-            updates = parse_yarn_task(task_name, line)
-        else:
-            continue
+        for task_data in get_in(line, ["task_results"], []):
+            # filter for node list_metadata output to parse and flatten deps
+            task_name = get_in(task_data, ["name"], None)
+            if task_name not in args.repo_task:
+                continue
 
-        if updates:
-            if task_name == "list_metadata":
-                log.info(
-                    f"wrote {result['task']['name']} {result['org']}/{result['repo']} {result['task']['relative_path']}"
-                    f" {result['ref']['value']} w/"
-                    f" {updates['dependencies_count']} deps and {updates.get('problems_count', 0)} problems"
-                    # f" {updates['graph_stats']}"
-                )
-            elif task_name == "audit":
-                log.info(
-                    f"wrote {result['task']['name']} {result['org']}/{result['repo']} {result['task']['relative_path']}"
-                    f" {result['ref']['value']} w/"
-                    f" {updates['vulnerabilities_count']} vulns"
-                )
-            result.update(updates)
-            yield result
+            task_result = extract_fields(
+                task_data,
+                [
+                    "command",
+                    "container_name",
+                    "exit_code",
+                    "name",
+                    "relative_path",
+                    "working_dir",
+                ],
+            )
+
+            task_command = get_in(task_data, ["command"], None)
+            if any(
+                task_command == task.command
+                for task in package_managers["npm"].tasks.values()
+            ):
+                updates = parse_npm_task(task_name, task_data)
+            elif any(
+                task_command == task.command
+                for task in package_managers["yarn"].tasks.values()
+            ):
+                updates = parse_yarn_task(task_name, line)
+            else:
+                continue
+
+            if updates:
+                if task_name == "list_metadata":
+                    log.info(
+                        f"wrote {task_result['name']} {result['org']}/{result['repo']} {task_result['relative_path']}"
+                        f" {result['ref']['value']} w/"
+                        f" {updates['dependencies_count']} deps and {updates.get('problems_count', 0)} problems"
+                        # f" {updates['graph_stats']}"
+                    )
+                elif task_name == "audit":
+                    log.info(
+                        f"wrote {task_result['name']} {result['org']}/{result['repo']} {task_result['relative_path']}"
+                        f" {result['ref']['value']} w/"
+                        f" {updates['vulnerabilities_count']} vulns"
+                    )
+                task_result.update(updates)
+            result["tasks"].append(task_result)
+        yield result
 
 
 FIELDS: AbstractSet = set()

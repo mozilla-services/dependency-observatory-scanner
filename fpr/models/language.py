@@ -149,10 +149,14 @@ package_managers: Dict[str, PackageManager] = {
             ],
             ignore_patterns=["node_modules/"],
             tasks={
-                # "npm install" updates package-lock.json or
-                # npm-shrinkwrap.json, which we want to avoid
                 "install": ContainerTask(
                     name="install",
+                    command="npm install --save=true",
+                    # NB: create or update package-lock.json or npm-shrinkwrap.json
+                    has_files_check=has_package_json,
+                ),
+                "ci": ContainerTask(
+                    name="ci",
                     command="npm ci",
                     # ci errors for missing package-lock.json or npm-shrinkwrap.json
                     # and does not update the files
@@ -167,7 +171,7 @@ package_managers: Dict[str, PackageManager] = {
                 "audit": ContainerTask(
                     name="audit",
                     command="npm audit --json",
-                    has_files_check=has_npm_manifest_with_any_lockfile,
+                    has_files_check=has_package_json,  # has_npm_manifest_with_any_lockfile,
                 ),
                 "pack": ContainerTask(
                     name="pack", command="npm pack .", has_files_check=has_package_json
@@ -246,7 +250,7 @@ package_manager_names = [pm.name for pm in package_managers.values()]
 
 docker_images: Dict[str, DockerImage] = {
     "dep-obs/node-10:latest": DockerImage(
-        base=DockerImageName(None, "node", "10"),
+        base=DockerImageName(None, "node", "10-buster-slim"),
         local=DockerImageName("dep-obs", "node-10", "latest"),
         dockerfile_template="""FROM {base.repo_name}:{base.tag}
 RUN apt-get -y update && apt-get install -y git

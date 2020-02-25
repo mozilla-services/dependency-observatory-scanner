@@ -1,3 +1,4 @@
+import aiodocker
 import argparse
 import asyncio
 from collections import ChainMap
@@ -139,6 +140,61 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
     return parser
 
 
+async def run_task(
+    c: aiodocker.containers.DockerContainer,
+    task: ContainerTask,
+    org_repo: OrgRepo,
+    git_ref: GitRef,
+    path: pathlib.Path,
+    container_name: str,
+    cwd_files: AbstractSet[str],
+) -> Union[Dict[str, Any], Exception]:
+    last_inspect = dict(ExitCode=None)
+    stdout = "dummy-stdout"
+    working_dir = str(pathlib.Path("/repos/repo") / path)
+
+    # use getattr since mypy thinks we're passing a self arg otherwise
+
+    # TODO: run this check at runtime since npm install can generate or update a package-lock.json
+    # git grep --untracked
+    if not getattr(task, "has_files_check")(cwd_files):
+        log.warn(f"Missing files to run {task.name} {task.command} in {working_dir!r}")
+        return Exception(
+            f"Missing files to run {task.name} {task.command} in {working_dir!r}"
+        )
+    else:
+        log.debug(f"have files to run {task.name} in {working_dir!r}: {cwd_files}")
+
+    log.info(
+        f"{container_name} at {git_ref} in {working_dir} for task {task.name} running {task.command}"
+    )
+    try:
+        job_run = await c.run(
+            cmd=task.command, working_dir=working_dir, wait=True, check=task.check
+        )
+        last_inspect = await job_run.inspect()
+    except containers.DockerRunException as e:
+        log.error(
+            f"{container_name} in {working_dir} for task {task.name} error running {task.command}: {e}"
+        )
+        return e
+
+    stdout = "\n".join(job_run.decoded_start_result_stdout)
+
+    c_stdout, c_stderr = await asyncio.gather(c.log(stdout=True), c.log(stderr=True))
+    log.debug(f"{container_name} stdout: {c_stdout}")
+    log.debug(f"{container_name} stderr: {c_stderr}")
+    return {
+        "name": task.name,
+        "command": task.command,
+        "container_name": container_name,
+        "working_dir": working_dir,
+        "relative_path": str(path),
+        "exit_code": last_inspect["ExitCode"],
+        "stdout": stdout,
+    }
+
+
 async def run_in_repo_at_ref(
     args: argparse.Namespace,
     item: Tuple[OrgRepo, GitRef, pathlib.Path],
@@ -151,10 +207,10 @@ async def run_in_repo_at_ref(
 ) -> AsyncGenerator[Dict[str, Any], None]:
     (org_repo, git_ref, path) = item
 
-    name = f"dep-obs-nodejs-metadata-{org_repo.org}-{org_repo.repo}-{hex(randrange(1 << 32))[2:]}"
+    container_name = f"dep-obs-nodejs-metadata-{org_repo.org}-{org_repo.repo}-{hex(randrange(1 << 32))[2:]}"
     async with containers.run(
         image.local.repo_name_tag,
-        name=name,
+        name=container_name,
         cmd="/bin/bash",
         volumes=[
             volumes.DockerVolumeConfig(
@@ -192,46 +248,21 @@ async def run_in_repo_at_ref(
             for (i, (command_name, command)) in enumerate(version_commands.items())
         }
 
-        working_dir = str(pathlib.Path("/repos/repo") / path)
-        for task in tasks:
-            last_inspect = dict(ExitCode=None)
-            stdout = "dummy-stdout"
-
-            if dry_run:
+        if dry_run:
+            for task in tasks:
                 log.info(
-                    f"{name} in {working_dir} for task {task.name} skipping running {task.command} for dry run"
+                    f"{container_name} in {pathlib.Path('/repos/repo') / path} for task {task.name} skipping running {task.command} for dry run"
                 )
-                continue
-
-            # use getattr since mypy thinks we're passing a self arg otherwise
-            if not getattr(task, "has_files_check")(cwd_files):
-                log.warn(
-                    f"Missing files to run {task.name} {task.command} in {working_dir!r}"
+        else:
+            task_results = [
+                await run_task(
+                    c, task, org_repo, git_ref, path, container_name, cwd_files
                 )
-                continue
-            else:
-                log.debug(
-                    f"have files to run {task.name} in {working_dir!r}: {cwd_files}"
-                )
-
-            log.info(
-                f"{name} at {git_ref} in {working_dir} for task {task.name} running {task.command}"
-            )
-            try:
-                job_run = await c.run(
-                    cmd=task.command,
-                    working_dir=working_dir,
-                    wait=True,
-                    check=task.check,
-                )
-                last_inspect = await job_run.inspect()
-            except containers.DockerRunException as e:
-                log.error(
-                    f"{name} in {working_dir} for task {task.name} error running {task.command}: {e}"
-                )
-                break
-
-            stdout = "\n".join(job_run.decoded_start_result_stdout)
+                for task in tasks
+            ]
+            for tr in task_results:
+                if isinstance(tr, Exception):
+                    log.error(f"error running task: {tr}")
 
             result: Dict[str, Any] = dict(
                 org=org_repo.org,
@@ -243,21 +274,8 @@ async def run_in_repo_at_ref(
                 commit=commit,
                 tag=tag,
                 dependency_files=[fr.to_dict() for fr in file_rows],
-                task={
-                    "name": task.name,
-                    "command": task.command,
-                    "container_name": name,
-                    "working_dir": working_dir,
-                    "relative_path": str(path),
-                    "exit_code": last_inspect["ExitCode"],
-                    "stdout": stdout,
-                },
+                task_results=[tr for tr in task_results if isinstance(tr, dict)],
             )
-            c_stdout, c_stderr = await asyncio.gather(
-                c.log(stdout=True), c.log(stderr=True)
-            )
-            log.debug(f"{name} stdout: {c_stdout}")
-            log.debug(f"{name} stderr: {c_stderr}")
             yield result
 
 

@@ -174,6 +174,7 @@ def insert_package_graph(session: sqlalchemy.orm.Session, task_data: Dict) -> No
             package_manager_version=None,
         )
     )
+    session.commit()
 
 
 def insert_package_audit(session: sqlalchemy.orm.Session, task_data: Dict) -> None:
@@ -449,13 +450,13 @@ async def run_pipeline(
     with create_session(engine) as session:
         if args.input_type == "postprocessed_repo_task":
             for line in source:
-                for task_data in line["tasks"].values():
+                for task_data in line["tasks"]:
                     if task_data["name"] == "list_metadata":
                         insert_package_graph(session, task_data)
                     elif task_data["name"] == "audit":
                         insert_package_audit(session, task_data)
                     else:
-                        log.debug(f"skipping unrecognized task {task_data['name']}")
+                        log.warning(f"skipping unrecognized task {task_data['name']}")
         elif args.input_type == "dep_meta_npm_reg":
             insert_npm_registry_data(session, source)
         elif args.input_type == "dep_meta_npmsio":
