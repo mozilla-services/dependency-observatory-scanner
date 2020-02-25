@@ -13,7 +13,7 @@ import fpr.docker.volumes as volumes
 from fpr.models.pipeline import Pipeline
 from fpr.models.org_repo import OrgRepo
 from fpr.models.git_ref import GitRef
-from fpr.models.pipeline import add_infile_and_outfile, add_volume_arg
+from fpr.models.pipeline import add_infile_and_outfile, add_volume_args
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.find_git_refs")
@@ -61,7 +61,7 @@ async def build_container(args: FindGitRefsBuildArgs = None) -> str:
 
 def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser = add_infile_and_outfile(pipeline_parser)
-    parser = add_volume_arg(parser)
+    parser = add_volume_args(parser)
     parser.add_argument(
         "-t",
         "--tags",
@@ -89,8 +89,12 @@ async def run_find_git_refs(org_repo: OrgRepo, args: argparse.Namespace):
                 labels=asdict(org_repo),
                 delete=not args.keep_volumes,
             )
-        ],
+        ]
+        if args.use_volumes
+        else [],
     ) as c:
+        if not args.use_volumes:
+            await c.run("mkdir -p /repos", wait=True, check=True)
         await containers.ensure_repo(
             c, org_repo.github_clone_url, working_dir="/repos/"
         )

@@ -46,7 +46,7 @@ from fpr.models.language import (
     package_manager_names,
     package_managers,
 )
-from fpr.models.pipeline import add_infile_and_outfile, add_volume_arg
+from fpr.models.pipeline import add_infile_and_outfile, add_volume_args
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.run_repo_tasks")
@@ -56,7 +56,7 @@ __doc__ = """Runs tasks on a checked out git ref with dep. files"""
 
 def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser = add_infile_and_outfile(pipeline_parser)
-    parser = add_volume_arg(parser)
+    parser = add_volume_args(parser)
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -221,8 +221,12 @@ async def run_in_repo_at_ref(
                 labels=asdict(org_repo),
                 delete=not args.keep_volumes,
             )
-        ],
+        ]
+        if args.use_volumes
+        else [],
     ) as c:
+        if not args.use_volumes:
+            await c.run("mkdir -p /repos", wait=True, check=True)
         await containers.ensure_repo(
             c,
             org_repo.github_clone_url,

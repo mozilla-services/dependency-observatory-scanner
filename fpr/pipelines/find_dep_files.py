@@ -14,7 +14,7 @@ import fpr.docker.volumes as volumes
 from fpr.models.pipeline import Pipeline
 from fpr.models.org_repo import OrgRepo
 from fpr.models.git_ref import GitRef
-from fpr.models.pipeline import add_infile_and_outfile, add_volume_arg
+from fpr.models.pipeline import add_infile_and_outfile, add_volume_args
 from fpr.models.language import dependency_file_patterns, DependencyFile
 from fpr.pipelines.util import exc_to_str
 
@@ -62,7 +62,7 @@ async def build_container(args: FindDepFilesBuildArgs = None) -> str:
 
 def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser = add_infile_and_outfile(pipeline_parser)
-    parser = add_volume_arg(parser)
+    parser = add_volume_args(parser)
     parser.add_argument(
         "--glob",
         type=str,
@@ -95,8 +95,12 @@ async def run_find_dep_files(
                 labels=asdict(org_repo),
                 delete=not args.keep_volumes,
             )
-        ],
+        ]
+        if args.use_volumes
+        else [],
     ) as c:
+        if not args.use_volumes:
+            await c.run("mkdir -p /repos", wait=True, check=True)
         await containers.ensure_repo(
             c, org_repo.github_clone_url, working_dir="/repos/"
         )

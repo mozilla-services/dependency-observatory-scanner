@@ -134,7 +134,14 @@ def add_graphviz_graph_args(parser: argparse.ArgumentParser) -> argparse.Argumen
     return parser
 
 
-def add_volume_arg(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+def add_volume_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    parser.add_argument(
+        "--use-volumes",
+        action="store_true",
+        default=False,
+        required=False,
+        help="Clone the repo in docker volumes. Defaults to False.",
+    )
     parser.add_argument(
         "--keep-volumes",
         action="store_true",
