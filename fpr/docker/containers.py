@@ -400,17 +400,8 @@ get_committer_timestamp = functools.partial(
     run_container_cmd_no_args_return_first_line_or_none,
     'git show -s --format="%ct" HEAD',
 )
-get_cargo_version = functools.partial(
-    run_container_cmd_no_args_return_first_line_or_none, "cargo --version"
-)
-get_cargo_audit_version = functools.partial(
-    run_container_cmd_no_args_return_first_line_or_none, "cargo audit --version"
-)
 get_ripgrep_version = functools.partial(
     run_container_cmd_no_args_return_first_line_or_none, "rg --version"
-)
-get_rustc_version = functools.partial(
-    run_container_cmd_no_args_return_first_line_or_none, "rustc --version"
 )
 
 
