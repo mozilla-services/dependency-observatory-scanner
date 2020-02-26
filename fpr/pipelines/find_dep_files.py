@@ -116,7 +116,7 @@ async def run_pipeline(
 ) -> AsyncGenerator[Dict[str, Any], None]:
     log.info(f"started pipeline {pipeline.name} with globs: {args.glob}")
     if args.docker_build:
-        images: Iterable[DockerImage] = [docker_images["dep-obs/find-dep-files"]]
+        images: Iterable[DockerImage] = [docker_images["dep-obs/find-dep-files:latest"]]
         log.info(
             f"building images: {[image.base.repo_name_tag + ' as ' + image.local.repo_name_tag for image in images]}"
         )
