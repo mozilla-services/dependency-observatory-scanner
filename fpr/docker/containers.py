@@ -400,38 +400,9 @@ get_committer_timestamp = functools.partial(
     run_container_cmd_no_args_return_first_line_or_none,
     'git show -s --format="%ct" HEAD',
 )
-get_cargo_version = functools.partial(
-    run_container_cmd_no_args_return_first_line_or_none, "cargo --version"
-)
-get_cargo_audit_version = functools.partial(
-    run_container_cmd_no_args_return_first_line_or_none, "cargo audit --version"
-)
 get_ripgrep_version = functools.partial(
     run_container_cmd_no_args_return_first_line_or_none, "rg --version"
 )
-get_rustc_version = functools.partial(
-    run_container_cmd_no_args_return_first_line_or_none, "rustc --version"
-)
-
-
-async def cargo_audit(
-    container: aiodocker.containers.DockerContainer, working_dir: str = "/repo"
-) -> str:
-    exec_ = await container.run(
-        "cargo audit --json", working_dir=working_dir, check=False, wait=True
-    )
-    return exec_.decoded_start_result_stdout[0]
-
-
-async def cargo_metadata(
-    container: aiodocker.containers.DockerContainer, working_dir: str = "/repo"
-) -> str:
-    exec_ = await container.run(
-        "cargo metadata --format-version 1 --locked",
-        working_dir=working_dir,
-        check=True,
-    )
-    return exec_.decoded_start_result_stdout[0]
 
 
 async def find_files(

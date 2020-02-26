@@ -224,7 +224,7 @@ package_managers: Dict[str, PackageManager] = {
                 "list_metadata": ContainerTask(
                     name="list_metadata",
                     command="cargo metadata --format-version 1 --locked",
-                    has_files_check=lambda files: ("Cargo.lock" in files),
+                    has_files_check=lambda files: ("Cargo.toml" in files),
                 ),
                 "audit": ContainerTask(
                     name="audit",
@@ -248,20 +248,31 @@ package_managers: Dict[str, PackageManager] = {
 package_manager_names = [pm.name for pm in package_managers.values()]
 
 
+_buster_slim_base = DockerImage(
+    base=DockerImageName(None, "debian", "buster-slim"),
+    local=DockerImageName("dep-obs", "buster-base", "latest"),
+    dockerfile_template="""FROM {base.repo_name}:{base.tag}
+RUN apt-get -y update && apt-get install -y git ripgrep
+CMD ["bash", "-c"]
+""",
+)
+
 docker_images: Dict[str, DockerImage] = {
+    "dep-obs/find-git-refs": _buster_slim_base,
+    "dep-obs/find-dep-files": _buster_slim_base,
     "dep-obs/node-10:latest": DockerImage(
         base=DockerImageName(None, "node", "10-buster-slim"),
         local=DockerImageName("dep-obs", "node-10", "latest"),
         dockerfile_template="""FROM {base.repo_name}:{base.tag}
-RUN apt-get -y update && apt-get install -y git
+RUN apt-get -y update && apt-get install -y git ripgrep
 CMD ["node"]
 """,
     ),
     "dep-obs/rust-1:latest": DockerImage(
-        base=DockerImageName(None, "rust", "1"),
+        base=DockerImageName(None, "rust", "1-buster-slim"),
         local=DockerImageName("dep-obs", "rust-1", "latest"),
         dockerfile_template="""FROM {base.repo_name}:{base.tag}
-RUN apt-get -y update && apt-get install -y git
+RUN apt-get -y update && apt-get install -y git ripgrep
 RUN cargo install cargo-audit
 CMD ["rustc"]
 """,

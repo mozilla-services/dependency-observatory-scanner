@@ -43,7 +43,7 @@ jobs:
       - run:
           name: build image run repo analysis image and check results
           command: |
-            USE_IMAGE=1 make build-image rust-changelog check-rust-changelog
+            USE_IMAGE=1 make build-image
       - run:
           name: save the built docker container to CircleCI cache
           no_output_timeout: 30m

@@ -33,6 +33,7 @@ import fpr.docker.volumes as volumes
 from fpr.models.pipeline import Pipeline
 from fpr.models.org_repo import OrgRepo
 from fpr.models.git_ref import GitRef
+from fpr.docker.images import build_images
 from fpr.models.language import (
     ContainerTask,
     DependencyFile,
@@ -46,7 +47,7 @@ from fpr.models.language import (
     package_manager_names,
     package_managers,
 )
-from fpr.models.pipeline import add_infile_and_outfile, add_volume_arg
+from fpr.models.pipeline import add_infile_and_outfile, add_docker_args, add_volume_args
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.run_repo_tasks")
@@ -56,7 +57,8 @@ __doc__ = """Runs tasks on a checked out git ref with dep. files"""
 
 def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser = add_infile_and_outfile(pipeline_parser)
-    parser = add_volume_arg(parser)
+    parser = add_docker_args(parser)
+    parser = add_volume_args(parser)
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -80,20 +82,6 @@ def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentPar
         help="Cache and results for the same repo, and dep file directory and SHA2"
         "sums for multiple git refs (NB: ignores changes to non-dep files e.g. to "
         "node.js install hook scripts).",
-    )
-    parser.add_argument(
-        "--docker-pull",
-        action="store_true",
-        required=False,
-        default=False,
-        help="Pull base docker images before building them. Default to False.",
-    )
-    parser.add_argument(
-        "--docker-build",
-        action="store_true",
-        required=False,
-        default=False,
-        help="Build docker images. Default to False.",
     )
     parser.add_argument(
         "--dir",
@@ -221,8 +209,12 @@ async def run_in_repo_at_ref(
                 labels=asdict(org_repo),
                 delete=not args.keep_volumes,
             )
-        ],
+        ]
+        if args.use_volumes
+        else [],
     ) as c:
+        if not args.use_volumes:
+            await c.run("mkdir -p /repos", wait=True, check=True)
         await containers.ensure_repo(
             c,
             org_repo.github_clone_url,
@@ -363,39 +355,23 @@ def iter_task_envs(
         yield language, package_manager, image, version_commands, tasks
 
 
-async def build_images(
-    args: argparse.Namespace, image_keys: Iterable[str]
-) -> Iterable[str]:
-    images = [docker_images[image_key] for image_key in image_keys]
-
-    log.info(
-        f"building images: {[image.base.repo_name_tag + ' as ' + image.local.repo_name_tag for image in images]}"
-    )
-    try:
-        built_image_tags: Iterable[str] = await asyncio.gather(
-            *[
-                containers.build(
-                    image.dockerfile_bytes, image.local.repo_name, pull=args.docker_pull
-                )
-                for image in images
-            ]
-        )
-        log.info(f"successfully built and tagged images {built_image_tags}")
-        return built_image_tags
-    except Exception as err:
-        log.error(f"error occurred building images: {err}\n{exc_to_str()}")
-        raise err
-
-
 async def run_pipeline(
     source: Generator[Dict[str, Any], None, None], args: argparse.Namespace
 ) -> AsyncGenerator[Dict, None]:
     log.info(f"{pipeline.name} pipeline started with args {args}")
     task_envs = list(iter_task_envs(args))
     if args.docker_build:
-        await build_images(
-            args, {image.local.repo_name_tag for (_, _, image, _, _) in task_envs}
+        image_keys: AbstractSet[str] = {
+            image.local.repo_name_tag for (_, _, image, _, _) in task_envs
+        }
+        images: Iterable[DockerImage] = [
+            docker_images[image_key] for image_key in image_keys
+        ]
+        log.info(
+            f"building images: {[image.base.repo_name_tag + ' as ' + image.local.repo_name_tag for image in images]}"
         )
+        built_image_tags: Iterable[str] = await build_images(args.docker_pull, images)
+        log.info(f"successfully built and tagged images {built_image_tags}")
 
     # cache of results by lang name, package manager name,
     # image.local.repo_name_tag, org/repo, dep files dir path, dep file sha256s

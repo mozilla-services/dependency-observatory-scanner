@@ -5,17 +5,23 @@ import functools
 import logging
 import pathlib
 from random import randrange
-from typing import Any, Tuple, Dict, Generator, AsyncGenerator, Union
+from typing import Any, AsyncGenerator, Dict, Generator, Iterable, Tuple, Union
 
 from fpr.rx_util import on_next_save_to_jsonl
 from fpr.serialize_util import get_in, extract_fields, iter_jsonlines
 import fpr.docker.containers as containers
+from fpr.docker.images import build_images
 import fpr.docker.volumes as volumes
 from fpr.models.pipeline import Pipeline
 from fpr.models.org_repo import OrgRepo
 from fpr.models.git_ref import GitRef
-from fpr.models.pipeline import add_infile_and_outfile, add_volume_arg
-from fpr.models.language import dependency_file_patterns, DependencyFile
+from fpr.models.pipeline import add_infile_and_outfile, add_docker_args, add_volume_args
+from fpr.models.language import (
+    dependency_file_patterns,
+    DependencyFile,
+    DockerImage,
+    docker_images,
+)
 from fpr.pipelines.util import exc_to_str
 
 log = logging.getLogger("fpr.pipelines.find_dep_files")
@@ -25,44 +31,10 @@ Given a repo_url, clones the repo, lists git refs for each tag
 """
 
 
-@dataclass
-class FindDepFilesBuildArgs:
-    base_image_name: str = "debian"
-    base_image_tag: str = "buster-slim"
-
-    # NB: for buster variants a ripgrep package is available
-    _DOCKERFILE = """
-FROM {0.base_image}
-RUN apt-get -y update && apt-get install -y curl git
-RUN curl -LO https://github.com/BurntSushi/ripgrep/releases/download/11.0.2/ripgrep_11.0.2_amd64.deb
-RUN dpkg -i ripgrep_11.0.2_amd64.deb
-CMD ["bash", "-c"]
-"""
-
-    repo_tag = "dep-obs/find-dep-files"
-
-    @property
-    def base_image(self) -> str:
-        return f"{self.base_image_name}:{self.base_image_tag}"
-
-    @property
-    def dockerfile(self) -> bytes:
-        return FindDepFilesBuildArgs._DOCKERFILE.format(self).encode("utf-8")
-
-
-async def build_container(args: FindDepFilesBuildArgs = None) -> str:
-    # NB: can shell out to docker build if this doesn't work
-    if args is None:
-        args = FindDepFilesBuildArgs()
-
-    await containers.build(args.dockerfile, args.repo_tag, pull=True)
-    log.info(f"image built and successfully tagged {args.repo_tag}")
-    return args.repo_tag
-
-
 def parse_args(pipeline_parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser = add_infile_and_outfile(pipeline_parser)
-    parser = add_volume_arg(parser)
+    parser = add_docker_args(parser)
+    parser = add_volume_args(parser)
     parser.add_argument(
         "--glob",
         type=str,
@@ -95,8 +67,12 @@ async def run_find_dep_files(
                 labels=asdict(org_repo),
                 delete=not args.keep_volumes,
             )
-        ],
+        ]
+        if args.use_volumes
+        else [],
     ) as c:
+        if not args.use_volumes:
+            await c.run("mkdir -p /repos", wait=True, check=True)
         await containers.ensure_repo(
             c, org_repo.github_clone_url, working_dir="/repos/"
         )
@@ -139,13 +115,13 @@ async def run_pipeline(
     source: Generator[Dict[str, Any], None, None], args: argparse.Namespace
 ) -> AsyncGenerator[Dict[str, Any], None]:
     log.info(f"started pipeline {pipeline.name} with globs: {args.glob}")
-
-    try:
-        await build_container()
-    except Exception as e:
-        log.error(
-            f"error occurred building the find git refs image: {e}\n{exc_to_str()}"
+    if args.docker_build:
+        images: Iterable[DockerImage] = [docker_images["dep-obs/find-dep-files"]]
+        log.info(
+            f"building images: {[image.base.repo_name_tag + ' as ' + image.local.repo_name_tag for image in images]}"
         )
+        built_image_tags: Iterable[str] = await build_images(args.docker_pull, images)
+        log.info(f"successfully built and tagged images {built_image_tags}")
 
     for item in source:
         org_repo, git_ref = (
