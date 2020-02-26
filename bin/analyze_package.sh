@@ -44,6 +44,7 @@ printf '{"name":"%s"}\n' "$package_name" \
     | jq -c '
 .versions[]
 | select(.repository.url != null)
+| select(.gitHead != null)
 | {package_name: .name,
    package_version: .version,
    org: (.repository.url | split("/") | reverse | nth(1)),
