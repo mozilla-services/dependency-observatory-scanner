@@ -23,4 +23,4 @@ printf '{"repo_url": "%s"}\n' "${repo_url}" \
 	| docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v find_dep_files | tee "repo_dep_files.jsonl" \
 	| docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v run_repo_tasks --docker-pull --docker-build --repo-task list_metadata --repo-task audit | tee "repo_tasks.jsonl" \
         | docker run --rm -i "${IMAGE_NAME}" python fpr/run_pipeline.py -v postprocess --repo-task list_metadata --repo-task audit | tee "repo_postprocessed_tasks.jsonl" \
-	| docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v rust_changelog | tee "repo_changelog.jsonl"
+        | docker run --rm -i --net=host "${IMAGE_NAME}" python fpr/run_pipeline.py -v save_to_db --input-type postprocessed_repo_task
