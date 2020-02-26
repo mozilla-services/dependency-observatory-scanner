@@ -33,7 +33,16 @@ else
 fi
 printf '{"name":"%s"}\n' "$package_name" \
     | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v fetch_package_data fetch_npm_registry_metadata | tee "${TMP_DIR}/package_npm_registry_meta.jsonl" \
-    | jq -c '.versions[] | select(.repository.url != null) | {package_name: .name, package_version: .version, org: (.repository.url | sub("git://github.com/"; "") | sub(".git"; "") | split("/") | first), repo:  (.repository.url | sub("git://github.com/"; "") | sub(".git"; "") | split("/") | last), repo_url: (.repository.url| sub("git"; "https")), ref: {kind: "commit", value: .gitHead}}' \
+    | jq -c '
+.versions[]
+| select(.repository.url != null)
+| {package_name: .name,
+   package_version: .version,
+   org: (.repository.url | split("/") | reverse | nth(1)),
+   repo: (.repository.url | split("/") | reverse | first | sub(".git"; "")),
+   repo_url: ("https://" + (.repository.url | split("://") | last)),
+   ref: {kind: "commit",
+         value: .gitHead}}' \
     | jq -c "select(${VERSION_FILTER})" \
     | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v find_dep_files --docker-pull --docker-build | tee "${TMP_DIR}/package_dep_files.jsonl" \
     | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py -v run_repo_tasks --docker-pull --docker-build --language nodejs --package-manager npm --dir './' --repo-task install --repo-task list_metadata --repo-task audit | tee "${TMP_DIR}/package_repo_tasks.jsonl" \
