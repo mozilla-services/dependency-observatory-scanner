@@ -93,7 +93,7 @@ async def run_pipeline(
 ) -> AsyncGenerator[OrgRepo, None]:
     log.info("pipeline find_git_refs started")
     if args.docker_build:
-        images: Iterable[DockerImage] = [docker_images["dep-obs/find-git-refs"]]
+        images: Iterable[DockerImage] = [docker_images["dep-obs/find-git-refs:latest"]]
         log.info(
             f"building images: {[image.base.repo_name_tag + ' as ' + image.local.repo_name_tag for image in images]}"
         )
