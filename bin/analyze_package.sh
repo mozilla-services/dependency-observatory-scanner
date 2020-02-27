@@ -47,7 +47,7 @@ printf '{"name":"%s"}\n' "$package_name" \
 | select(.gitHead != null)
 | {package_name: .name,
    package_version: .version,
-   org: (.repository.url | split("/") | reverse | nth(1)),
+   org: (.repository.url | split("/") | reverse | nth(1) | split(":") | last),
    repo: (.repository.url | split("/") | reverse | first | sub(".git"; "")),
    repo_url: ("https://" + (.repository.url | split("://") | last)),
    ref: {kind: "commit",
