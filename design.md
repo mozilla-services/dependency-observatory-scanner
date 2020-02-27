@@ -37,7 +37,7 @@ analysis step or a final result aggregator.
 #### Execution framework
 
 Workload is IO heavy and (for now) small data so Beam, Spark, etc. and
-other Big Data tools not directly applicable, but might make sense
+other Big Data tools are not directly applicable, but might make sense
 later. So we're trying an async generator pipeline.
 
 Features from proper datapipeline tools we do want include:
