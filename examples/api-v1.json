@@ -1,0 +1,48 @@
+{
+   "package":"test",
+   "version":"0.0.1",
+   "release-datetime":"2020-01-02 02:03:04",
+   "score-datetime":"2020-02-27 01:02:03",
+   "top-score":23,
+   "npms-io-score":23,
+   "authors-count":2,
+   "contributor-count":23,
+   "direct-dep-count":2,
+   "all_dep_count":1234,
+   "direct-vuln-critical-count":0,
+   "direct-vuln-high-count":1,
+   "direct-vuln-moderate-count":0,
+   "direct-vuln-low-count":8,
+   "indirect-vuln-critical-count":0,
+   "indirect-vuln-high-count":0,
+   "indirect-vuln-moderate-count":10,
+   "indirect-vuln-low-count":54,
+   "direct-dependencies":[
+      {
+         "package":"dep1",
+         "version":"0.0.1",
+         "release-datetime":"2020-01-02 02:03:04",
+         "score-datetime":"2020-02-27 01:02:03",
+         "top-score":18,
+         "direct-dep-count":8,
+         "all_dep_count":888,
+         "direct-vuln-critical-count":0,
+         "direct-vuln-high-count":0,
+         "direct-vuln-moderate-count":5,
+         "direct-vuln-low-count":10
+      },
+      {
+         "package":"dep2",
+         "version":"0.0.2",
+         "release-datetime":"2020-01-02 02:03:04",
+         "score-datetime":"2020-02-27 01:02:03",
+         "top-score":12,
+         "direct-dep-count":5,
+         "all_dep_count":644,
+         "direct-vuln-critical-count":0,
+         "direct-vuln-high-count":0,
+         "direct-vuln-moderate-count":2,
+         "direct-vuln-low-count":10
+      }
+   ]
+}
