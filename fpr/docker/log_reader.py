@@ -2,9 +2,22 @@ import enum
 import logging
 import struct
 import sys
+import itertools
 from io import BytesIO
-from typing import BinaryIO, IO, Sequence, Tuple, Generator, Union, Iterable
+from typing import (
+    BinaryIO,
+    Callable,
+    Generator,
+    IO,
+    Iterable,
+    Iterator,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
+T = TypeVar("T")
 
 log = logging.getLogger("fpr.docker_log_reader")
 log.setLevel(logging.WARN)
@@ -88,17 +101,42 @@ def iter_messages(
             break
 
 
-def iter_lines(
-    msgs_iter: Iterable[Tuple[DockerLogStream, DockerLogMessage]],
-    output_stream: DockerLogStream = DockerLogStream.STDOUT,
-) -> Generator[str, None, None]:
-    buf = bytes()
-    for stream, msg in msgs_iter:
-        if stream != output_stream:
-            log.debug(f"Skipping {stream} message {msg}")
-            continue
+def partition(
+    pred: Callable[[T], bool], iterable: Iterable[T]
+) -> Tuple[Iterator[T], Iterator[T]]:
+    """Use a predicate to partition entries into false entries and true entries
 
-        before = msg
+    from: https://docs.python.org/3/library/itertools.html#itertools-recipes
+    """
+    # partition(is_odd, range(10)) --> 0 2 4 6 8   and  1 3 5 7 9
+    t1, t2 = itertools.tee(iterable)
+    return itertools.filterfalse(pred, t1), filter(pred, t2)
+
+
+def split_streams(
+    msgs_iter: Iterable[Tuple[DockerLogStream, DockerLogMessage]],
+) -> Tuple[Iterable[DockerLogMessage], Iterable[DockerLogMessage]]:
+    """Splits a docker log messages iterator into respective stdout and
+    stderr streams"""
+    is_stderr_msg: Callable[
+        [Tuple[DockerLogStream, DockerLogMessage]], bool
+    ] = lambda tmp: tmp[0] == DockerLogStream.STDERR
+    stdout_msgs, stderr_msgs = partition(is_stderr_msg, msgs_iter)
+    return (
+        (msg_bytes for (_, msg_bytes) in stdout_msgs),
+        (msg_bytes for (_, msg_bytes) in stderr_msgs),
+    )
+
+
+def iter_newlines(
+    msg_bytes_iter: Iterable[DockerLogMessage]
+) -> Generator[str, None, None]:
+    """
+    Returns content of '\n' delimited lines decoded as utf8 for an iterator over bytes
+    """
+    buf = bytes()
+    for msg_bytes in msg_bytes_iter:
+        before = msg_bytes
         while True:
             before, newline, after = before.partition(b"\n")
             if newline:
@@ -111,6 +149,27 @@ def iter_lines(
 
     if len(buf):
         yield buf.decode("utf-8")
+
+
+def iter_lines(
+    msgs_iter: Iterable[Tuple[DockerLogStream, DockerLogMessage]],
+    output_stream: DockerLogStream = DockerLogStream.STDOUT,
+) -> Generator[str, None, None]:
+    stdout_msgs, stderr_msgs = split_streams(msgs_iter)
+
+    if output_stream == DockerLogStream.STDERR:
+        stream_msgs_iter = stderr_msgs
+    else:
+        stream_msgs_iter = stdout_msgs
+
+    yield from iter_newlines(stream_msgs_iter)
+
+
+def stdout_stderr_line_iters(
+    msgs_iter: Iterable[Tuple[DockerLogStream, DockerLogMessage]]
+) -> Tuple[Generator[str, None, None], Generator[str, None, None]]:
+    stdout_msgs, stderr_msgs = split_streams(msgs_iter)
+    return iter_newlines(stdout_msgs), iter_newlines(stderr_msgs)
 
 
 if __name__ == "__main__":
