@@ -3,7 +3,7 @@ import logging
 import struct
 import sys
 from io import BytesIO
-from typing import BinaryIO, IO, Sequence, Tuple, Generator, Union
+from typing import BinaryIO, IO, Sequence, Tuple, Generator, Union, Iterable
 
 
 log = logging.getLogger("fpr.docker_log_reader")
@@ -89,10 +89,7 @@ def iter_messages(
 
 
 def iter_lines(
-    msgs_iter: Union[
-        Sequence[Tuple[DockerLogStream, DockerLogMessage]],
-        Generator[Tuple[DockerLogStream, DockerLogMessage], None, None],
-    ],
+    msgs_iter: Iterable[Tuple[DockerLogStream, DockerLogMessage]],
     output_stream: DockerLogStream = DockerLogStream.STDOUT,
 ) -> Generator[str, None, None]:
     buf = bytes()
