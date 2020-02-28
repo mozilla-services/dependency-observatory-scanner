@@ -124,6 +124,15 @@ class Exec:
                 await asyncio.sleep(0.1)
 
     @property
+    def decoded_start_result_stdout_and_stderr_line_iters(
+        self: "Exec"
+    ) -> Tuple[Generator[str, None, None], Generator[str, None, None]]:
+        assert self.start_result is not None
+        return docker_log_reader.stdout_stderr_line_iters(
+            docker_log_reader.iter_messages(self.start_result)
+        )
+
+    @property
     def decoded_start_result_stdout(self: "Exec") -> List[str]:
         assert self.start_result is not None
         return list(

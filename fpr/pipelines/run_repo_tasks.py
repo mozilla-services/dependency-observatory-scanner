@@ -169,7 +169,10 @@ async def run_task(
         )
         return e
 
-    stdout = "\n".join(job_run.decoded_start_result_stdout)
+    stdout, stderr = [
+        "\n".join(line_iter)
+        for line_iter in job_run.decoded_start_result_stdout_and_stderr_line_iters
+    ]
 
     c_stdout, c_stderr = await asyncio.gather(c.log(stdout=True), c.log(stderr=True))
     log.debug(f"{container_name} stdout: {c_stdout}")
@@ -182,6 +185,7 @@ async def run_task(
         "relative_path": str(path),
         "exit_code": last_inspect["ExitCode"],
         "stdout": stdout,
+        "stderr": stderr,
     }
 
 
