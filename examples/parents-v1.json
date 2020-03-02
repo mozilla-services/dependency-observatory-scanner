@@ -1,0 +1,14 @@
+{
+   "package":"dep1",
+   "version":"0.0.1",
+   "parents":[
+      {
+         "package":"test",
+         "version":"0.0.1"
+      },
+      {
+         "package":"parent2",
+         "version":"1.2.3"
+      }
+   ]
+}
