@@ -116,8 +116,7 @@ def main():
     except Exception as e:
         log.error(f"error running {args.pipeline_name} pipeline:\n{exc_to_str()}")
 
-    log.info("pipeline finished")
-    log.debug("main finished!")
+    log.info(f"pipeline {args.pipeline_name} finished")
 
 
 if __name__ == "__main__":
