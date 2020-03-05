@@ -40,8 +40,16 @@ else
     VERSION_FILTER=".package_version == \"${package_version}\""
 fi
 printf '{"name":"%s"}\n' "$package_name" \
-    | docker run --rm -i "${IMAGE_NAME}" python fpr/run_pipeline.py $verbose_flag fetch_package_data fetch_npm_registry_metadata | tee "${TMP_DIR}/package_npm_registry_meta.jsonl" \
-    | jq -c '
+    | docker run --rm -i "${IMAGE_NAME}" python fpr/run_pipeline.py $verbose_flag fetch_package_data fetch_npmsio_scores \
+    | tee "${TMP_DIR}/package_npmsio_scores.jsonl" \
+    | docker run --rm -i --env DB_URL --net=host "${IMAGE_NAME}" python fpr/run_pipeline.py $verbose_flag save_to_db --input-type dep_meta_npmsio
+
+printf '{"name":"%s"}\n' "$package_name" \
+    | docker run --rm -i "${IMAGE_NAME}" python fpr/run_pipeline.py $verbose_flag fetch_package_data fetch_npm_registry_metadata \
+    | tee "${TMP_DIR}/package_npm_registry_meta.jsonl" \
+    | docker run --rm -i --env DB_URL --net=host "${IMAGE_NAME}" python fpr/run_pipeline.py $verbose_flag save_to_db --input-type dep_meta_npm_reg
+
+jq -c '
 .versions[]
 | select(.repository.url != null)
 | select(.gitHead != null)
@@ -51,10 +59,17 @@ printf '{"name":"%s"}\n' "$package_name" \
    repo: (.repository.url | split("/") | reverse | first | sub(".git"; "")),
    repo_url: ("https://" + (.repository.url | split("://") | last)),
    ref: {kind: "commit",
-         value: .gitHead}}' \
+         value: .gitHead}}' "${TMP_DIR}/package_npm_registry_meta.jsonl" \
     | jq -c "select(${VERSION_FILTER})" \
     | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py $verbose_flag find_dep_files --docker-pull --docker-build | tee "${TMP_DIR}/package_dep_files.jsonl" \
     | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py $verbose_flag run_repo_tasks --docker-pull --docker-build --language nodejs --package-manager npm --dir './' --repo-task install --repo-task list_metadata --repo-task audit | tee "${TMP_DIR}/package_repo_tasks.jsonl" \
     | docker run --rm -i "${IMAGE_NAME}" python fpr/run_pipeline.py $verbose_flag postprocess --repo-task list_metadata --repo-task audit | tee "${TMP_DIR}/package_postprocessed_repo_tasks.jsonl" \
     | docker run --rm -i --env DB_URL --net=host "${IMAGE_NAME}" python fpr/run_pipeline.py $verbose_flag save_to_db --create-tables --input-type postprocessed_repo_task
-docker run --rm -i --env DB_URL --net=host "${IMAGE_NAME}" python fpr/run_pipeline.py $verbose_flag save_to_db --input-type dep_meta_npm_reg -i "${TMP_DIR}/package_npm_registry_meta.jsonl"
+
+
+# fetch npms.io scores for dependents
+jq -c '.tasks[] | select(.name == "list_metadata") | .dependencies[] | {"name": .name}' "${TMP_DIR}/package_postprocessed_repo_tasks.jsonl" | sort | uniq > "${TMP_DIR}/unique_package_names.jsonl"
+NUM_UNIQUE_PKG_NAMES_COUNT=$(wc -l "${TMP_DIR}/unique_package_names.jsonl" | cut -d ' ' -f 1)
+echo "fetching npms.io scores for ${NUM_UNIQUE_PKG_NAMES_COUNT} unique package names"
+docker run --rm -i "${IMAGE_NAME}" python fpr/run_pipeline.py $verbose_flag fetch_package_data fetch_npmsio_scores < "${TMP_DIR}/unique_package_names.jsonl" | tee -a "${TMP_DIR}/package_npmsio_scores.jsonl" \
+    | docker run --rm -i --env DB_URL --net=host "${IMAGE_NAME}" python fpr/run_pipeline.py $verbose_flag save_to_db --input-type dep_meta_npmsio
