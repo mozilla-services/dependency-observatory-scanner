@@ -57,3 +57,4 @@ printf '{"name":"%s"}\n' "$package_name" \
     | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py $verbose_flag run_repo_tasks --docker-pull --docker-build --language nodejs --package-manager npm --dir './' --repo-task install --repo-task list_metadata --repo-task audit | tee "${TMP_DIR}/package_repo_tasks.jsonl" \
     | docker run --rm -i "${IMAGE_NAME}" python fpr/run_pipeline.py $verbose_flag postprocess --repo-task list_metadata --repo-task audit | tee "${TMP_DIR}/package_postprocessed_repo_tasks.jsonl" \
     | docker run --rm -i --env DB_URL --net=host "${IMAGE_NAME}" python fpr/run_pipeline.py $verbose_flag save_to_db --create-tables --input-type postprocessed_repo_task
+docker run --rm -i --env DB_URL --net=host "${IMAGE_NAME}" python fpr/run_pipeline.py $verbose_flag save_to_db --input-type dep_meta_npm_reg -i "${TMP_DIR}/package_npm_registry_meta.jsonl"
