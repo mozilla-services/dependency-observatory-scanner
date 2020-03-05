@@ -40,7 +40,7 @@ else
     VERSION_FILTER=".package_version == \"${package_version}\""
 fi
 printf '{"name":"%s"}\n' "$package_name" \
-    | docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock "${IMAGE_NAME}" python fpr/run_pipeline.py $verbose_flag fetch_package_data fetch_npm_registry_metadata | tee "${TMP_DIR}/package_npm_registry_meta.jsonl" \
+    | docker run --rm -i "${IMAGE_NAME}" python fpr/run_pipeline.py $verbose_flag fetch_package_data fetch_npm_registry_metadata | tee "${TMP_DIR}/package_npm_registry_meta.jsonl" \
     | jq -c '
 .versions[]
 | select(.repository.url != null)
