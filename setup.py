@@ -17,6 +17,7 @@ setup(
     description='Dependency Observatory Scanner: a scanner for software packages and dependencies',
     url=SOURCE_URL,
     long_description=README,
+    long_description_content_type="text/markdown",
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
