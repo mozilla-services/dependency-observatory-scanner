@@ -2,5 +2,5 @@ include requirements.txt requirements.txt.lock
 include LICENSE
 include README.md
 
-recursive-include fpr *.py *.json *.sh *.txt INSTALLER METADATA RECORD WHEEL
-recursive-include tests *.py *.json
+recursive-include fpr *.py *.json *.jsonl *.sh *.txt INSTALLER METADATA RECORD WHEEL
+recursive-include tests *.py *.json *.jsonl
