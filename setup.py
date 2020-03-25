@@ -14,7 +14,7 @@ with open(os.path.join(__dirname, 'README.md')) as readme:
 with open(os.path.join(__dirname, 'requirements.txt.lock')) as requirements:
     INSTALL_REQUIRES = [
         line.split(' ')[0] for i, line in enumerate(requirements.read().replace('\\\n', '').split('\n'))
-        if line and i > 0 # skip index-url on first line
+        if line
     ]
 
 
