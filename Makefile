@@ -33,7 +33,7 @@ install-dev:
 	DEV=1 bash ./bin/install.sh
 
 format:
-	$(IN_VENV) black fpr/*.py fpr/**/*.py tests/**/*.py
+	$(IN_VENV) black setup.py fpr/*.py fpr/**/*.py tests/**/*.py
 
 type-check:
 	$(IN_VENV) mypy fpr/
