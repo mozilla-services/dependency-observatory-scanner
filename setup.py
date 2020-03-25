@@ -11,6 +11,13 @@ __dirname = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(__dirname, 'README.md')) as readme:
     README = readme.read()
 
+with open(os.path.join(__dirname, 'requirements.txt.lock')) as requirements:
+    INSTALL_REQUIRES = [
+        line.split(' ')[0] for i, line in enumerate(requirements.read().replace('\\\n', '').split('\n'))
+        if line and i > 0 # skip index-url on first line
+    ]
+
+
 setup(
     name=NAME,
     version=VERSION,
@@ -30,6 +37,7 @@ setup(
     ],
     author='Greg Guthe',
     author_email='foxsec+dependencyscan@mozilla.com',
+    install_requires=INSTALL_REQUIRES,
     packages=find_packages(),
     include_package_data=True,
     zip_safe=True,

@@ -58,7 +58,7 @@ def add_aiohttp_args(
     pipeline_parser.add_argument(
         "--user-agent",
         type=str,
-        default="https://github.com/mozilla-services/find-package-rugaru (foxsec+fpr@mozilla.com)",
+        default="https://github.com/mozilla-services/dependency-observatory-scanner (foxsec+fpr@mozilla.com)",
         help="User agent to user to query crates.io",
     )
     pipeline_parser.add_argument(
