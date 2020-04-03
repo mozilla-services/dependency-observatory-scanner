@@ -1,0 +1,29 @@
+strict digraph {
+	"crate_graph*";
+	"dep_graph*";
+	"fetch_package_data";
+	"find_dep_files";
+	"find_git_refs";
+	"github_metadata";
+	"postprocess";
+	"run_repo_tasks";
+	"rust_changelog*";
+	"save_to_db";
+
+	# analyze_repo.sh
+	"find_git_refs" -> "find_dep_files" -> "run_repo_tasks" -> "postprocess" -> "save_to_db";
+
+	# analyze_package.sh
+	"fetch_package_data" -> "find_dep_files" -> "run_repo_tasks" -> "postprocess" -> "save_to_db";
+
+	# npm only
+	"run_repo_tasks" -> "dep_graph*":
+
+	# github_metadata depending on the resources fetched
+	# can provide similar output as "find_git_refs" -> "find_dep_files" -> "run_repo_tasks"
+
+	# TODO: replace with run_repo_tasks and dep graph
+	# TODO: check whether a postprocess step is required
+	"cargo_metadata*" -> "crate_graph*";
+	"cargo_metadata*" -> "rust_changelog*";
+}
