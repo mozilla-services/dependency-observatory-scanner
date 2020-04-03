@@ -91,6 +91,12 @@ dump-db:
 	mkdir -p "dep_obs_dump_$(shell date --utc +%F)/"
 	PGPASSWORD=postgres pg_dump -j $(shell nproc --all) -U postgres -h localhost -p 5432 -Fd dependency_observatory -f "dep_obs_dump_$(shell date --utc +%F)/"
 
+docs:
+	dot -O -Tsvg docs/pipelines.dot
+
+show-docs:
+	python -m webbrowser -t docs/pipelines.dot.svg
+
 run-crate-graph-and-save:
 	$(FPR) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -o crate_graph.jsonl --dot-filename default.dot
 	$(FPR) crate_graph -i tests/fixtures/cargo_metadata_serialized.json -a crate_graph.jsonl -o /dev/null --node-key name --node-label name_authors --filter dpc --filter serde --dot-filename serde_authors_filtered.dot
@@ -123,4 +129,4 @@ dump-test-fixture-pickle-files:
 venv-shell:
 	$(IN_VENV) bash
 
-.PHONY: build-image dump-test-fixture-pickle-files coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-github-metadata-and-save update-requirements show-dot unit-test
+.PHONY: build-image docs dump-test-fixture-pickle-files coverage format type-check style-check test test-clear-cache clean install install-dev-tools run-github-metadata-and-save update-requirements show-dot unit-test

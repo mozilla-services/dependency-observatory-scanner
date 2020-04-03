@@ -105,6 +105,48 @@ git tags for the `mozilla-services/channelserver` project:
 $ echo '{"repo_url": "https://github.com/mozilla-services/channelserver"}' | docker run -i --rm -v /var/run/docker.sock:/var/run/docker.sock --name fpr-test mozilla/dependencyscan python fpr/run_pipeline.py -v find_git_refs
 ```
 
+### Current Pipelines (from -h output)
+
+```console
+    crate_graph         Parses the output of the cargo metadata pipeline and
+                        writes a .dot file of the dependencies to outfile
+    dep_graph           Parses the output of the cargo metadata pipeline and
+                        writes a .dot file of the dependencies to outfile
+    fetch_package_data  Fetches additional data about a dependency.
+    find_dep_files      Given a repo_url, clones the repo, lists git refs for
+                        each tag
+    find_git_refs       Given a repo_url, clones the repo, lists git refs for
+                        each tag TODO: every Nth commit, or commit every time
+                        interval. TODO: since and until args TODO: find
+                        branches
+    github_metadata     Given an input file with repo urls metadata output
+                        fetches dependency and vulnerability metadata from
+                        GitHub and an optional GitHub PAT and outputs them to
+                        jsonl and optionally saves them to a local SQLite3 DB.
+    postprocess         Post processes tasks for various outputs e.g.
+                        flattening deps, filtering and extracting fields, etc.
+                        Does not spin up containers or hit the network.
+    run_repo_tasks      Runs tasks on a checked out git ref with dep. files
+    rust_changelog      Given ordered cargo metadata output for git refs from
+                        the same repo: 1. builds a dict of manifest filename
+                        to cargo meta 2. groups the output into pairs (i.e. 1,
+                        2, 3 -> (1, 2), (2, 3) in the provided order 3.
+                        compares each pair as follows: a. compare each
+                        manifest filename: 1) count new and removed
+                        dependencies 2) new and removed authors and repo urls
+                        TODO: output a diff of the updated dep code (need to
+                        update the cargo metadata pipeline to pull these)
+                        TODO: take audit output to show new and fixed Rust
+                        vulns TODO: detect dep version changes
+    save_to_db          Saves JSON lines to a postgres DB
+```
+
+See `bin/analyze_*` scripts and `Makefile` for example usage.
+
+They feed into each other as follows (`*` indicates deprecated, removed or otherwise broken pipelines):
+
+![pipelines graph](./docs/pipelines.dot.svg)
+
 ##### Pipeline API
 
 *Note that this interface may be subject to change*
