@@ -108,7 +108,7 @@ IN_FIELDS: Dict[str, Union[type, str, Dict[str, str]]] = {
     "language": str,  # Language.name
     "package_manager": str,  # PackageManager.name
     # NPMPackage, RustCrate, or RustCrate (resolved or unresolved)
-    "name": str,  # the pcakage name
+    "name": str,  # the package name
     "version": Optional[str],
 }
 OUT_FIELDS: Dict[str, Any] = dict()
