@@ -125,7 +125,7 @@ class Exec:
 
     @property
     def decoded_start_result_stdout_and_stderr_line_iters(
-        self: "Exec"
+        self: "Exec",
     ) -> Tuple[Generator[str, None, None], Generator[str, None, None]]:
         assert self.start_result is not None
         return docker_log_reader.stdout_stderr_line_iters(

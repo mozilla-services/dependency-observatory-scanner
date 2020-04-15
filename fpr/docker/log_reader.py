@@ -129,7 +129,7 @@ def split_streams(
 
 
 def iter_newlines(
-    msg_bytes_iter: Iterable[DockerLogMessage]
+    msg_bytes_iter: Iterable[DockerLogMessage],
 ) -> Generator[str, None, None]:
     """
     Returns content of '\n' delimited lines decoded as utf8 for an iterator over bytes
