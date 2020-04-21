@@ -1,3 +1,5 @@
+**Note: This repository is only used as part of a Jenkins job ran by operations security. The scanner embedded in the depobs service is at https://github.com/mozilla-services/dependency-observatory/tree/master/depobs/scanner **
+
 ## find-package-rugaru
 
 `find-package-rugaru` finds open source dependent packages in a git
